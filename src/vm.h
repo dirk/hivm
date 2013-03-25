@@ -4,6 +4,7 @@
 typedef char hvm_op;
 #define HVM_OP_SIZE sizeof(hvm_op)
 
+// Size of chunks to be allocated for storing bytecodes.
 #define HVM_GENERATOR_GROW_RATE 65536
 
 typedef struct hvm_generator {
@@ -20,5 +21,9 @@ typedef struct hvm_vm {
   // heap
   // object space
 } hvm_vm_t;
+
+typedef enum hvm_opcode {
+  HVM_OP_NOOP
+} hvm_opcode_t;
 
 #endif
