@@ -4,14 +4,28 @@ These are crazy-ass notes written on various combinations of low sleep, copious 
 
 ## Types
 
-Hivm supports a few different data types:
+Hivm has 5+1 data types:
 
-* Integer (signed with unlimited precision)
-* Float (64-bit/double precision)
-* String (known-length byte sequences, *use UTF-8 because it's cool and we don't need any more Western-Latin hegemony*)
-* Probably more down the road.
+* Null
+* Integer: signed with unlimited precision
+* Float: 64-bit/double precision
+* String: known-length byte sequences, *use UTF-8 because it's cool and we don't need any more Western-Latin hegemony*
+* Structure: composite data type that maps symbols to data values; heavily inspired by Lua's tables and C structs; performance *must* be extremely fast
+* (Symbol: just a non-negative integer mapping to a string in the VM's symbol table)
+
+### Booleans
+
+There are two falsy values: null and the zero integer (0x0). Everything else is true. If you want anything fancier than that then you've got to build it yourself at a higher layer.
+
+(Also if you manage to somehow end up with a sign-negative zero (0x80000000 in big-endian 32-bit), then I will be both impressed and full of pity for you.)
+
+### Null
+
+Null is and will always be nothing.
 
 ## Registers
+
+Hivm provides essentially-infinite registers. Registers are local only to the current stack frame and are not saved between calls. Registers are type-aware of the data they contain.
 
 ## Instruction set
 
