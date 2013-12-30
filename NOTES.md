@@ -35,6 +35,8 @@ This is pretty inspired by ARM, MIPS, and various other RISCs. For now it will p
 
 ## Variables
 
+Variables can either be stored in (temporary local) registers or scopes. Register variables do not interact with the garbage collection system in any way. Scopes are specialized structures and therefore interact with the GC. This is heavily inspired by old C-style memory management with a somewhat-clear usage divide between stacks (relatively primitive) and heaps (complex).
+
 ### Closures
 
-The generator API will provide a handy utility function ("lexicalize"?) which will symbolicate all the local variables for a scope into a compact closure scope object that can be easily embedded into a function object. (Possibly symbolicate all the local variable names into a sorted array that you can then easily do a binary search through for lookups. Also makes it easy to inline cache those indexes in the inner function during first invocation. Or maybe down the road make some sweet little fast table/hash thing for general use beyond this.)
+The generator API will provide a handy utility function ("lexicalize"?) which will symbolicate all the local variables for a scope into a compact closure scope structure that can be easily embedded into a function object.
