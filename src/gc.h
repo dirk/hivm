@@ -1,3 +1,5 @@
+// THIS IS OUTDATED AS SHIT.
+
 #ifndef HVM_GC_H
 #define HVM_GC_H
 

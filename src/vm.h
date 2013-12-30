@@ -23,7 +23,8 @@ typedef struct hvm_vm {
 } hvm_vm_t;
 
 typedef enum hvm_opcode {
-  HVM_OP_NOOP
+  HVM_OP_NOOP = 0,
+  HVM_OP_GOTO = 1
 } hvm_opcode_t;
 
 #endif

@@ -1,3 +1,5 @@
+// THIS IS OUTDATED AS SHIT.
+
 #ifndef HVM_OBJECT_SPACE_H
 #define HVM_OBJECT_SPACE_H
 
@@ -7,5 +9,8 @@
 // Although this means a worst-case scenario of two lookups for every object
 // reference from the VM, with inline caching and other optimizations it
 // should be possible to average closer to 1 distant lookup.
+
+// The object space consists of a table of lookups with an object ID pointing
+// to a pointer.
 
 #endif
