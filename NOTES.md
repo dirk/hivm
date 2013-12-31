@@ -25,13 +25,38 @@ Null is and will always be nothing.
 
 ## Registers
 
-Hivm provides essentially-infinite registers. Registers are local only to the current stack frame and are not saved between calls. Registers are type-aware of the data they contain.
+Hivm provides essentially-infinite registers. Registers are type-aware of the data they contain.
+
+### Local registers: $r0, $r1, ...
+
+Local only to the current stack frame and are not saved between calls.
+
+### Argument registers: $a0, $a1, ...
+
+Write-only. Used for arguments when calling subroutines. Contain null by default.
+
+### Parameter registers: $pn, $p1, $p2
+
+Read-only. Used by subroutines to read arguments. $pn is a special integer register that contains the total number of parameters passed (allows varargs). Like argument registers they are null by default.
+
+### Virtual registers: $zero, $null
+
+The $null register will always be null. Writing any value in the $null register will not raise an exception.
+
+$zero will always be a zero integer.
+
+## Calling conventions
+
+Invoking subroutines should normally follow the following process:
+
+1. Set argument registers with values to be passed to the subroutine.
+2. Use the `call SUB RET` instruction to call the subroutine. SUB should be an integer-valued register with the address. RET can be a register for the return value of the subroutine to be placed in. If the subroutine is not expected to return a value or you don't want to use the value returned then use the $null register as RET.
 
 ## Instruction set
 
 This is pretty inspired by ARM, MIPS, and various other RISCs. For now it will probably be internally represented in 32-bit words. You should never generate these yourself; always use Hivm's generator API to interact with the code-memory of a VM instance. (However it will make it easy to extract compiled bytecode for a code region (ie. file) and cache that for reuse in the same version of the VM.) As far as any limitations imposed by this design decision goes I'm going to adopt the following philosophy: if it screams bloody murder about something you do now then it may not in the future, if it doesn't scream bloody murder about something right now then it *really shouldn't* in the future.
 
-## Calling conventions
+See [INSTRUCTIONS](INSTRUCTIONS.md) for detailed documentation of instructions.
 
 ## Variables
 
