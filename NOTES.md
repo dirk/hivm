@@ -42,7 +42,7 @@ Structures are designed to support objects. There will likely be some form of ty
 
 Hivm provides essentially-infinite registers. Registers are type-aware of the data they contain.
 
-### Local registers: $r0, $r1, ...
+### Temporary local registers: $r0, $r1, ...
 
 Local only to the current stack frame and are not saved between calls.
 

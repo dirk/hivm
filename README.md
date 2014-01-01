@@ -8,9 +8,9 @@ Virtual machines have become a new layer of abstraction between the programmer a
 
 The Hivm project aims to overcome these and provide a new, better virtual machines for a variety of static, dynamic, and hybrid languages:
 
-1. No native tongue: Hivm instead provides a solid, dependable, performant base for implementing languages.
-2. Minimize complexity: bootstrapping a language, interacting with the machine, writing platform-native extensions, and the like should not be hard.
-3. Maximize usable performance: the machine will not only perform well but also provide easy-to-use and powerful tools and APIs for understanding and optimizing how it performs.
+1. **No native tongue**: Hivm instead provides a solid, dependable, performant base for implementing languages.
+2. **Minimize complexity**: bootstrapping a language, interacting with the machine, writing platform-native extensions, and the like should not be hard.
+3. **Maximize usable performance**: the machine will not only perform well but also provide easy-to-use and powerful tools and APIs for understanding and optimizing how it performs.
 
 ## License
 
