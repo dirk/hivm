@@ -125,8 +125,7 @@
 ### Closures
 
 `getclosure A`
-:   Get the current scope as a closure-structure.
-    
+:   Get the current scope as a closure-structure.  
     **Warning**: These will probably be not-very-performant since it will (in
     the unoptimized case) probably end up compacting and copying the stack.
 
