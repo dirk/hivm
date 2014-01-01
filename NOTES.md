@@ -65,3 +65,7 @@ Variables can either be stored in (temporary local) registers or scopes. Registe
 ### Closures
 
 The generator API will provide a handy utility function ("lexicalize"?) which will symbolicate all the local variables for a scope into a compact closure scope structure that can be easily embedded into a function object.
+
+## Constants
+
+Bytecode chunks may include a constant pool for any necessary values. Instructions reference constants locally to their chunks. These chunk-relative references are resolved to VM-relative references when the chunk is loaded.
