@@ -1,5 +1,33 @@
 # Hivm Instruction Set
 
+## Array instructions
+
+`arraypush A B`
+:  Push B onto the end of array A.
+
+`arrayunshift A B`
+:  Push B onto the front of array A.
+
+`arraypop B A`
+:  Pop B off of the end of array A.
+
+`arrayshift B A`
+:  Pop B off the front of array A.
+
+`arraynew A L`
+:  Create a new array in A with length of non-negative integer L ($zero is allowed).
+
+## Structure operations
+
+`structset S K V`
+:  Set key symbol (non-negative integer) K in struct S to value V.
+
+`structget V S K`
+:  Get value from S by key symbol K and store the value in V.
+
+`structdelete V S K`
+:  Same as `structget`, however the key-value will be removed from S.
+
 ## Control flow & subroutines
 
 `call SUB RET`
