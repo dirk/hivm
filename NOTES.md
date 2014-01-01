@@ -1,3 +1,5 @@
+# Notes
+
 ## Disclaimer
 
 These are crazy-ass notes that probably are not very intelligent. You've been warned.

@@ -1,4 +1,4 @@
-# Hivm Instruction Set
+# Instruction Set
 
 ## Array instructions
 
