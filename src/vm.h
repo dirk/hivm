@@ -2,16 +2,26 @@
 #define HVM_VM_H
 /// @file vm.h
 
-/// VM instruction
-typedef char hvm_op;
-#define HVM_OP_SIZE sizeof(hvm_op)
+#include "stdint.h"
 
-// Size of chunks to be allocated for storing bytecodes.
+/// VM opcode (256 max)
+typedef char hvm_opcode;
+/// VM instruction
+typedef uint64_t hvm_instruction;
+
+/// Size of chunks to be allocated for storing bytecodes.
 #define HVM_GENERATOR_GROW_RATE 65536
 
 /**
-Stores instructions, constants, etc. for a chunk. Can then generate the
-appropriate bytecode for that chunk.
+@brief Chunk of instruction code and data (constants, etc.).
+*/
+typedef struct hvm_chunk {
+  
+} hvm_chunk_t;
+
+/**
+@brief Stores instructions, constants, etc. for a chunk. Can then generate the
+       appropriate bytecode for that chunk.
 */
 typedef struct hvm_generator {
   // nothing
@@ -21,7 +31,7 @@ typedef struct hvm_generator {
 Generates bytecode.
 @memberof hvm_generator
 */
-void hvm_generator_generate(hvm_generator_t*);
+void hvm_generator_bytecode(hvm_generator_t*);
 
 /// Instance of the VM.
 typedef struct hvm_vm {
@@ -32,9 +42,9 @@ typedef struct hvm_vm {
   // object space
 } hvm_vm_t;
 
-/// Valid opcodes.
+/// Opcodes
 typedef enum hvm_opcode {
-  HVM_OP_NOOP = 0, ///< Does nothing.
+  HVM_OP_NOOP = 0,
   HVM_OP_GOTO = 1
 } hvm_opcode_t;
 
