@@ -24,7 +24,13 @@ There are two falsy values: null and the zero integer (0x0). Everything else is 
 
 Null is and will always be nothing.
 
+### Simple data types
+
+Null, integer, float, and string are all "simple" data types. They are immutable.
+
 ### Complex data types
+
+Complex data types are mutable.
 
 Arrays are fast dynamic arrays that grow and shrink as you need them. They also support stack and queue operations (push, pop, shift, unshift).
 
