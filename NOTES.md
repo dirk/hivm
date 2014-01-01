@@ -1,6 +1,6 @@
 ## Disclaimer
 
-These are crazy-ass notes written on various combinations of low sleep, copious amounts of tea/coffee, and/or runner's high after jogs. You've been warned.
+These are crazy-ass notes that probably are not very intelligent. You've been warned.
 
 ## Types
 
@@ -23,6 +23,12 @@ There are two falsy values: null and the zero integer (0x0). Everything else is 
 ### Null
 
 Null is and will always be nothing.
+
+### Complex data types
+
+Arrays are fast dynamic arrays that grow and shrink as you need them. They also support stack and queue operations (push, pop, shift, unshift).
+
+Structures are designed to support objects. There will likely be some form of type assignment/hinting so that you can build a relative-high-performance static/dynamic-yet-consistent type system on top of them. The optimizer/JIT compiler will also carefully watch structure interaction (and aforementioned type notations) when generating type-guarded native/optimized code.
 
 ## Registers
 
