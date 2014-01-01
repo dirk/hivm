@@ -105,7 +105,30 @@
 `exit STATUS`
 :  Exit interpreter with integer status code in STATUS.
 
-## TODO: Local/global variables
+## Local/global variables
+
+`setlocal N V`
+:  Sets a local by symbol name N with value V.
+
+`getlocal V N`
+:  Gets a local by symbol name N into V.
+
+`setglobal N V`
+:  Sets a global by symbol name N with value V.
+
+`getglobal V N`
+:  Gets a global by symbol name N into V.
+
+`findlexical V N`
+:  **Slow stack search operation.** Climb the stack searching for a local by symbol name N; if found store in V.
+
+### Closures
+
+`getclosure A`
+:   Get the current scope as a closure-structure.
+    
+    **Warning**: These will probably be not-very-performant since it will (in
+    the unoptimized case) probably end up compacting and copying the stack.
 
 ## Math
 
