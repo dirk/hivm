@@ -4,13 +4,14 @@ These are crazy-ass notes written on various combinations of low sleep, copious 
 
 ## Types
 
-Hivm has 5+1 data types:
+Hivm has 6+1 data types:
 
 * Null
 * Integer: signed with unlimited precision
 * Float: 64-bit/double precision
 * String: known-length byte sequences, *use UTF-8 because it's cool and we don't need any more Western-Latin hegemony*
 * Structure: composite data type that maps symbols to data values; heavily inspired by Lua's tables and C structs; performance *must* be extremely fast
+* Array: dynamic array; can contain any type as values
 * (Symbol: just a non-negative integer mapping to a string in the VM's symbol table)
 
 ### Booleans
