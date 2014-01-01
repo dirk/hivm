@@ -105,6 +105,8 @@
 `exit STATUS`
 :  Exit interpreter with integer status code in STATUS.
 
+## TODO: Local/global variables
+
 ## Math
 
 `add A B C`
