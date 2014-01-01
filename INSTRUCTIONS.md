@@ -14,6 +14,15 @@
 `arrayshift B A`
 :  Pop B off the front of array A.
 
+`arrayset A I V`
+:  Set value V at index I in array A.
+
+`arrayget V A I`
+:  Get value at index I from array A and store it in V.
+
+`arraydelete V A I`
+:  Delete value at index I from array A and store it in V.
+
 `arraynew A L`
 :  Create a new array in A with length of non-negative integer L ($zero is allowed).
 
@@ -27,6 +36,12 @@
 
 `structdelete V S K`
 :  Same as `structget`, however the key-value will be removed from S.
+
+`structhas B S K`
+:  Set boolean in B depending on whether or not struct S has a value for symbol key K. (Boolean will be integer 0 or 1.)
+
+`structnew S`
+:  Create a new struct in register S.
 
 ## Control flow & subroutines
 
