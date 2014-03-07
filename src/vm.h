@@ -33,11 +33,18 @@ Generates bytecode.
 */
 void hvm_generator_bytecode(hvm_generator*);
 
+
+/// Constant pool maps an integer to a constant
+typedef struct hvm_constant_pool {
+  
+} hvm_constant_pool;
+
 /// Instance of the VM.
 typedef struct hvm_vm {
   // root stack
   // code
-  // instruction pointer
+  uint64_t ip; // instruction pointer
+  hvm_constant_pool const_pool;
   // heap
   // object space
 } hvm_vm;
