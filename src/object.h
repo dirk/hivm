@@ -1,5 +1,3 @@
-// THIS IS OUTDATED AS SHIT.
-
 #ifndef HVM_OBJECT_H
 #define HVM_OBJECT_H
 
@@ -23,6 +21,7 @@ typedef struct hvm_obj_ref {
   uint64_t      data;// 8 bytes of data to play with
 } hvm_obj_ref;
 
+// TYPES
 typedef struct hvm_obj_string {
   char* data;
 } hvm_obj_string;
@@ -32,10 +31,26 @@ typedef struct hvm_obj_array {
   unsigned int length;
 } hvm_obj_array;
 
+typedef struct hvm_obj_struct {
+  void** heap;
+  unsigned int heap_size;// Bytes in the heaps. Number of pairs = bytes / 2
+} hvm_obj_struct;
+
+// CONSTRUCTORS
 hvm_obj_array *hvm_new_obj_array();
 
 // PRIMITIVE
-// Composed of just metadata and primitive value (integer, float, etc.)
+// Composed of just metadata and primitive value.
+// Types: null, integer, float, (symbol)
+
+// INDIRECT PRIMITIVE
+// Types: string
+
+// COMPOSITE
+// Types: structure, array
+
+
+// OLD ------------------------------------------------------------------------
 
 // COMPOSITE
 // Metadata and dynamic slots. Dynamic slots are by default looked up in  a
