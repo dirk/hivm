@@ -4,3 +4,4 @@
 doc/*
 *.dSYM
 test/test
+test/test_vm
