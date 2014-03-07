@@ -1,4 +1,4 @@
-#include "vm.h"
+#include "hvm.h"
 
 int main(int argc, char **argv) {
   hvm_vm *vm = hvm_new_vm();
