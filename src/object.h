@@ -39,6 +39,7 @@ typedef struct hvm_obj_struct {
 } hvm_obj_struct;
 
 // CONSTRUCTORS
+hvm_obj_string *hvm_new_obj_string();
 hvm_obj_array *hvm_new_obj_array();
 hvm_obj_struct *hvm_new_obj_struct();
 
