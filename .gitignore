@@ -2,6 +2,7 @@
 *.o
 *.a
 doc/*
+include/*
 *.dSYM
 test/test
 test/test_vm

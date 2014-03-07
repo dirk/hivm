@@ -9,6 +9,19 @@ desc "Build"
 task "build" => ["libhivem.a"]
 task "default" => ["build"]
 
+namespace "build" do
+  desc "Build include directory (header files)"
+  task "include" do
+    headers = {
+      "vm" => "hvm",
+      "object" => "hvm_object"
+    }
+    headers.each do |src, dst|
+      sh "cp src/#{src}.h include/#{dst}.h"
+    end
+  end
+end
+
 # desc "Compile"
 file 'libhivem.a' => [
   # Source
@@ -24,14 +37,15 @@ end
 
 desc "Clean up objects"
 task "clean" do
-  sh "rm -rf src/*.o"
-  # sh "rm -rf test/*.o"
-  sh "rm -f libhivem.a"
+  sh "rm src/*.o"
+  # sh "rm test/*.o"
+  sh "rm libhivem.a"
 end
 
 namespace "clean" do
   desc "Clean up everything (objects, docs)"
   task "all" => ["clean", "doc:clean"] do
+    sh "rm include/*.h"
     puts 'Done!'
   end
 end
