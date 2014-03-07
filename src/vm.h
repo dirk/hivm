@@ -49,6 +49,8 @@ typedef struct hvm_vm {
   // object space
 } hvm_vm;
 
+hvm_vm *hvm_new_vm();
+
 /// Opcodes
 typedef enum {
   HVM_OP_NOOP = 0,
