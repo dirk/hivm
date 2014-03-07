@@ -17,7 +17,7 @@ typedef uint64_t hvm_instruction;
 */
 typedef struct hvm_chunk {
   
-} hvm_chunk_t;
+} hvm_chunk;
 
 /**
 @brief Stores instructions, constants, etc. for a chunk. Can then generate the
@@ -25,13 +25,13 @@ typedef struct hvm_chunk {
 */
 typedef struct hvm_generator {
   // nothing
-} hvm_generator_t;
+} hvm_generator;
 
 /**
 Generates bytecode.
 @memberof hvm_generator
 */
-void hvm_generator_bytecode(hvm_generator_t*);
+void hvm_generator_bytecode(hvm_generator*);
 
 /// Instance of the VM.
 typedef struct hvm_vm {
@@ -40,12 +40,12 @@ typedef struct hvm_vm {
   // instruction pointer
   // heap
   // object space
-} hvm_vm_t;
+} hvm_vm;
 
 /// Opcodes
-typedef enum hvm_opcode {
+typedef enum {
   HVM_OP_NOOP = 0,
   HVM_OP_GOTO = 1
-} hvm_opcode_t;
+} hvm_opcodes;
 
 #endif
