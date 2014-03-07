@@ -23,6 +23,17 @@ typedef struct hvm_obj_ref {
   uint64_t      data;// 8 bytes of data to play with
 } hvm_obj_ref;
 
+typedef struct hvm_obj_string {
+  char* data;
+} hvm_obj_string;
+
+typedef struct hvm_obj_array {
+  hvm_obj_ref** data;
+  unsigned int length;
+} hvm_obj_array;
+
+hvm_obj_array *hvm_new_obj_array();
+
 // PRIMITIVE
 // Composed of just metadata and primitive value (integer, float, etc.)
 

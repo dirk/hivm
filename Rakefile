@@ -8,7 +8,7 @@ task "default" => ["build"]
 # desc "Compile"
 file 'libhivem.a' => [
   # Source
-  'src/vm.o'
+  'src/vm.o', 'src/object.o'
 ] do |t|
   # sh "cc -o #{t.name} #{t.prerequisites.join ' '} #{LDFLAGS} #{CFLAGS}"
   sh "ar rcs #{t.name} #{t.prerequisites.join ' '}"
