@@ -1,0 +1,14 @@
+
+$cflags = "-g -Wall -std=c99 ../libhivem.a -I../src"
+
+task 'default' => ['test_vm']
+
+desc "Build VM tester"
+file 'test_vm' => ['test_vm.c'] do
+  sh "cc test_vm.c #{$cflags} -o test_vm"
+end
+
+desc 'Clean'
+task 'clean' do
+  sh "rm test_vm"
+end
