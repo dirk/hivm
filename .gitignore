@@ -3,3 +3,4 @@
 *.a
 doc/*
 *.dSYM
+test/test
