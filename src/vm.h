@@ -4,8 +4,10 @@
 
 #include "stdint.h"
 
+typedef unsigned char byte;
+
 /// VM opcode (256 max)
-typedef char hvm_opcode;
+typedef byte hvm_opcode;
 /// VM instruction
 typedef uint64_t hvm_instruction;
 
@@ -43,7 +45,8 @@ typedef struct hvm_constant_pool {
 typedef struct hvm_vm {
   // root stack
   // code
-  uint64_t ip; // instruction pointer
+  uint64_t ip; // instruction pointer (indexes bytes in the program)
+  byte* program; // data for instructions
   hvm_constant_pool const_pool;
   // heap
   // object space

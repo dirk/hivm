@@ -16,8 +16,6 @@ typedef enum {
   HVM_SYMBOL = 6// Internally same as HVM_INTEGER
 } hvm_obj_type;
 
-typedef unsigned char byte;
-
 /// Base reference to an object
 typedef struct hvm_obj_ref {
   hvm_obj_type  type;
