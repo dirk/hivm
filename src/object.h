@@ -1,6 +1,9 @@
 #ifndef HVM_OBJECT_H
 #define HVM_OBJECT_H
 
+#define HVM_STRUCT_INITIAL_HEAP_SIZE 8
+#define HVM_STRUCT_HEAP_MEMORY_SIZE(S) (S * (sizeof(uint64_t) + sizeof(void)))
+
 // Objects are either primitive or composite.
 
 typedef enum {
@@ -32,12 +35,14 @@ typedef struct hvm_obj_array {
 } hvm_obj_array;
 
 typedef struct hvm_obj_struct {
-  void** heap;
-  unsigned int heap_size;// Bytes in the heaps. Number of pairs = bytes / 2
+  void** heap;// Binary heap of symbol-integer-and-pointer pairs.
+  unsigned int heap_size;// Number of pairs in the binary heap.
+  // memory size (bytes) = heap_size (pairs) * 2 (words/pair) * 8 (bytes/word)
 } hvm_obj_struct;
 
 // CONSTRUCTORS
 hvm_obj_array *hvm_new_obj_array();
+hvm_obj_struct *hvm_new_obj_struct();
 
 // PRIMITIVE
 // Composed of just metadata and primitive value.
