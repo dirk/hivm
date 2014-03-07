@@ -20,7 +20,7 @@ typedef unsigned char byte;
 /// Base reference to an object
 typedef struct hvm_obj_ref {
   hvm_obj_type  type;
-  byte          data[8];// 8 bytes of data to play with
+  uint64_t      data;// 8 bytes of data to play with
 } hvm_obj_ref;
 
 // PRIMITIVE
