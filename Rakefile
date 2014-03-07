@@ -1,5 +1,9 @@
-LDFLAGS = "-lpthread -L."
-CFLAGS  = "-g -Wall -c -std=c99 -I."
+def include_env v
+  ENV[v].to_s
+end
+
+$ldflags = "-lpthread -L. #{include_env 'LDFLAGS'}".strip
+$cflags  = "-g -Wall -std=c99 -I. #{include_env 'CFLAGS'}".strip
 
 desc "Build"
 task "build" => ["libhivem.a"]
@@ -15,7 +19,7 @@ file 'libhivem.a' => [
 end
 
 rule '.o' => ['.c'] do |t|
-  sh "cc #{t.source} -c #{CFLAGS} -o #{t.name}"
+  sh "cc #{t.source} -c #{$cflags} -o #{t.name}"
 end
 
 desc "Clean up objects"
