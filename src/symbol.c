@@ -13,8 +13,8 @@ hvm_symbol_table *new_hvm_symbol_table() {
 }
 
 char *strclone(char *str) {
-  int  len = strlen(str);
-  char *clone = malloc(sizeof(char) * (len + 1));
+  size_t len = strlen(str);
+  char  *clone = malloc(sizeof(char) * (size_t)(len + 1));
   strcpy(clone, str);
   return clone;
 }

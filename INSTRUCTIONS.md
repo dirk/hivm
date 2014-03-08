@@ -79,6 +79,8 @@
 
 ## Constant assignment
 
+NOTE: May want to make a `setconstant` instruction available.
+
 `setstring A S`
 :  Set the string referenced by constant index S into register A.
 

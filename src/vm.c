@@ -35,6 +35,9 @@ void hvm_vm_run(hvm_vm *vm) {
         goto end;
       case HVM_OP_SETSTRING:  // 1 = reg, 2-5 = const
       case HVM_OP_SETINTEGER: // 1B OP | 4B CONST | 1B REG
+      case HVM_OP_SETFLOAT:
+      case HVM_OP_SETSTRUCT:
+        // TODO: Type-checking
         reg         = vm->program[vm->ip + 1];
         const_index = READ_U32(&vm->program[vm->ip + 2]);
         fprintf(stderr, "SET: reg(%u) const(%u)\n", reg, const_index);

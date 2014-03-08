@@ -1,9 +1,10 @@
 def include_env v
   ENV[v].to_s
 end
-
+$cc = 'clang-3.4'
+$ar = 'ar'
 $ldflags = "-lpthread -L. #{include_env 'LDFLAGS'}".strip
-$cflags  = "-g -Wall -std=c99 -I. #{include_env 'CFLAGS'}".strip
+$cflags  = "-g -Wall -Wextra -Wconversion -std=c99 -I. #{include_env 'CFLAGS'}".strip
 
 desc "Build"
 task "build" => ["libhivem.a"]
@@ -29,11 +30,11 @@ file 'libhivem.a' => [
   'src/vm.o', 'src/object.o', 'src/symbol.o'
 ] do |t|
   # sh "cc -o #{t.name} #{t.prerequisites.join ' '} #{LDFLAGS} #{CFLAGS}"
-  sh "ar rcs #{t.name} #{t.prerequisites.join ' '}"
+  sh "#{$ar} rcs #{t.name} #{t.prerequisites.join ' '}"
 end
 
 rule '.o' => ['.c'] do |t|
-  sh "cc #{t.source} -c #{$cflags} -o #{t.name}"
+  sh "#{$cc} #{t.source} -c #{$cflags} -o #{t.name}"
 end
 
 desc "Clean up objects"
