@@ -37,7 +37,7 @@ void hvm_generator_bytecode(hvm_generator*);
 /// @details Can store approximately 4 billion constants (32-bit indexes).
 typedef struct hvm_const_pool {
   /// Entries in the pool: array of pointers to object references.
-  struct hvm_object_ref** entries;
+  struct hvm_obj_ref** entries;
   /// Index of the next index for an entry to be inserted at (ie. the length).
   uint32_t next_index;
   /// Number of possible entries in the pool.
@@ -78,8 +78,11 @@ hvm_vm *hvm_new_vm();
 /// @memberof hvm_vm
 void hvm_vm_run(hvm_vm*);
 
-struct hvm_object_ref* hvm_const_pool_get_const(hvm_const_pool*, uint32_t);
-void hvm_const_pool_set_const(hvm_const_pool*, uint32_t, struct hvm_object_ref*);
+void hvm_vm_set_const(hvm_vm*, uint32_t, struct hvm_obj_ref*);
+struct hvm_obj_ref* hvm_vm_get_const(hvm_vm*, uint32_t);
+
+struct hvm_obj_ref* hvm_const_pool_get_const(hvm_const_pool*, uint32_t);
+void hvm_const_pool_set_const(hvm_const_pool*, uint32_t, struct hvm_obj_ref*);
 
 /// Opcodes
 typedef enum {
