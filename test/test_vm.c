@@ -4,9 +4,31 @@
 #include "hvm_symbol.h"
 #include "hvm_object.h"
 
-int main(int argc, char **argv) {
-  hvm_vm *vm = hvm_new_vm();
+void test_heap() {
+  hvm_obj_string *str = hvm_new_obj_string();
+  str->data = "test";
+  hvm_obj_ref *ref = hvm_new_obj_ref();
+  hvm_obj_ref_set_string(ref, str);
+  
+  hvm_obj_string *str2;
+  hvm_obj_ref    *ref2;;
+  
+  hvm_obj_struct *s = hvm_new_obj_struct();
+  hvm_obj_struct_set(s, 2, ref);
+  hvm_obj_struct_set(s, 3, ref);
+  hvm_obj_struct_set(s, 1, ref);
+  
+  ref2 = hvm_obj_struct_get(s, 2);
+  str2 = (hvm_obj_string*)(ref2->data);
+  printf("str2->data: %s\n", str2->data);
+}
 
+int main(int argc, char **argv) {
+  test_heap();
+
+  /*
+  hvm_vm *vm = hvm_new_vm();
+  
   hvm_obj_string *str = hvm_new_obj_string();
   str->data = "test";
   hvm_obj_ref *ref = hvm_new_obj_ref();
@@ -30,6 +52,7 @@ int main(int argc, char **argv) {
   hvm_obj_string *str2;
   str2 = (hvm_obj_string*)(reg->data);
   printf("str2->data: %s\n", str2->data);
+  */
 
   /*
   hvm_symbol_table *st = new_hvm_symbol_table();

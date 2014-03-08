@@ -57,6 +57,7 @@ hvm_obj_array *hvm_new_obj_array();
 /// Construct a new structure.
 /// @memberof hvm_obj_struct
 hvm_obj_struct *hvm_new_obj_struct();
+hvm_obj_ref *hvm_obj_struct_get(hvm_obj_struct*, hvm_symbol_id);
 void hvm_obj_struct_set(hvm_obj_struct*, hvm_symbol_id, hvm_obj_ref*);
 
 hvm_obj_ref *hvm_new_obj_ref();
