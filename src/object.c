@@ -24,3 +24,14 @@ hvm_obj_struct *hvm_new_obj_struct() {
   strct->heap[0] = NULL;
   return strct;
 }
+
+hvm_obj_ref *hvm_new_obj_ref() {
+  hvm_obj_ref *ref = malloc(sizeof(hvm_obj_ref));
+  ref->type = HVM_NULL;
+  ref->data = 0;
+  return ref;
+}
+void hvm_obj_ref_set_string(hvm_obj_ref *ref, hvm_obj_string *str) {
+  ref->type = HVM_STRING;
+  ref->data = (uint64_t)str;
+}

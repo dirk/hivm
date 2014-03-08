@@ -50,6 +50,9 @@ hvm_obj_array *hvm_new_obj_array();
 /// @memberof hvm_obj_struct
 hvm_obj_struct *hvm_new_obj_struct();
 
+hvm_obj_ref *hvm_new_obj_ref();
+void hvm_obj_ref_set_string(hvm_obj_ref*, hvm_obj_string*);
+
 // PRIMITIVE
 // Composed of just metadata and primitive value.
 // Types: null, integer, float, (symbol)
