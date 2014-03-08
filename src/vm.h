@@ -35,14 +35,14 @@ void hvm_generator_bytecode(hvm_generator*);
 
 /// @brief   Constant pools map an integer to a constant.
 /// @details Can store approximately 4 billion constants (32-bit indexes).
-typedef struct hvm_constant_pool {
+typedef struct hvm_const_pool {
   /// Entries in the pool: array of pointers to object references.
   struct hvm_object_ref** entries;
   /// Index of the next index for an entry to be inserted at (ie. the length).
   uint32_t next_index;
-  /// Number of entries in the pool.
+  /// Number of possible entries in the pool.
   uint32_t size;
-} hvm_constant_pool;
+} hvm_const_pool;
 
 /// Start with 128 slots in the constant pool
 /// @relates hvm_constant_pool
@@ -64,7 +64,7 @@ typedef struct hvm_vm {
   /// Size of program memory (in bytes)
   uint64_t program_size;
   
-  hvm_constant_pool const_pool;
+  hvm_const_pool const_pool;
   /// General purpose registers ($r0...$rN)
   struct hvm_obj_ref* general_regs[HVM_GENERAL_REGISTERS];
   // heap
@@ -77,6 +77,9 @@ hvm_vm *hvm_new_vm();
 /// Begin executing the virtual machine.
 /// @memberof hvm_vm
 void hvm_vm_run(hvm_vm*);
+
+struct hvm_object_ref* hvm_const_pool_get_const(hvm_const_pool*, uint32_t);
+void hvm_const_pool_set_const(hvm_const_pool*, uint32_t, struct hvm_object_ref*);
 
 /// Opcodes
 typedef enum {

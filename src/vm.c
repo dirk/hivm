@@ -48,3 +48,27 @@ end:
   return;
   //pass
 }
+
+struct hvm_object_ref* hvm_vm_get_const(hvm_vm *vm, uint32_t id) {
+  return hvm_const_pool_get_const(&vm->const_pool, id);
+}
+void hvm_vm_set_const(hvm_vm *vm, uint32_t id, struct hvm_object_ref* obj) {
+  hvm_const_pool_set_const(&vm->const_pool, id, obj);
+}
+
+void hvm_const_pool_expand(hvm_const_pool* pool, uint32_t id) {
+  while(id >= pool->size) {
+    pool->size = pool->size * HVM_CONSTANT_POOL_GROWTH_RATE;
+    pool->entries = realloc(pool->entries, sizeof(struct hvm_object_ref*) * pool->size);
+  }
+}
+
+struct hvm_object_ref* hvm_const_pool_get_const(hvm_const_pool* pool, uint32_t id) {
+  // TODO: Out of bounds check
+  return pool->entries[id];
+}
+
+void hvm_const_pool_set_const(hvm_const_pool* pool, uint32_t id, struct hvm_object_ref* obj) {
+  hvm_const_pool_expand(pool, id);
+  pool->entries[id] = obj;
+}
