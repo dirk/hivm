@@ -4,7 +4,7 @@
 ///@relates hvm_obj_struct
 #define HVM_STRUCT_INITIAL_HEAP_SIZE 8
 ///@relates hvm_obj_struct
-#define HVM_STRUCT_HEAP_MEMORY_SIZE(S) (S * (sizeof(uint64_t) + sizeof(void)))
+#define HVM_STRUCT_HEAP_MEMORY_SIZE(S) (S * (sizeof(hvm_symbol_id) + sizeof(void*)))
 #define HVM_STRUCT_HEAP_GROWTH_RATE 2
 
 // Objects are either primitive or composite.
