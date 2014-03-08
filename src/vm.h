@@ -37,15 +37,18 @@ Generates bytecode.
 */
 void hvm_generator_bytecode(hvm_generator*);
 
-
 /// Constant pool maps an integer to a constant
+// Can store approximately 4 billion constants (32-bit indexes)
 typedef struct hvm_constant_pool {
-  
+  struct hvm_object_ref** entries;
+  uint32_t next_index;
+  uint32_t size;
 } hvm_constant_pool;
+// Start with 128 slots in the constant pool
+#define HVM_CONSTANT_POOL_INITIAL_SIZE 128
+#define HVM_CONSTANT_POOL_GROWTH_RATE  2
 
 #define HVM_GENERAL_REGISTERS 128
-
-struct hvm_obj_ref;
 
 /// Instance of the VM.
 typedef struct hvm_vm {
@@ -68,9 +71,10 @@ void hvm_vm_run(hvm_vm*);
 
 /// Opcodes
 typedef enum {
-  HVM_OP_NOOP = 0,
-  HVM_OP_DIE  = 1,
-  HVM_OP_GOTO = 2
+  HVM_OP_NOOP = 0,     // 1B OP
+  HVM_OP_DIE  = 1,     // 1B OP
+  HVM_OP_GOTO = 2,     // 1B OP
+  HVM_OP_SETSTRING = 3 // 1B OP | 4B CONST | 1B REG
 } hvm_opcodes;
 
 #endif
