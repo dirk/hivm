@@ -61,7 +61,7 @@
 :  Jump to DEST (non-negative integer).
 
 `if COND DEST`
-:  Jump to DeST if COND is truthy (not null and not a zero integer).
+:  Jump to DEST if COND is truthy (not null and not a zero integer).
 
 ## Exceptions
 

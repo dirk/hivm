@@ -5,6 +5,7 @@
 #define HVM_STRUCT_INITIAL_HEAP_SIZE 8
 ///@relates hvm_obj_struct
 #define HVM_STRUCT_HEAP_MEMORY_SIZE(S) (S * (sizeof(uint64_t) + sizeof(void)))
+#define HVM_STRUCT_HEAP_GROWTH_RATE 2
 
 // Objects are either primitive or composite.
 
@@ -35,13 +36,20 @@ typedef struct hvm_obj_array {
   unsigned int length;
 } hvm_obj_array;
 
+typedef struct hvm_obj_struct_heap_pair {
+  hvm_symbol_id id;
+  hvm_obj_ref*  obj;
+} hvm_obj_struct_heap_pair;
+
 ///@details `memory size (bytes) = heap_size (pairs) * 2 (words/pair) * 8 (bytes/word)`
 typedef struct hvm_obj_struct {
   /// Binary heap of symbol-integer-and-pointer pairs.
-  void** heap;
+  hvm_obj_struct_heap_pair** heap;
   /// Number of pairs in the binary heap.
   unsigned int heap_size;
+  unsigned int heap_length;
 } hvm_obj_struct;
+
 
 // CONSTRUCTORS
 hvm_obj_string *hvm_new_obj_string();
@@ -49,6 +57,7 @@ hvm_obj_array *hvm_new_obj_array();
 /// Construct a new structure.
 /// @memberof hvm_obj_struct
 hvm_obj_struct *hvm_new_obj_struct();
+void hvm_obj_struct_set(hvm_obj_struct*, hvm_symbol_id, hvm_obj_ref*);
 
 hvm_obj_ref *hvm_new_obj_ref();
 void hvm_obj_ref_set_string(hvm_obj_ref*, hvm_obj_string*);
