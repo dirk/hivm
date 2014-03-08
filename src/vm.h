@@ -86,10 +86,13 @@ void hvm_const_pool_set_const(hvm_const_pool*, uint32_t, struct hvm_obj_ref*);
 
 /// Opcodes
 typedef enum {
-  HVM_OP_NOOP = 0,     // 1B OP
-  HVM_OP_DIE  = 1,     // 1B OP
-  HVM_OP_GOTO = 2,     // 1B OP
-  HVM_OP_SETSTRING = 3 // 1B OP | 4B CONST | 1B REG
+  HVM_OP_NOOP = 0,       // 1B OP
+  HVM_OP_DIE  = 1,       // 1B OP
+  HVM_OP_GOTO = 2,       // 1B OP
+  HVM_OP_SETSTRING = 3,  // 1B OP | 4B CONST | 1B REG
+  HVM_OP_SETINTEGER = 4, // 1B OP | 4B CONST | 1B REG
+  HVM_OP_SETFLOAT = 5,   // 1B OP | 4B CONST | 1B REG
+  HVM_OP_SETSTRUCT = 6   // 1B OP | 4B CONST | 1B REG
 } hvm_opcodes;
 
 #endif

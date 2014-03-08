@@ -33,10 +33,11 @@ void hvm_vm_run(hvm_vm *vm) {
       case HVM_OP_DIE:
         fprintf(stderr, "DIE\n");
         goto end;
-      case HVM_OP_SETSTRING: // 1 = reg, 2-5 = const
+      case HVM_OP_SETSTRING:  // 1 = reg, 2-5 = const
+      case HVM_OP_SETINTEGER: // 1B OP | 4B CONST | 1B REG
         reg         = vm->program[vm->ip + 1];
         const_index = READ_U32(&vm->program[vm->ip + 2]);
-        fprintf(stderr, "SETSTRING: reg(%u) const(%u)\n", reg, const_index);
+        fprintf(stderr, "SET: reg(%u) const(%u)\n", reg, const_index);
         vm->general_regs[reg] = hvm_vm_get_const(vm, const_index);
         vm->ip += 5;
         break;
