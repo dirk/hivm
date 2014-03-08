@@ -4,6 +4,18 @@
 
 // gcc test.c -g -o test
 
+void pointer_fiddling() {
+  uint64_t a;
+  void*    b;
+  
+  b = malloc(1);
+  
+  printf("b: %p\n", b);
+  
+  a = (uint64_t)b;
+  printf("a: 0x%llx\n", a);
+}
+
 void byte_fiddling() {
   uint32_t i = 0x0800;
   printf("i: 0x%lx\n", (unsigned long)i);
@@ -50,6 +62,7 @@ void memcpy_fiddling() {
 
 int main(int argc, char *argv[]) {
   // memcpy_fiddling();
-  byte_fiddling();
+  // byte_fiddling();
+  pointer_fiddling();
   return 0;
 }
