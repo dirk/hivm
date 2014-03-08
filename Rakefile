@@ -14,7 +14,8 @@ namespace "build" do
   task "include" do
     headers = {
       "vm" => "hvm",
-      "object" => "hvm_object"
+      "object" => "hvm_object",
+      "symbol" => "hvm_symbol"
     }
     headers.each do |src, dst|
       sh "cp src/#{src}.h include/#{dst}.h"
@@ -25,7 +26,7 @@ end
 # desc "Compile"
 file 'libhivem.a' => [
   # Source
-  'src/vm.o', 'src/object.o'
+  'src/vm.o', 'src/object.o', 'src/symbol.o'
 ] do |t|
   # sh "cc -o #{t.name} #{t.prerequisites.join ' '} #{LDFLAGS} #{CFLAGS}"
   sh "ar rcs #{t.name} #{t.prerequisites.join ' '}"

@@ -1,4 +1,7 @@
+#include <stdio.h>
+
 #include "hvm.h"
+#include "hvm_symbol.h"
 
 int main(int argc, char **argv) {
   hvm_vm *vm = hvm_new_vm();
@@ -7,6 +10,19 @@ int main(int argc, char **argv) {
   vm->program[1] = HVM_OP_DIE;
 
   hvm_vm_run(vm);
+  
+  hvm_symbol_table *st = new_hvm_symbol_table();
+  printf("size = %llu\n", st->size);
+  uint64_t a, b, c, a2;
+  a = hvm_symbolicate(st, "a");
+  b = hvm_symbolicate(st, "b");
+  c = hvm_symbolicate(st, "c");
+  a2 = hvm_symbolicate(st, "a");
+  printf("a:  %llu\n", a);
+  printf("b:  %llu\n", b);
+  printf("c:  %llu\n", c);
+  printf("a2: %llu\n", a2);
+  printf("size = %llu\n", st->size);
 
   return 0;
 }
