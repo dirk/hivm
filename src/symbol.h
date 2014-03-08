@@ -10,12 +10,14 @@
 
 typedef struct hvm_symbol_table {
   struct hvm_symbol_table_entry** symbols;
-  uint64_t                next_id;
-  uint64_t                size;
+  uint64_t                        next_id;
+  uint64_t                        size;
 } hvm_symbol_table;
 
 typedef struct hvm_symbol_table_entry {
+  /// Identifier (index) of the entry in the table.
   uint64_t id;
+  /// String value/name of the symbol.
   char*    value;
 } hvm_symbol_table_entry;
 

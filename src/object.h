@@ -1,7 +1,9 @@
 #ifndef HVM_OBJECT_H
 #define HVM_OBJECT_H
 
+///@relates hvm_obj_struct
 #define HVM_STRUCT_INITIAL_HEAP_SIZE 8
+///@relates hvm_obj_struct
 #define HVM_STRUCT_HEAP_MEMORY_SIZE(S) (S * (sizeof(uint64_t) + sizeof(void)))
 
 // Objects are either primitive or composite.
@@ -19,7 +21,8 @@ typedef enum {
 /// Base reference to an object
 typedef struct hvm_obj_ref {
   hvm_obj_type  type;
-  uint64_t      data;// 8 bytes of data to play with
+  /// 8 bytes of data to play with; can be used as pointer or literal.
+  uint64_t      data;
 } hvm_obj_ref;
 
 // TYPES
@@ -32,15 +35,19 @@ typedef struct hvm_obj_array {
   unsigned int length;
 } hvm_obj_array;
 
+///@details `memory size (bytes) = heap_size (pairs) * 2 (words/pair) * 8 (bytes/word)`
 typedef struct hvm_obj_struct {
-  void** heap;// Binary heap of symbol-integer-and-pointer pairs.
-  unsigned int heap_size;// Number of pairs in the binary heap.
-  // memory size (bytes) = heap_size (pairs) * 2 (words/pair) * 8 (bytes/word)
+  /// Binary heap of symbol-integer-and-pointer pairs.
+  void** heap;
+  /// Number of pairs in the binary heap.
+  unsigned int heap_size;
 } hvm_obj_struct;
 
 // CONSTRUCTORS
 hvm_obj_string *hvm_new_obj_string();
 hvm_obj_array *hvm_new_obj_array();
+/// Construct a new structure.
+/// @memberof hvm_obj_struct
 hvm_obj_struct *hvm_new_obj_struct();
 
 // PRIMITIVE
