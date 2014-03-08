@@ -43,14 +43,22 @@ typedef struct hvm_constant_pool {
   
 } hvm_constant_pool;
 
+#define HVM_GENERAL_REGISTERS 128
+
+struct hvm_obj_ref;
+
 /// Instance of the VM.
 typedef struct hvm_vm {
   // root stack
   // code
   uint64_t ip; // instruction pointer (indexes bytes in the program)
+  
   byte* program; // data for instructions
   uint64_t program_size; // size of program memory (in bytes)
+  
   hvm_constant_pool const_pool;
+  
+  struct hvm_obj_ref* general_regs[HVM_GENERAL_REGISTERS];
   // heap
   // object space
 } hvm_vm;

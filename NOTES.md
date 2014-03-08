@@ -42,9 +42,9 @@ Structures are designed to support objects. There will likely be some form of ty
 
 Hivm provides essentially-infinite registers. Registers are type-aware of the data they contain.
 
-### Temporary local registers: $r0, $r1, ...
+### General (temporary) registers: $r0, $r1, ...
 
-Local only to the current stack frame and are not saved between calls.
+General-purpose registers; local only to the current stack frame and are not saved between calls.
 
 ### Argument registers: $a0, $a1, ...
 
@@ -75,7 +75,7 @@ See [INSTRUCTIONS](INSTRUCTIONS.md) for detailed documentation of instructions.
 
 ## Variables
 
-Variables can either be stored in (temporary local) registers or scopes. Register variables do not interact with the garbage collection system in any way. Scopes are specialized structures and therefore interact with the GC. This is heavily inspired by old C-style memory management with a somewhat-clear usage divide between stacks (relatively primitive) and heaps (complex).
+Variables can either be stored in (temporary/frame-local) registers or scopes. Register variables do not interact with the garbage collection system in any way. Scopes are specialized structures and therefore interact with the GC. This is heavily inspired by old C-style memory management with a somewhat-clear usage divide between stacks (relatively primitive) and heaps (complex).
 
 ### Closures
 
