@@ -3,7 +3,8 @@
 /// @file frame.h
 
 typedef struct hvm_frame {
-  uint64_t return_addr;
+  uint64_t       return_addr;
+  hvm_obj_struct *locals;
 } hvm_frame;
 
 #endif

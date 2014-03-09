@@ -2,7 +2,14 @@
 #include <stdio.h>
 
 #include "vm.h"
+#include "symbol.h"
+#include "object.h"
 #include "frame.h"
+
+static hvm_obj_ref *hvm_const_null = &(hvm_obj_ref){
+  .type = HVM_NULL,
+  .data = 0
+};
 
 hvm_vm *hvm_new_vm() {
   hvm_vm *vm = malloc(sizeof(hvm_vm));
@@ -21,7 +28,7 @@ hvm_vm *hvm_new_vm() {
 
 void hvm_vm_run(hvm_vm *vm) {
   byte instr;
-  uint32_t const_index;
+  uint32_t const_index, sym_id;
   unsigned char reg;
   
   for(;;) {
@@ -44,6 +51,33 @@ void hvm_vm_run(hvm_vm *vm) {
         vm->general_regs[reg] = hvm_vm_get_const(vm, const_index);
         vm->ip += 5;
         break;
+      case HVM_OP_SETNULL: // 1B OP | 1B REG
+        reg = vm->program[vm->ip + 1];
+        vm->general_regs[reg] = hvm_const_null;
+        break;
+
+      case HVM_OP_SETLOCAL: // 1B OP | 4B SYM   | 1B REG
+        sym_id = READ_U32(&vm->program[vm->ip + 1]);
+        reg    = vm->program[vm->ip + 5];
+        fprintf(stderr, "Error: SETLOCAL %u %u not implemented yet\n", sym_id, reg);
+        goto end;
+      case HVM_OP_GETLOCAL: // 1B OP | 1B REG   | 4B SYM
+        reg    = vm->program[vm->ip + 1];
+        sym_id = READ_U32(&vm->program[vm->ip + 2]);
+        fprintf(stderr, "Error: GETLOCAL %u %u not implemented yet\n", reg, sym_id);
+        goto end;
+      
+      case HVM_OP_SETGLOBAL: // 1B OP | 4B SYM   | 1B REG
+        sym_id = READ_U32(&vm->program[vm->ip + 1]);
+        reg    = vm->program[vm->ip + 5];
+        fprintf(stderr, "Error: SETGLOBAL %u %u not implemented yet\n", sym_id, reg);
+        goto end;
+      case HVM_OP_GETGLOBAL: // 1B OP | 1B REG   | 4B SYM
+        reg    = vm->program[vm->ip + 1];
+        sym_id = READ_U32(&vm->program[vm->ip + 2]);
+        fprintf(stderr, "Error: GETGLOBAL %u %u not implemented yet\n", reg, sym_id);
+        goto end;
+
       default:
         fprintf(stderr, "Unknown instruction: %u\n", instr);
     }

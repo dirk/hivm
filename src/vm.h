@@ -92,7 +92,13 @@ typedef enum {
   HVM_OP_SETSTRING = 3,  // 1B OP | 4B CONST | 1B REG
   HVM_OP_SETINTEGER = 4, // 1B OP | 4B CONST | 1B REG
   HVM_OP_SETFLOAT = 5,   // 1B OP | 4B CONST | 1B REG
-  HVM_OP_SETSTRUCT = 6   // 1B OP | 4B CONST | 1B REG
+  HVM_OP_SETSTRUCT = 6,  // 1B OP | 4B CONST | 1B REG
+  HVM_OP_SETNULL = 7,    // 1B OP | 1B REG
+  
+  HVM_OP_SETLOCAL = 10,   // 1B OP | 4B SYM   | 1B REG
+  HVM_OP_GETLOCAL = 11,  // 1B OP | 1B REG   | 4B SYM
+  HVM_OP_SETGLOBAL = 12, // 1B OP | 4B SYM   | 1B REG
+  HVM_OP_GETGLOBAL = 13  // 1B OP | 1B REG   | 4B SYM
 } hvm_opcodes;
 
 #endif
