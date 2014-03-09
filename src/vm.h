@@ -2,7 +2,7 @@
 #define HVM_VM_H
 /// @file vm.h
 
-#include "stdint.h"
+#include <stdint.h>
 
 typedef unsigned char byte;
 
@@ -71,6 +71,7 @@ typedef struct hvm_vm {
   struct hvm_obj_ref* general_regs[HVM_GENERAL_REGISTERS];
   // heap
   // object space
+  struct hvm_obj_struct *globals;
 } hvm_vm;
 
 /// Create a new virtual machine.

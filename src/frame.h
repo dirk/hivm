@@ -7,4 +7,6 @@ typedef struct hvm_frame {
   hvm_obj_struct *locals;
 } hvm_frame;
 
+hvm_frame *hvm_new_frame();
+
 #endif

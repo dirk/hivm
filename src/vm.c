@@ -20,6 +20,7 @@ hvm_vm *hvm_new_vm() {
   vm->const_pool.size = HVM_CONSTANT_POOL_INITIAL_SIZE;
   vm->const_pool.entries = malloc(sizeof(struct hvm_object_ref*) * 
     vm->const_pool.size);
+  vm->globals = hvm_new_obj_struct();
   return vm;
 }
 
