@@ -18,6 +18,8 @@ typedef uint64_t hvm_instruction;
 /// @relates hvm_vm
 #define HVM_PROGRAM_INITIAL_SIZE 16384
 
+extern struct hvm_obj_ref* hvm_const_null;
+
 /// @brief Chunk of instruction code and data (constants, etc.).
 typedef struct hvm_chunk {
   

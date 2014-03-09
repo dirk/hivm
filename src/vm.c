@@ -6,7 +6,7 @@
 #include "object.h"
 #include "frame.h"
 
-static hvm_obj_ref *hvm_const_null = &(hvm_obj_ref){
+struct hvm_obj_ref* hvm_const_null = &(hvm_obj_ref){
   .type = HVM_NULL,
   .data = 0
 };
