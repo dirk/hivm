@@ -9,15 +9,15 @@ void test_heap() {
   str->data = "test";
   hvm_obj_ref *ref = hvm_new_obj_ref();
   hvm_obj_ref_set_string(ref, str);
-  
+
   hvm_obj_string *str2;
   hvm_obj_ref    *ref2;;
-  
+
   hvm_obj_struct *s = hvm_new_obj_struct();
   hvm_obj_struct_set(s, 2, ref);
   hvm_obj_struct_set(s, 3, ref);
   hvm_obj_struct_set(s, 1, ref);
-  
+
   ref2 = hvm_obj_struct_get(s, 2);
   str2 = (hvm_obj_string*)(ref2->data);
   printf("str2->data: %s\n", str2->data);
@@ -28,7 +28,7 @@ int main(int argc, char **argv) {
 
   /*
   hvm_vm *vm = hvm_new_vm();
-  
+
   hvm_obj_string *str = hvm_new_obj_string();
   str->data = "test";
   hvm_obj_ref *ref = hvm_new_obj_ref();
@@ -39,7 +39,7 @@ int main(int argc, char **argv) {
   vm->program[1] = HVM_OP_SETSTRING;
   vm->program[2] = 1;// register destination
   *(uint32_t*)&vm->program[3] = 1234567;// 32-bit integer const index
-  
+
   vm->program[7] = HVM_OP_NOOP;
   vm->program[8] = HVM_OP_DIE;
 

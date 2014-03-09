@@ -22,7 +22,7 @@ extern struct hvm_obj_ref* hvm_const_null;
 
 /// @brief Chunk of instruction code and data (constants, etc.).
 typedef struct hvm_chunk {
-  
+
 } hvm_chunk;
 
 /// @brief Stores instructions, constants, etc. for a chunk. Can then generate the
@@ -58,14 +58,14 @@ typedef struct hvm_const_pool {
 typedef struct hvm_vm {
   // root stack
   // code
-  
+
   /// Instruction pointer (indexes bytes in the program)
   uint64_t ip;
   /// Data for instructions
   byte* program;
   /// Size of program memory (in bytes)
   uint64_t program_size;
-  
+
   hvm_const_pool const_pool;
   /// General purpose registers ($r0...$rN)
   struct hvm_obj_ref* general_regs[HVM_GENERAL_REGISTERS];
@@ -96,7 +96,7 @@ typedef enum {
   HVM_OP_SETFLOAT = 5,   // 1B OP | 4B CONST | 1B REG
   HVM_OP_SETSTRUCT = 6,  // 1B OP | 4B CONST | 1B REG
   HVM_OP_SETNULL = 7,    // 1B OP | 1B REG
-  
+
   HVM_OP_SETLOCAL = 10,   // 1B OP | 4B SYM   | 1B REG
   HVM_OP_GETLOCAL = 11,  // 1B OP | 1B REG   | 4B SYM
   HVM_OP_SETGLOBAL = 12, // 1B OP | 4B SYM   | 1B REG

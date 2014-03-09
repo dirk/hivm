@@ -7,11 +7,11 @@
 void pointer_fiddling() {
   uint64_t a;
   void*    b;
-  
+
   b = malloc(1);
-  
+
   printf("b: %p\n", b);
-  
+
   a = (uint64_t)b;
   printf("a: 0x%llx\n", a);
 }
@@ -19,7 +19,7 @@ void pointer_fiddling() {
 void byte_fiddling() {
   uint32_t i = 0x0800;
   printf("i: 0x%lx\n", (unsigned long)i);
-  
+
   void *p = &i;
   for(int o = 0; o < 4; o++) {
     // These are equivalent.
@@ -34,24 +34,24 @@ void byte_fiddling() {
 void memcpy_fiddling() {
   // Testing a little memcpy
   unsigned char c[8];
-  
+
   void *a = malloc(sizeof(void));
   memcpy(c, &a, 8);
-  
+
   printf("a: %p\n", a);
   for(int i = 0; i < 8; i++) {
     printf("%d: %u\n", i, c[i]);
   }
-  
+
   void *b;
   memcpy(&b, c, 8);
   printf("b: %p\n", b);
-  
+
   uint64_t d;
   d = (uint64_t)b;
   printf("d: 0x%llx\n", d);
   printf("d: %lld\n", d);
-  
+
   // Make compiler treat it as a double without coercion/conversion.
   double f = *((double*)&d);
   printf("f: %f\n", f);

@@ -30,7 +30,7 @@ void hvm_vm_run(hvm_vm *vm) {
   byte instr;
   uint32_t const_index, sym_id;
   unsigned char reg;
-  
+
   for(;;) {
     instr = vm->program[vm->ip];
     switch(instr) {
@@ -66,7 +66,7 @@ void hvm_vm_run(hvm_vm *vm) {
         sym_id = READ_U32(&vm->program[vm->ip + 2]);
         fprintf(stderr, "Error: GETLOCAL %u %u not implemented yet\n", reg, sym_id);
         goto end;
-      
+
       case HVM_OP_SETGLOBAL: // 1B OP | 4B SYM   | 1B REG
         sym_id = READ_U32(&vm->program[vm->ip + 1]);
         reg    = vm->program[vm->ip + 5];
