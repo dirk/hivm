@@ -18,6 +18,10 @@ typedef uint64_t hvm_instruction;
 /// @relates hvm_vm
 #define HVM_PROGRAM_INITIAL_SIZE 16384
 
+/// Maximum stack size (in frames)
+/// @relates hvm_vm
+#define HVM_STACK_SIZE 16384
+
 extern struct hvm_obj_ref* hvm_const_null;
 
 /// @brief Chunk of instruction code and data (constants, etc.).
@@ -56,8 +60,12 @@ typedef struct hvm_const_pool {
 
 /// Instance of the VM.
 typedef struct hvm_vm {
-  // root stack
-  // code
+  /// Root of call stack
+  struct hvm_frame* root;
+  /// Top of call stack (current execution frame)
+  struct hvm_frame* top;
+  /// Call stack
+  struct hvm_frame** stack;
 
   /// Instruction pointer (indexes bytes in the program)
   uint64_t ip;
@@ -86,6 +94,8 @@ struct hvm_obj_ref* hvm_vm_get_const(hvm_vm*, uint32_t);
 
 struct hvm_obj_ref* hvm_const_pool_get_const(hvm_const_pool*, uint32_t);
 void hvm_const_pool_set_const(hvm_const_pool*, uint32_t, struct hvm_obj_ref*);
+
+struct hvm_obj_ref* hvm_get_local(struct hvm_frame*, uint64_t);
 
 /// Opcodes
 typedef enum {

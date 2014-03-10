@@ -21,6 +21,12 @@ hvm_vm *hvm_new_vm() {
   vm->const_pool.entries = malloc(sizeof(struct hvm_object_ref*) * 
     vm->const_pool.size);
   vm->globals = hvm_new_obj_struct();
+
+  vm->root = hvm_new_frame();
+  vm->stack = calloc(HVM_STACK_SIZE, sizeof(struct hvm_frame*));
+  vm->stack[0] = vm->root;
+  vm->top = vm->root;
+
   return vm;
 }
 
@@ -65,8 +71,8 @@ void hvm_vm_run(hvm_vm *vm) {
       case HVM_OP_GETLOCAL: // 1B OP | 1B REG   | 4B SYM
         reg    = vm->program[vm->ip + 1];
         sym_id = READ_U32(&vm->program[vm->ip + 2]);
-        fprintf(stderr, "Error: GETLOCAL %u %u not implemented yet\n", reg, sym_id);
-        goto end;
+        vm->general_regs[reg] = hvm_get_local(vm->top, sym_id);
+        vm->ip += 5;
 
       case HVM_OP_SETGLOBAL: // 1B OP | 4B SYM   | 1B REG
         sym_id = READ_U32(&vm->program[vm->ip + 1]);
@@ -111,4 +117,10 @@ struct hvm_obj_ref* hvm_const_pool_get_const(hvm_const_pool* pool, uint32_t id) 
 void hvm_const_pool_set_const(hvm_const_pool* pool, uint32_t id, struct hvm_obj_ref* obj) {
   hvm_const_pool_expand(pool, id);
   pool->entries[id] = obj;
+}
+
+struct hvm_obj_ref* hvm_get_local(struct hvm_frame *frame, hvm_symbol_id id) {
+  hvm_obj_struct *locals = frame->locals;
+  hvm_obj_ref    *ref    = hvm_obj_struct_get(locals, id);
+  return ref;
 }
