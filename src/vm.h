@@ -96,6 +96,10 @@ struct hvm_obj_ref* hvm_const_pool_get_const(hvm_const_pool*, uint32_t);
 void hvm_const_pool_set_const(hvm_const_pool*, uint32_t, struct hvm_obj_ref*);
 
 struct hvm_obj_ref* hvm_get_local(struct hvm_frame*, uint64_t);
+void hvm_set_local(struct hvm_frame*, uint64_t, struct hvm_obj_ref*);
+
+struct hvm_obj_ref* hvm_get_global(hvm_vm*, uint64_t);
+void hvm_set_global(hvm_vm*, uint64_t, struct hvm_obj_ref*);
 
 /// Opcodes
 typedef enum {

@@ -66,24 +66,31 @@ void hvm_vm_run(hvm_vm *vm) {
       case HVM_OP_SETLOCAL: // 1B OP | 4B SYM   | 1B REG
         sym_id = READ_U32(&vm->program[vm->ip + 1]);
         reg    = vm->program[vm->ip + 5];
-        fprintf(stderr, "Error: SETLOCAL %u %u not implemented yet\n", sym_id, reg);
-        goto end;
+        hvm_set_local(vm->top, sym_id, vm->general_regs[reg]);
+        // fprintf(stderr, "Error: SETLOCAL %u %u not implemented yet\n", sym_id, reg);
+        vm->ip += 5;
+        break;
       case HVM_OP_GETLOCAL: // 1B OP | 1B REG   | 4B SYM
         reg    = vm->program[vm->ip + 1];
         sym_id = READ_U32(&vm->program[vm->ip + 2]);
         vm->general_regs[reg] = hvm_get_local(vm->top, sym_id);
         vm->ip += 5;
+        break;
 
       case HVM_OP_SETGLOBAL: // 1B OP | 4B SYM   | 1B REG
         sym_id = READ_U32(&vm->program[vm->ip + 1]);
         reg    = vm->program[vm->ip + 5];
-        fprintf(stderr, "Error: SETGLOBAL %u %u not implemented yet\n", sym_id, reg);
-        goto end;
+        hvm_set_global(vm, sym_id, vm->general_regs[reg]);
+        // fprintf(stderr, "Error: SETGLOBAL %u %u not implemented yet\n", sym_id, reg);
+        vm->ip += 5;
+        break;
       case HVM_OP_GETGLOBAL: // 1B OP | 1B REG   | 4B SYM
         reg    = vm->program[vm->ip + 1];
         sym_id = READ_U32(&vm->program[vm->ip + 2]);
-        fprintf(stderr, "Error: GETGLOBAL %u %u not implemented yet\n", reg, sym_id);
-        goto end;
+        vm->general_regs[reg] = hvm_get_global(vm, sym_id);
+        // fprintf(stderr, "Error: GETGLOBAL %u %u not implemented yet\n", reg, sym_id);
+        vm->ip += 5;
+        break;
 
       default:
         fprintf(stderr, "Unknown instruction: %u\n", instr);
@@ -117,6 +124,20 @@ struct hvm_obj_ref* hvm_const_pool_get_const(hvm_const_pool* pool, uint32_t id) 
 void hvm_const_pool_set_const(hvm_const_pool* pool, uint32_t id, struct hvm_obj_ref* obj) {
   hvm_const_pool_expand(pool, id);
   pool->entries[id] = obj;
+}
+
+hvm_obj_ref* hvm_get_global(hvm_vm *vm, hvm_symbol_id id) {
+  hvm_obj_struct* globals = vm->globals;
+  return hvm_obj_struct_get(globals, id);
+}
+void hvm_set_global(hvm_vm* vm, hvm_symbol_id id, struct hvm_obj_ref *global) {
+  hvm_obj_struct* globals = vm->globals;
+  hvm_obj_struct_set(globals, id, global);
+}
+
+void hvm_set_local(struct hvm_frame *frame, hvm_symbol_id id, struct hvm_obj_ref* local) {
+  hvm_obj_struct *locals = frame->locals;
+  hvm_obj_struct_set(locals, id, local);
 }
 
 struct hvm_obj_ref* hvm_get_local(struct hvm_frame *frame, hvm_symbol_id id) {
