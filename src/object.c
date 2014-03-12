@@ -136,6 +136,64 @@ hvm_obj_ref *hvm_obj_int_add(hvm_obj_ref *a, hvm_obj_ref *b) {
   c->data.i64 = cv;
   return c;
 }
+hvm_obj_ref *hvm_obj_int_sub(hvm_obj_ref *a, hvm_obj_ref *b) {
+  // Type-checks
+  assert(a->type == HVM_INTEGER);
+  assert(b->type == HVM_INTEGER);
+  
+  hvm_obj_ref *c = hvm_new_obj_ref();
+  int64_t av, bv, cv;
+  av = a->data.i64;
+  bv = b->data.i64;
+  cv = av - bv;
+  c->type = HVM_INTEGER;
+  c->data.i64 = cv;
+  return c;
+}
+hvm_obj_ref *hvm_obj_int_mul(hvm_obj_ref *a, hvm_obj_ref *b) {
+  // Type-checks
+  assert(a->type == HVM_INTEGER);
+  assert(b->type == HVM_INTEGER);
+  
+  hvm_obj_ref *c = hvm_new_obj_ref();
+  int64_t av, bv, cv;
+  av = a->data.i64;
+  bv = b->data.i64;
+  cv = av * bv;
+  c->type = HVM_INTEGER;
+  c->data.i64 = cv;
+  return c;
+}
+hvm_obj_ref *hvm_obj_int_div(hvm_obj_ref *a, hvm_obj_ref *b) {
+  // Type-checks
+  assert(a->type == HVM_INTEGER);
+  assert(b->type == HVM_INTEGER);
+  
+  hvm_obj_ref *c = hvm_new_obj_ref();
+  int64_t av, bv, cv;
+  av = a->data.i64;
+  bv = b->data.i64;
+  cv = av / bv;
+  c->type = HVM_INTEGER;
+  c->data.i64 = cv;
+  return c;
+}
+hvm_obj_ref *hvm_obj_int_mod(hvm_obj_ref *a, hvm_obj_ref *b) {
+  // Type-checks
+  assert(a->type == HVM_INTEGER);
+  assert(b->type == HVM_INTEGER);
+  
+  hvm_obj_ref *c = hvm_new_obj_ref();
+  int64_t av, bv, cv;
+  av = a->data.i64;
+  bv = b->data.i64;
+  cv = av % bv;
+  c->type = HVM_INTEGER;
+  c->data.i64 = cv;
+  return c;
+}
+
+
 
 hvm_obj_struct *hvm_new_obj_struct() {
   hvm_obj_struct *strct = malloc(sizeof(hvm_obj_struct));

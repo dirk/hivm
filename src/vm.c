@@ -104,11 +104,20 @@ void hvm_vm_run(hvm_vm *vm) {
         break;
 
       // MATH -----------------------------------------------------------------
-      case HVM_ADD: // 1B OP | 3B REGs
+      case HVM_ADD:
+      case HVM_SUB:
+      case HVM_MUL:
+      case HVM_DIV:
+      case HVM_MOD: // 1B OP | 3B REGs
+        // A = B + C
         AREG; BREG; CREG;
         a = vm->general_regs[areg];
         b = vm->general_regs[breg];
-        c = hvm_obj_int_add(a, b);
+        if(instr == HVM_ADD)      { c = hvm_obj_int_add(a, b); }
+        else if(instr == HVM_SUB) { c = hvm_obj_int_sub(a, b); }
+        else if(instr == HVM_MUL) { c = hvm_obj_int_mul(a, b); }
+        else if(instr == HVM_DIV) { c = hvm_obj_int_div(a, b); }
+        else if(instr == HVM_MOD) { c = hvm_obj_int_mod(a, b); }
         vm->general_regs[creg] = c;
         vm->ip += 3;
         break;

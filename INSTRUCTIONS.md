@@ -148,9 +148,6 @@ NOTE: May want to make a `setconstant` instruction available.
 `mod A B C`
 :  A = B % C
 
-`pow A B C`
-:  A = B ^^ C
-
 ## Bitwise
 
 `and A B C`
