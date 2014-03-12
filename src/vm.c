@@ -199,6 +199,28 @@ void hvm_vm_run(hvm_vm *vm) {
         vm->general_regs[areg] = hvm_obj_struct_get(strct, key);
         vm->ip += 3;
         break;
+      case HVM_STRUCTDELETE:
+        // structdelete V S K`
+        AREG; BREG; CREG;
+        strct = vm->general_regs[breg];
+        key   = vm->general_regs[creg];
+        vm->general_regs[areg] = hvm_obj_struct_delete(strct, key);
+        vm->ip += 3;
+        break;
+      case HVM_STRUCTNEW:
+        // structnew S`
+        AREG;
+        hvm_obj_struct *s = hvm_new_obj_struct();
+        strct = hvm_new_obj_ref();
+        strct->type = HVM_STRUCTURE;
+        strct->data.v = s;
+        vm->general_regs[areg] = strct;
+        vm->ip += 1;
+        break;
+      case HVM_STRUCTHAS:
+        // structhas B S K
+        fprintf(stderr, "STRUCTHAS not implemented yet!\n");
+        goto end;
 
       default:
         fprintf(stderr, "Unknown instruction: %u\n", instr);

@@ -122,11 +122,11 @@ typedef enum {
   HVM_GETCLOSURE = 20,   // 1B OP | 1B REG
   
   HVM_ADD = 21,          // 1B OP | 3B REGs
-  HVM_SUB = 22,
-  HVM_MUL = 23,
-  HVM_DIV = 24,
-  HVM_MOD = 25,
-  HVM_POW = 26,
+  HVM_SUB = 22,          // 1B OP | 3B REGs
+  HVM_MUL = 23,          // 1B OP | 3B REGs
+  HVM_DIV = 24,          // 1B OP | 3B REGs
+  HVM_MOD = 25,          // 1B OP | 3B REGs
+  HVM_POW = 26,          // 1B OP | 3B REGs
   
   HVM_ARRAYPUSH = 27,    // 1B OP | 2B REGS
   HVM_ARRAYSHIFT = 28,   // 1B OP | 2B REGS
@@ -139,6 +139,9 @@ typedef enum {
   
   HVM_STRUCTSET = 35,    // 1B OP | 3B REGS
   HVM_STRUCTGET = 36,    // 1B OP | 3B REGS
+  HVM_STRUCTDELETE = 37, // 1B OP | 3B REGS
+  HVM_STRUCTNEW = 38,    // 1B OP | 1B REG
+  HVM_STRUCTHAS = 39,    // 1B OP | 3B REGS
 
 } hvm_opcodes;
 

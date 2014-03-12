@@ -3,6 +3,7 @@
 
 #include <glib.h>
 
+#include "vm.h"
 #include "symbol.h"
 #include "object.h"
 
@@ -92,6 +93,7 @@ void hvm_obj_array_set(hvm_obj_ref *arrref, hvm_obj_ref *idxref, hvm_obj_ref *va
   *el = valref;
 }
 
+
 void hvm_obj_struct_set(hvm_obj_ref *sref, hvm_obj_ref *key, hvm_obj_ref *val) {
   assert(sref->type == HVM_STRUCTURE); assert(key->type == HVM_SYMBOL);
   hvm_obj_struct *strct = sref->data.v;
@@ -102,6 +104,15 @@ hvm_obj_ref* hvm_obj_struct_get(hvm_obj_ref *sref, hvm_obj_ref *key) {
   hvm_obj_struct *strct = sref->data.v;
   return hvm_obj_struct_internal_get(strct, (hvm_symbol_id)(key->data.u64));
 }
+hvm_obj_ref* hvm_obj_struct_delete(hvm_obj_ref *sref, hvm_obj_ref *key) {
+  assert(sref->type == HVM_STRUCTURE); assert(key->type == HVM_SYMBOL);
+  hvm_obj_struct *strct = sref->data.v;
+  hvm_symbol_id   sym = key->data.u64;
+  hvm_obj_ref    *val = hvm_obj_struct_internal_get(strct, sym);
+  hvm_obj_struct_internal_set(strct, sym, hvm_const_null);
+  return val;
+}
+
 
 hvm_obj_ref *hvm_new_obj_int() {
   static int64_t zero = 0;
