@@ -77,6 +77,8 @@ void hvm_obj_ref_set_string(hvm_obj_ref*, hvm_obj_string*);
 hvm_obj_ref *hvm_new_obj_int();
 hvm_obj_ref *hvm_obj_int_add(hvm_obj_ref*, hvm_obj_ref*);
 
+void hvm_obj_array_push(hvm_obj_ref*, hvm_obj_ref*);
+
 // PRIMITIVE
 // Composed of just metadata and primitive value.
 // Types: null, integer, float, (symbol)

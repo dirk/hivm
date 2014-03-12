@@ -23,6 +23,14 @@ hvm_obj_array *hvm_new_obj_array() {
   return arr;
 }
 
+// Push B onto the end of A
+void hvm_obj_array_push(hvm_obj_ref *a, hvm_obj_ref *b) {
+  assert(a->type == HVM_ARRAY);
+  hvm_obj_array *arr = a->data.v;
+  g_ptr_array_add(arr->array, b);
+}
+
+
 hvm_obj_ref *hvm_new_obj_int() {
   static int64_t zero = 0;
   hvm_obj_ref *ref = hvm_new_obj_ref();

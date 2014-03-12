@@ -37,6 +37,7 @@ void hvm_vm_run(hvm_vm *vm) {
   byte instr;
   uint32_t const_index, sym_id;
   unsigned char reg, areg, breg, creg;
+  hvm_obj_ref *a, *b, *c;
 
   for(;;) {
     instr = vm->program[vm->ip];
@@ -102,12 +103,20 @@ void hvm_vm_run(hvm_vm *vm) {
         areg = vm->program[vm->ip + 1];
         breg = vm->program[vm->ip + 2];
         creg = vm->program[vm->ip + 3];
-        hvm_obj_ref *a, *b, *c;
         a = vm->general_regs[areg];
         b = vm->general_regs[breg];
         c = hvm_obj_int_add(a, b);
         vm->general_regs[creg] = c;
         vm->ip += 3;
+        break;
+
+      case HVM_ARRAYPUSH: // 1B OP | 2B REGS
+        areg = vm->program[vm->ip + 1];
+        breg = vm->program[vm->ip + 2];
+        a = vm->general_regs[areg];
+        b = vm->general_regs[breg];
+        hvm_obj_array_push(a, b);
+        vm->ip += 2;
         break;
 
       default:

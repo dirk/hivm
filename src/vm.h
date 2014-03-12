@@ -126,7 +126,9 @@ typedef enum {
   HVM_MUL = 23,
   HVM_DIV = 24,
   HVM_MOD = 25,
-  HVM_POW = 26
+  HVM_POW = 26,
+  
+  HVM_ARRAYPUSH = 27,    // 1B OP | 2B REGS`
 } hvm_opcodes;
 
 #endif
