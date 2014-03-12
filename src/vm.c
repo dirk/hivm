@@ -53,7 +53,7 @@ void hvm_vm_run(hvm_vm *vm) {
         fprintf(stderr, "DIE\n");
         goto end;
       case HVM_OP_SETSTRING:  // 1 = reg, 2-5 = const
-      case HVM_OP_SETINTEGER: // 1B OP | 4B CONST | 1B REG
+      case HVM_OP_SETINTEGER: // 1B OP | 4B REG | 4B CONST
       case HVM_OP_SETFLOAT:
       case HVM_OP_SETSTRUCT:
         // TODO: Type-checking
