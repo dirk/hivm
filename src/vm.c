@@ -113,6 +113,7 @@ void hvm_vm_run(hvm_vm *vm) {
         AREG; BREG; CREG;
         a = vm->general_regs[areg];
         b = vm->general_regs[breg];
+        // TODO: Add float support
         if(instr == HVM_ADD)      { c = hvm_obj_int_add(a, b); }
         else if(instr == HVM_SUB) { c = hvm_obj_int_sub(a, b); }
         else if(instr == HVM_MUL) { c = hvm_obj_int_mul(a, b); }

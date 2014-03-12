@@ -107,17 +107,23 @@ void hvm_set_global(hvm_vm*, uint64_t, struct hvm_obj_ref*);
 typedef enum {
   HVM_OP_NOOP = 0,       // 1B OP
   HVM_OP_DIE  = 1,       // 1B OP
-  HVM_OP_GOTO = 2,       // 1B OP
-  HVM_OP_SETSTRING = 3,  // 1B OP | 1B REG | 4B CONST
-  HVM_OP_SETINTEGER = 4, // 1B OP | 1B REG | 4B CONST
-  HVM_OP_SETFLOAT = 5,   // 1B OP | 1B REG | 4B CONST
-  HVM_OP_SETSTRUCT = 6,  // 1B OP | 1B REG | 4B CONST
+  HVM_OP_JUMP = 3,       // 1B OP | 4B DIFF
+  HVM_OP_GOTO = 2,       // 1B OP | 8B DEST
+  HVM_OP_CALL = 4,       // 1B OP | 8B DEST | 1B REG
+  HVM_OP_TAILCALL = 5,   // 1B OP | 8B DEST
+  HVM_OP_RETURN = 6,     // 1B OP | 1B REG
+  HVM_OP_IF = 7,         // 1B OP | 1B REG  | 8B DEST
+
+  HVM_OP_SETSTRING = 3,  // 1B OP | 1B REG  | 4B CONST
+  HVM_OP_SETINTEGER = 4, // 1B OP | 1B REG  | 4B CONST
+  HVM_OP_SETFLOAT = 5,   // 1B OP | 1B REG  | 4B CONST
+  HVM_OP_SETSTRUCT = 6,  // 1B OP | 1B REG  | 4B CONST
   HVM_OP_SETNULL = 7,    // 1B OP | 1B REG
 
-  HVM_OP_SETLOCAL = 10,  // 1B OP | 4B SYM   | 1B REG
-  HVM_OP_GETLOCAL = 11,  // 1B OP | 1B REG   | 4B SYM
-  HVM_OP_SETGLOBAL = 12, // 1B OP | 4B SYM   | 1B REG
-  HVM_OP_GETGLOBAL = 13, // 1B OP | 1B REG   | 4B SYM
+  HVM_OP_SETLOCAL = 15,  // 1B OP | 4B SYM  | 1B REG
+  HVM_OP_GETLOCAL = 16,  // 1B OP | 1B REG  | 4B SYM
+  HVM_OP_SETGLOBAL = 17, // 1B OP | 4B SYM  | 1B REG
+  HVM_OP_GETGLOBAL = 18, // 1B OP | 1B REG  | 4B SYM
   
   HVM_GETCLOSURE = 20,   // 1B OP | 1B REG
   

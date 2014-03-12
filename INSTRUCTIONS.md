@@ -54,11 +54,11 @@
 `return RET`
 :  Return from the current subroutine to the parent. RET can be a register for returning a value or $null.
 
-`branch DIFF`
-:  Branch DIFF (integer) instructions forwards (positive) or backwards (negative).
+`jump DIFF`
+:  Jump DIFF (integer) instructions forwards (positive) or backwards (negative).
 
-`jump DEST`
-:  Jump to DEST (non-negative integer).
+`goto DEST`
+:  Go to DEST (non-negative integer).
 
 `if COND DEST`
 :  Jump to DEST if COND is truthy (not null and not a zero integer).
