@@ -19,7 +19,14 @@ hvm_obj_array *hvm_new_obj_array() {
   //arr->data = malloc(sizeof(hvm_obj_ref*) * 1);
   //arr->data[0] = NULL;
   //arr->length = 0;
-  arr->array = g_ptr_array_new();
+  arr->array = g_array_new(TRUE, TRUE, sizeof(hvm_obj_ref*));
+  return arr;
+}
+hvm_obj_array *hvm_new_obj_array_with_length(hvm_obj_ref *lenref) {
+  hvm_obj_array *arr = malloc(sizeof(hvm_obj_array));
+  assert(lenref->type == HVM_INTEGER);
+  guint len = (guint)(lenref->data.i64);
+  arr->array = g_array_sized_new(TRUE, TRUE, sizeof(hvm_obj_ref*), len);
   return arr;
 }
 
@@ -27,9 +34,74 @@ hvm_obj_array *hvm_new_obj_array() {
 void hvm_obj_array_push(hvm_obj_ref *a, hvm_obj_ref *b) {
   assert(a->type == HVM_ARRAY);
   hvm_obj_array *arr = a->data.v;
-  g_ptr_array_add(arr->array, b);
+  g_array_append_val(arr->array, b);
+}
+void hvm_obj_array_unshift(hvm_obj_ref *a, hvm_obj_ref *b) {
+  assert(a->type == HVM_ARRAY);
+  hvm_obj_array *arr = a->data.v;
+  g_array_prepend_val(arr->array, b);
 }
 
+hvm_obj_ref* hvm_obj_array_shift(hvm_obj_ref *a) {
+  assert(a->type == HVM_ARRAY);
+  hvm_obj_array *arr = a->data.v;
+  hvm_obj_ref *ptr = g_array_index(arr->array, hvm_obj_ref*, 0);
+  g_array_remove_index(arr->array, 0);
+  return ptr;
+}
+hvm_obj_ref* hvm_obj_array_pop(hvm_obj_ref *a) {
+  assert(a->type == HVM_ARRAY);
+  hvm_obj_array *arr = a->data.v;
+  guint end = arr->array->len - 1;
+  hvm_obj_ref *ptr = g_array_index(arr->array, hvm_obj_ref*, end);
+  g_array_remove_index(arr->array, end);
+  return ptr;
+}
+
+hvm_obj_ref* hvm_obj_array_get(hvm_obj_ref *arrref, hvm_obj_ref *idxref) {
+  assert(arrref->type == HVM_ARRAY); assert(idxref->type == HVM_INTEGER);
+  hvm_obj_array *arr = arrref->data.v;
+  guint idx, len;
+  idx = (guint)(idxref->data.i64);
+  len = arr->array->len;
+  assert(idx < len);
+  hvm_obj_ref *ptr = g_array_index(arr->array, hvm_obj_ref*, idx);
+  return ptr;
+}
+
+hvm_obj_ref* hvm_obj_array_remove(hvm_obj_ref *arrref, hvm_obj_ref *idxref) {
+  assert(arrref->type == HVM_ARRAY); assert(idxref->type == HVM_INTEGER);
+  hvm_obj_array *arr = arrref->data.v;
+  guint idx, len;
+  idx = (guint)(idxref->data.i64);
+  len = arr->array->len;
+  assert(idx < len);
+  hvm_obj_ref *ptr = g_array_index(arr->array, hvm_obj_ref*, idx);
+  g_array_remove_index(arr->array, idx);
+  return ptr;
+}
+
+void hvm_obj_array_set(hvm_obj_ref *arrref, hvm_obj_ref *idxref, hvm_obj_ref *valref) {
+  assert(arrref->type == HVM_ARRAY); assert(idxref->type == HVM_INTEGER);
+  hvm_obj_array *arr = arrref->data.v;
+  guint idx, len;
+  idx = (guint)(idxref->data.i64);
+  len = arr->array->len;
+  assert(idx < len);
+  hvm_obj_ref **el = &g_array_index(arr->array, hvm_obj_ref*, idx);
+  *el = valref;
+}
+
+void hvm_obj_struct_set(hvm_obj_ref *sref, hvm_obj_ref *key, hvm_obj_ref *val) {
+  assert(sref->type == HVM_STRUCTURE); assert(key->type == HVM_SYMBOL);
+  hvm_obj_struct *strct = sref->data.v;
+  hvm_obj_struct_internal_set(strct, (hvm_symbol_id)(key->data.u64), val);
+}
+hvm_obj_ref* hvm_obj_struct_get(hvm_obj_ref *sref, hvm_obj_ref *key) {
+  assert(sref->type == HVM_STRUCTURE); assert(key->type == HVM_SYMBOL);
+  hvm_obj_struct *strct = sref->data.v;
+  return hvm_obj_struct_internal_get(strct, (hvm_symbol_id)(key->data.u64));
+}
 
 hvm_obj_ref *hvm_new_obj_int() {
   static int64_t zero = 0;
@@ -62,13 +134,13 @@ hvm_obj_struct *hvm_new_obj_struct() {
   strct->heap[0] = NULL;
   return strct;
 }
-void hvm_obj_struct_grow_heap(hvm_obj_struct *strct) {
+void hvm_obj_struct_internal_grow_heap(hvm_obj_struct *strct) {
   strct->heap_size = strct->heap_size * HVM_STRUCT_HEAP_GROWTH_RATE;
   strct->heap = realloc(strct->heap, HVM_STRUCT_HEAP_MEMORY_SIZE(strct->heap_size));
 }
-void hvm_obj_struct_set(hvm_obj_struct *strct, hvm_symbol_id id, hvm_obj_ref *obj) {
+void hvm_obj_struct_internal_set(hvm_obj_struct *strct, hvm_symbol_id id, hvm_obj_ref *obj) {
   while(strct->heap_length >= strct->heap_size) {
-    hvm_obj_struct_grow_heap(strct);
+    hvm_obj_struct_internal_grow_heap(strct);
   }
   // Create the pair
   hvm_obj_struct_heap_pair *pair = malloc(sizeof(hvm_obj_struct_heap_pair));
@@ -84,7 +156,7 @@ void hvm_obj_struct_set(hvm_obj_struct *strct, hvm_symbol_id id, hvm_obj_ref *ob
   strct->heap[idx] = pair;
   strct->heap_length += 1;
 }
-hvm_obj_ref *hvm_obj_struct_get(hvm_obj_struct *strct, hvm_symbol_id id) {
+hvm_obj_ref *hvm_obj_struct_internal_get(hvm_obj_struct *strct, hvm_symbol_id id) {
   // Start at the top
   unsigned int idx = 0;
   hvm_symbol_id i;

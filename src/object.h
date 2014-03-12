@@ -39,7 +39,7 @@ typedef struct hvm_obj_string {
 
 typedef struct hvm_obj_array {
 #ifdef GLIB_MAJOR_VERSION
-  GPtrArray *array;
+  GArray *array;
 #else
   void *array;
 #endif
@@ -65,11 +65,16 @@ typedef struct hvm_obj_struct {
 // CONSTRUCTORS
 hvm_obj_string *hvm_new_obj_string();
 hvm_obj_array *hvm_new_obj_array();
+hvm_obj_array *hvm_new_obj_array_with_length(hvm_obj_ref*);
 /// Construct a new structure.
 /// @memberof hvm_obj_struct
 hvm_obj_struct *hvm_new_obj_struct();
-hvm_obj_ref *hvm_obj_struct_get(hvm_obj_struct*, hvm_symbol_id);
-void hvm_obj_struct_set(hvm_obj_struct*, hvm_symbol_id, hvm_obj_ref*);
+// Internal struct manipulation
+hvm_obj_ref *hvm_obj_struct_internal_get(hvm_obj_struct*, hvm_symbol_id);
+void hvm_obj_struct_internal_set(hvm_obj_struct*, hvm_symbol_id, hvm_obj_ref*);
+// External manipulation (via object refs)
+void hvm_obj_struct_set(hvm_obj_ref*, hvm_obj_ref*, hvm_obj_ref*);
+hvm_obj_ref* hvm_obj_struct_get(hvm_obj_ref*, hvm_obj_ref*);
 
 hvm_obj_ref *hvm_new_obj_ref();
 void hvm_obj_ref_set_string(hvm_obj_ref*, hvm_obj_string*);
@@ -78,6 +83,14 @@ hvm_obj_ref *hvm_new_obj_int();
 hvm_obj_ref *hvm_obj_int_add(hvm_obj_ref*, hvm_obj_ref*);
 
 void hvm_obj_array_push(hvm_obj_ref*, hvm_obj_ref*);
+void hvm_obj_array_unshift(hvm_obj_ref*, hvm_obj_ref*);
+hvm_obj_ref* hvm_obj_array_shift(hvm_obj_ref*);
+hvm_obj_ref* hvm_obj_array_pop(hvm_obj_ref*);
+hvm_obj_ref* hvm_obj_array_get(hvm_obj_ref*, hvm_obj_ref*);
+void hvm_obj_array_set(hvm_obj_ref*, hvm_obj_ref*, hvm_obj_ref*);
+hvm_obj_ref* hvm_obj_array_remove(hvm_obj_ref*, hvm_obj_ref*);
+
+
 
 // PRIMITIVE
 // Composed of just metadata and primitive value.

@@ -128,7 +128,18 @@ typedef enum {
   HVM_MOD = 25,
   HVM_POW = 26,
   
-  HVM_ARRAYPUSH = 27,    // 1B OP | 2B REGS`
+  HVM_ARRAYPUSH = 27,    // 1B OP | 2B REGS
+  HVM_ARRAYSHIFT = 28,   // 1B OP | 2B REGS
+  HVM_ARRAYPOP = 29,     // 1B OP | 2B REGS
+  HVM_ARRAYUNSHIFT = 30, // 1B OP | 2B REGS
+  HVM_ARRAYGET = 31,     // 1B OP | 3B REGS
+  HVM_ARRAYSET = 32,     // 1B OP | 3B REGS
+  HVM_ARRAYREMOVE = 33,  // 1B OP | 3B REGS
+  HVM_ARRAYNEW = 34,     // 1B OP | 2B REGS
+  
+  HVM_STRUCTSET = 35,    // 1B OP | 3B REGS
+  HVM_STRUCTGET = 36,    // 1B OP | 3B REGS
+
 } hvm_opcodes;
 
 #endif

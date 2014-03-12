@@ -33,11 +33,15 @@ hvm_vm *hvm_new_vm() {
 #define READ_U32(V) *(uint32_t*)(V)
 #define READ_U64(V) *(uint64_t*)(V)
 
+#define AREG areg = vm->program[vm->ip + 1];
+#define BREG breg = vm->program[vm->ip + 2];
+#define CREG creg = vm->program[vm->ip + 3];
+
 void hvm_vm_run(hvm_vm *vm) {
   byte instr;
   uint32_t const_index, sym_id;
   unsigned char reg, areg, breg, creg;
-  hvm_obj_ref *a, *b, *c;
+  hvm_obj_ref *a, *b, *c, *arr, *idx, *key, *val, *strct;
 
   for(;;) {
     instr = vm->program[vm->ip];
@@ -99,10 +103,9 @@ void hvm_vm_run(hvm_vm *vm) {
         vm->ip += 1;
         break;
 
+      // MATH -----------------------------------------------------------------
       case HVM_ADD: // 1B OP | 3B REGs
-        areg = vm->program[vm->ip + 1];
-        breg = vm->program[vm->ip + 2];
-        creg = vm->program[vm->ip + 3];
+        AREG; BREG; CREG;
         a = vm->general_regs[areg];
         b = vm->general_regs[breg];
         c = hvm_obj_int_add(a, b);
@@ -110,13 +113,91 @@ void hvm_vm_run(hvm_vm *vm) {
         vm->ip += 3;
         break;
 
+      // ARRAYS ---------------------------------------------------------------
       case HVM_ARRAYPUSH: // 1B OP | 2B REGS
-        areg = vm->program[vm->ip + 1];
-        breg = vm->program[vm->ip + 2];
+        // A.push(B)
+        AREG; BREG;
         a = vm->general_regs[areg];
         b = vm->general_regs[breg];
         hvm_obj_array_push(a, b);
         vm->ip += 2;
+        break;
+      case HVM_ARRAYUNSHIFT: // 1B OP | 2B REGS
+        // A.unshift(B)
+        AREG; BREG;
+        a = vm->general_regs[areg];
+        b = vm->general_regs[breg];
+        hvm_obj_array_unshift(a, b);
+        vm->ip += 2;
+        break;
+      case HVM_ARRAYSHIFT: // 1B OP | 2B REGS
+        // A = B.shift()
+        AREG; BREG;
+        b = vm->general_regs[breg];
+        vm->general_regs[areg] = hvm_obj_array_shift(b);
+        vm->ip += 2;
+        break;
+      case HVM_ARRAYPOP: // 1B OP | 2B REGS
+        // A = B.pop()
+        AREG; BREG;
+        b = vm->general_regs[breg];
+        vm->general_regs[areg] = hvm_obj_array_pop(b);
+        vm->ip += 2;
+        break;
+      case HVM_ARRAYGET: // 1B OP | 3B REGS
+        // arrayget V A I -> V = A[I]
+        AREG; BREG; CREG;
+        arr = vm->general_regs[breg];
+        idx = vm->general_regs[creg];
+        vm->general_regs[areg] = hvm_obj_array_get(arr, idx);
+        vm->ip += 3;
+        break;
+      case HVM_ARRAYSET: // 1B OP | 3B REGS
+        // arrayset A I V -> A[I] = V
+        AREG; BREG; CREG;
+        arr = vm->general_regs[areg];
+        idx = vm->general_regs[breg];
+        val = vm->general_regs[creg];
+        hvm_obj_array_set(arr, idx, val);
+        vm->ip += 3;
+        break;
+      case HVM_ARRAYREMOVE: // 1B OP | 3B REGS
+        // arrayremove V A I
+        AREG; BREG; CREG;
+        arr = vm->general_regs[breg];
+        idx = vm->general_regs[creg];
+        vm->general_regs[areg] = hvm_obj_array_remove(arr, idx);
+        vm->ip += 3;
+        break;
+      case HVM_ARRAYNEW: // 1B OP | 2B REGS
+        // arraynew A L
+        AREG; BREG;
+        val = vm->general_regs[breg];
+        hvm_obj_array *arr = hvm_new_obj_array_with_length(val);
+        a = hvm_new_obj_ref();
+        a->type = HVM_ARRAY;
+        a->data.v = arr;
+        vm->general_regs[areg] = a;
+        vm->ip += 2;
+        break;
+
+      // STRUCTS --------------------------------------------------------------
+      case HVM_STRUCTSET:
+        // structset S K V
+        AREG; BREG; CREG;
+        strct = vm->general_regs[areg];
+        key   = vm->general_regs[breg];
+        val   = vm->general_regs[creg];
+        hvm_obj_struct_set(strct, key, val);
+        vm->ip += 3;
+        break;
+      case HVM_STRUCTGET:
+        // structget V S K
+        AREG; BREG; CREG;
+        strct = vm->general_regs[breg];
+        key   = vm->general_regs[creg];
+        vm->general_regs[areg] = hvm_obj_struct_get(strct, key);
+        vm->ip += 3;
         break;
 
       default:
@@ -155,20 +236,20 @@ void hvm_const_pool_set_const(hvm_const_pool* pool, uint32_t id, struct hvm_obj_
 
 hvm_obj_ref* hvm_get_global(hvm_vm *vm, hvm_symbol_id id) {
   hvm_obj_struct* globals = vm->globals;
-  return hvm_obj_struct_get(globals, id);
+  return hvm_obj_struct_internal_get(globals, id);
 }
 void hvm_set_global(hvm_vm* vm, hvm_symbol_id id, struct hvm_obj_ref *global) {
   hvm_obj_struct* globals = vm->globals;
-  hvm_obj_struct_set(globals, id, global);
+  hvm_obj_struct_internal_set(globals, id, global);
 }
 
 void hvm_set_local(struct hvm_frame *frame, hvm_symbol_id id, struct hvm_obj_ref* local) {
   hvm_obj_struct *locals = frame->locals;
-  hvm_obj_struct_set(locals, id, local);
+  hvm_obj_struct_internal_set(locals, id, local);
 }
 
 struct hvm_obj_ref* hvm_get_local(struct hvm_frame *frame, hvm_symbol_id id) {
   hvm_obj_struct *locals = frame->locals;
-  hvm_obj_ref    *ref    = hvm_obj_struct_get(locals, id);
+  hvm_obj_ref    *ref    = hvm_obj_struct_internal_get(locals, id);
   return ref;
 }
