@@ -20,8 +20,8 @@
 `arrayget V A I`
 :  Get value at index I from array A and store it in V.
 
-`arraydelete V A I`
-:  Delete value at index I from array A and store it in V.
+`arrayremove V A I`
+:  Remove value at index I from array A and store it in V.
 
 `arraynew A L`
 :  Create a new array in A with length of non-negative integer L ($zero is allowed).
