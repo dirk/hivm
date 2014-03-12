@@ -24,7 +24,7 @@ hvm_obj_ref *hvm_new_obj_int() {
   static int64_t zero = 0;
   hvm_obj_ref *ref = hvm_new_obj_ref();
   ref->type = HVM_INTEGER;
-  ref->data = HVM_INT64_TO_UINT64(zero);
+  ref->data.i64 = zero;
   return ref;
 }
 
@@ -35,11 +35,11 @@ hvm_obj_ref *hvm_obj_int_add(hvm_obj_ref *a, hvm_obj_ref *b) {
   
   hvm_obj_ref *c = hvm_new_obj_ref();
   int64_t av, bv, cv;
-  av = HVM_INT64_FROM_UINT64(a->data);
-  bv = HVM_INT64_FROM_UINT64(b->data);
+  av = a->data.i64;
+  bv = b->data.i64;
   cv = av + bv;
   c->type = HVM_INTEGER;
-  c->data = HVM_INT64_TO_UINT64(cv);
+  c->data.i64 = cv;
   return c;
 }
 
@@ -93,10 +93,10 @@ hvm_obj_ref *hvm_obj_struct_get(hvm_obj_struct *strct, hvm_symbol_id id) {
 hvm_obj_ref *hvm_new_obj_ref() {
   hvm_obj_ref *ref = malloc(sizeof(hvm_obj_ref));
   ref->type = HVM_NULL;
-  ref->data = 0;
+  ref->data.u64 = 0;
   return ref;
 }
 void hvm_obj_ref_set_string(hvm_obj_ref *ref, hvm_obj_string *str) {
   ref->type = HVM_STRING;
-  ref->data = (uint64_t)str;
+  ref->data.v = str;
 }

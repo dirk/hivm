@@ -7,9 +7,6 @@
 #define HVM_STRUCT_HEAP_MEMORY_SIZE(S) (S * (sizeof(hvm_symbol_id) + sizeof(void*)))
 #define HVM_STRUCT_HEAP_GROWTH_RATE 2
 
-#define HVM_INT64_TO_UINT64(V)   *((uint64_t*)&V)
-#define HVM_INT64_FROM_UINT64(V) *((int64_t*)&V)
-
 // Objects are either primitive or composite.
 
 typedef enum {
@@ -22,11 +19,17 @@ typedef enum {
   HVM_SYMBOL = 6// Internally same as HVM_INTEGER
 } hvm_obj_type;
 
+union hvm_obj_ref_data {
+  int64_t  i64;
+  uint64_t u64;
+  void*    v;
+};
+
 /// Base reference to an object
 typedef struct hvm_obj_ref {
-  hvm_obj_type  type;
+  hvm_obj_type type;
   /// 8 bytes of data to play with; can be used as pointer or literal.
-  uint64_t      data;
+  union hvm_obj_ref_data data;
 } hvm_obj_ref;
 
 // TYPES

@@ -8,7 +8,7 @@
 
 struct hvm_obj_ref* hvm_const_null = &(hvm_obj_ref){
   .type = HVM_NULL,
-  .data = 0
+  .data = {0}
 };
 
 hvm_vm *hvm_new_vm() {
@@ -93,7 +93,7 @@ void hvm_vm_run(hvm_vm *vm) {
         reg = vm->program[vm->ip + 1];
         hvm_obj_ref* ref = hvm_new_obj_ref();
         ref->type = HVM_STRUCTURE;
-        ref->data = HVM_PTR_TO_UINT64(vm->top->locals);
+        ref->data.v = vm->top->locals;
         vm->general_regs[reg] = ref;
         vm->ip += 1;
         break;
