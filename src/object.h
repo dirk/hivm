@@ -38,8 +38,13 @@ typedef struct hvm_obj_string {
 } hvm_obj_string;
 
 typedef struct hvm_obj_array {
-  hvm_obj_ref** data;
-  unsigned int length;
+#ifdef GLIB_MAJOR_VERSION
+  GPtrArray *array;
+#else
+  void *array;
+#endif
+  // hvm_obj_ref** data;
+  // unsigned int length;
 } hvm_obj_array;
 
 typedef struct hvm_obj_struct_heap_pair {

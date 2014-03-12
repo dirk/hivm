@@ -3,8 +3,18 @@ def include_env v
 end
 $cc = 'clang-3.4'
 $ar = 'ar'
-$ldflags = "-lpthread -L. #{include_env 'LDFLAGS'}".strip
+$ld = 'ld'
+# $ldflags = "-lpthread -L. #{include_env 'LDFLAGS'}".strip
 $cflags  = "-g -Wall -Wextra -Wconversion -std=c99 -I. #{include_env 'CFLAGS'}".strip
+
+def cflags_for file
+  basename = File.basename file
+  cflags = $cflags
+  if basename == "object.o"
+    cflags += " #{`pkg-config --cflags glib-2.0`.strip}"
+  end
+  return cflags
+end
 
 desc "Build"
 task "build" => ["libhivem.a"]
@@ -33,8 +43,18 @@ file 'libhivem.a' => [
   sh "#{$ar} rcs #{t.name} #{t.prerequisites.join ' '}"
 end
 
+
 rule '.o' => ['.c'] do |t|
-  sh "#{$cc} #{t.source} -c #{$cflags} -o #{t.name}"
+  sh "#{$cc} #{t.source} -c #{cflags_for t.name} -o #{t.name}"
+  # if File.basename(t.name) == "object.o"
+  #   # -r merges object files into a new object file.
+  #   # TODO: Make this platform-independent (fiddle with pkg-config?)
+  #   libs = [
+  #     "/usr/local/Cellar/glib/2.38.2/lib/libglib-2.0.a",
+  #     "/usr/local/Cellar/gettext/0.18.3.2/lib/libintl.a"
+  #   ]
+  #   sh "#{$ld} -r #{t.name} #{libs.join ' '} -o #{t.name}"
+  # end
 end
 
 desc "Clean up objects"
