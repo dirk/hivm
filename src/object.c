@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <assert.h>
 
 #include "symbol.h"
 #include "object.h"
@@ -17,6 +18,29 @@ hvm_obj_array *hvm_new_obj_array() {
   arr->data[0] = NULL;
   arr->length = 0;
   return arr;
+}
+
+hvm_obj_ref *hvm_new_obj_int() {
+  static int64_t zero = 0;
+  hvm_obj_ref *ref = hvm_new_obj_ref();
+  ref->type = HVM_INTEGER;
+  ref->data = HVM_INT64_TO_UINT64(zero);
+  return ref;
+}
+
+hvm_obj_ref *hvm_obj_int_add(hvm_obj_ref *a, hvm_obj_ref *b) {
+  // Type-checks
+  assert(a->type == HVM_INTEGER);
+  assert(b->type == HVM_INTEGER);
+  
+  hvm_obj_ref *c = hvm_new_obj_ref();
+  int64_t av, bv, cv;
+  av = HVM_INT64_FROM_UINT64(a->data);
+  bv = HVM_INT64_FROM_UINT64(b->data);
+  cv = av + bv;
+  c->type = HVM_INTEGER;
+  c->data = HVM_INT64_TO_UINT64(cv);
+  return c;
 }
 
 hvm_obj_struct *hvm_new_obj_struct() {

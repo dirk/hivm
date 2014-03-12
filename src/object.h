@@ -7,6 +7,9 @@
 #define HVM_STRUCT_HEAP_MEMORY_SIZE(S) (S * (sizeof(hvm_symbol_id) + sizeof(void*)))
 #define HVM_STRUCT_HEAP_GROWTH_RATE 2
 
+#define HVM_INT64_TO_UINT64(V)   *((uint64_t*)&V)
+#define HVM_INT64_FROM_UINT64(V) *((int64_t*)&V)
+
 // Objects are either primitive or composite.
 
 typedef enum {
@@ -62,6 +65,9 @@ void hvm_obj_struct_set(hvm_obj_struct*, hvm_symbol_id, hvm_obj_ref*);
 
 hvm_obj_ref *hvm_new_obj_ref();
 void hvm_obj_ref_set_string(hvm_obj_ref*, hvm_obj_string*);
+
+hvm_obj_ref *hvm_new_obj_int();
+hvm_obj_ref *hvm_obj_int_add(hvm_obj_ref*, hvm_obj_ref*);
 
 // PRIMITIVE
 // Composed of just metadata and primitive value.

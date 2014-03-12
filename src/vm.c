@@ -36,7 +36,7 @@ hvm_vm *hvm_new_vm() {
 void hvm_vm_run(hvm_vm *vm) {
   byte instr;
   uint32_t const_index, sym_id;
-  unsigned char reg;
+  unsigned char reg, areg, breg, creg;
 
   for(;;) {
     instr = vm->program[vm->ip];
@@ -67,7 +67,6 @@ void hvm_vm_run(hvm_vm *vm) {
         sym_id = READ_U32(&vm->program[vm->ip + 1]);
         reg    = vm->program[vm->ip + 5];
         hvm_set_local(vm->top, sym_id, vm->general_regs[reg]);
-        // fprintf(stderr, "Error: SETLOCAL %u %u not implemented yet\n", sym_id, reg);
         vm->ip += 5;
         break;
       case HVM_OP_GETLOCAL: // 1B OP | 1B REG   | 4B SYM
@@ -81,15 +80,34 @@ void hvm_vm_run(hvm_vm *vm) {
         sym_id = READ_U32(&vm->program[vm->ip + 1]);
         reg    = vm->program[vm->ip + 5];
         hvm_set_global(vm, sym_id, vm->general_regs[reg]);
-        // fprintf(stderr, "Error: SETGLOBAL %u %u not implemented yet\n", sym_id, reg);
         vm->ip += 5;
         break;
       case HVM_OP_GETGLOBAL: // 1B OP | 1B REG   | 4B SYM
         reg    = vm->program[vm->ip + 1];
         sym_id = READ_U32(&vm->program[vm->ip + 2]);
         vm->general_regs[reg] = hvm_get_global(vm, sym_id);
-        // fprintf(stderr, "Error: GETGLOBAL %u %u not implemented yet\n", reg, sym_id);
         vm->ip += 5;
+        break;
+
+      case HVM_GETCLOSURE: // 1B OP | 1B REG
+        reg = vm->program[vm->ip + 1];
+        hvm_obj_ref* ref = hvm_new_obj_ref();
+        ref->type = HVM_STRUCTURE;
+        ref->data = HVM_PTR_TO_UINT64(vm->top->locals);
+        vm->general_regs[reg] = ref;
+        vm->ip += 1;
+        break;
+
+      case HVM_ADD: // 1B OP | 3B REGs
+        areg = vm->program[vm->ip + 1];
+        breg = vm->program[vm->ip + 2];
+        creg = vm->program[vm->ip + 3];
+        hvm_obj_ref *a, *b, *c;
+        a = vm->general_regs[areg];
+        b = vm->general_regs[breg];
+        c = hvm_obj_int_add(a, b);
+        vm->general_regs[creg] = c;
+        vm->ip += 3;
         break;
 
       default:

@@ -4,6 +4,8 @@
 
 #include <stdint.h>
 
+#define HVM_PTR_TO_UINT64(P) *((uint64_t*)&P)
+
 typedef unsigned char byte;
 
 /// VM opcode (256 max)
@@ -112,10 +114,19 @@ typedef enum {
   HVM_OP_SETSTRUCT = 6,  // 1B OP | 4B CONST | 1B REG
   HVM_OP_SETNULL = 7,    // 1B OP | 1B REG
 
-  HVM_OP_SETLOCAL = 10,   // 1B OP | 4B SYM   | 1B REG
+  HVM_OP_SETLOCAL = 10,  // 1B OP | 4B SYM   | 1B REG
   HVM_OP_GETLOCAL = 11,  // 1B OP | 1B REG   | 4B SYM
   HVM_OP_SETGLOBAL = 12, // 1B OP | 4B SYM   | 1B REG
-  HVM_OP_GETGLOBAL = 13  // 1B OP | 1B REG   | 4B SYM
+  HVM_OP_GETGLOBAL = 13, // 1B OP | 1B REG   | 4B SYM
+  
+  HVM_GETCLOSURE = 20,   // 1B OP | 1B REG
+  
+  HVM_ADD = 21,          // 1B OP | 3B REGs
+  HVM_SUB = 22,
+  HVM_MUL = 23,
+  HVM_DIV = 24,
+  HVM_MOD = 25,
+  HVM_POW = 26
 } hvm_opcodes;
 
 #endif
