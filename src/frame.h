@@ -5,6 +5,7 @@
 /// Stack frame.
 typedef struct hvm_frame {
   uint64_t       return_addr;
+  unsigned char  return_register;
   hvm_obj_struct *locals;
 } hvm_frame;
 

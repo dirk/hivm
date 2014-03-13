@@ -68,7 +68,7 @@ typedef struct hvm_vm {
   /// Root of call stack
   struct hvm_frame* root;
   /// Top of call stack (current execution frame)
-  struct hvm_frame* top;
+  struct hvm_frame** top;
   /// Call stack
   struct hvm_frame** stack;
 
@@ -138,11 +138,11 @@ typedef enum {
   HVM_OP_RETURN = 6,     // 1B OP | 1B REG
   HVM_OP_IF = 7,         // 1B OP | 1B REG  | 8B DEST
 
-  HVM_OP_SETSTRING = 3,  // 1B OP | 1B REG  | 4B CONST
-  HVM_OP_SETINTEGER = 4, // 1B OP | 1B REG  | 4B CONST
-  HVM_OP_SETFLOAT = 5,   // 1B OP | 1B REG  | 4B CONST
-  HVM_OP_SETSTRUCT = 6,  // 1B OP | 1B REG  | 4B CONST
-  HVM_OP_SETNULL = 7,    // 1B OP | 1B REG
+  HVM_OP_SETSTRING = 8,  // 1B OP | 1B REG  | 4B CONST
+  HVM_OP_SETINTEGER = 9, // 1B OP | 1B REG  | 4B CONST
+  HVM_OP_SETFLOAT = 10,  // 1B OP | 1B REG  | 4B CONST
+  HVM_OP_SETSTRUCT = 11, // 1B OP | 1B REG  | 4B CONST
+  HVM_OP_SETNULL = 12,   // 1B OP | 1B REG
 
   HVM_OP_SETLOCAL = 15,  // 1B OP | 4B SYM  | 1B REG
   HVM_OP_GETLOCAL = 16,  // 1B OP | 1B REG  | 4B SYM

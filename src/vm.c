@@ -25,7 +25,7 @@ hvm_vm *hvm_new_vm() {
   vm->root = hvm_new_frame();
   vm->stack = calloc(HVM_STACK_SIZE, sizeof(struct hvm_frame*));
   vm->stack[0] = vm->root;
-  vm->top = vm->root;
+  vm->top = &vm->root;
 
   return vm;
 }
@@ -40,8 +40,10 @@ hvm_vm *hvm_new_vm() {
 void hvm_vm_run(hvm_vm *vm) {
   byte instr;
   uint32_t const_index, sym_id;
+  uint64_t dest;//, return_addr;
   unsigned char reg, areg, breg, creg;
   hvm_obj_ref *a, *b, *c, *arr, *idx, *key, *val, *strct;
+  hvm_frame *frame;
 
   for(;;) {
     instr = vm->program[vm->ip];
@@ -52,8 +54,27 @@ void hvm_vm_run(hvm_vm *vm) {
       case HVM_OP_DIE:
         fprintf(stderr, "DIE\n");
         goto end;
+      case HVM_OP_CALL: // 1B OP | 8B DEST | 1B REG
+        dest = READ_U64(&vm->program[vm->ip + 1]);
+        reg  = vm->program[vm->ip + 9];
+        frame = hvm_new_frame();
+        frame->return_addr     = vm->ip + 10; // Instruction is 10 bytes long.
+        frame->return_register = reg;
+        vm->ip = dest;
+        vm->top++;
+        *(vm->top) = frame;
+        break;
+      case HVM_OP_RETURN: // 1B OP | 1B REG
+        reg = vm->program[vm->ip + 1];
+        // Current frame
+        frame = *vm->top;
+        vm->ip = frame->return_addr;
+        vm->top--;
+        vm->general_regs[frame->return_register] = vm->general_regs[reg];
+        break;
+
       case HVM_OP_SETSTRING:  // 1 = reg, 2-5 = const
-      case HVM_OP_SETINTEGER: // 1B OP | 4B REG | 4B CONST
+      case HVM_OP_SETINTEGER: // 1B OP | 1B REG | 4B CONST
       case HVM_OP_SETFLOAT:
       case HVM_OP_SETSTRUCT:
         // TODO: Type-checking
@@ -66,18 +87,19 @@ void hvm_vm_run(hvm_vm *vm) {
       case HVM_OP_SETNULL: // 1B OP | 1B REG
         reg = vm->program[vm->ip + 1];
         vm->general_regs[reg] = hvm_const_null;
+        vm->ip += 1;
         break;
 
       case HVM_OP_SETLOCAL: // 1B OP | 4B SYM   | 1B REG
         sym_id = READ_U32(&vm->program[vm->ip + 1]);
         reg    = vm->program[vm->ip + 5];
-        hvm_set_local(vm->top, sym_id, vm->general_regs[reg]);
+        hvm_set_local(*vm->top, sym_id, vm->general_regs[reg]);
         vm->ip += 5;
         break;
       case HVM_OP_GETLOCAL: // 1B OP | 1B REG   | 4B SYM
         reg    = vm->program[vm->ip + 1];
         sym_id = READ_U32(&vm->program[vm->ip + 2]);
-        vm->general_regs[reg] = hvm_get_local(vm->top, sym_id);
+        vm->general_regs[reg] = hvm_get_local(*vm->top, sym_id);
         vm->ip += 5;
         break;
 
@@ -98,7 +120,7 @@ void hvm_vm_run(hvm_vm *vm) {
         reg = vm->program[vm->ip + 1];
         hvm_obj_ref* ref = hvm_new_obj_ref();
         ref->type = HVM_STRUCTURE;
-        ref->data.v = vm->top->locals;
+        ref->data.v = (*vm->top)->locals;
         vm->general_regs[reg] = ref;
         vm->ip += 1;
         break;
