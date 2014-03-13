@@ -32,6 +32,7 @@ hvm_vm *hvm_new_vm() {
 
 #define READ_U32(V) *(uint32_t*)(V)
 #define READ_U64(V) *(uint64_t*)(V)
+#define READ_I32(V) *(int32_t*)(V)
 
 #define AREG areg = vm->program[vm->ip + 1];
 #define BREG breg = vm->program[vm->ip + 2];
@@ -41,9 +42,10 @@ void hvm_vm_run(hvm_vm *vm) {
   byte instr;
   uint32_t const_index, sym_id;
   uint64_t dest;//, return_addr;
+  int32_t diff;
   unsigned char reg, areg, breg, creg;
   hvm_obj_ref *a, *b, *c, *arr, *idx, *key, *val, *strct;
-  hvm_frame *frame;
+  hvm_frame *frame, *parent_frame;
 
   for(;;) {
     instr = vm->program[vm->ip];
@@ -54,6 +56,15 @@ void hvm_vm_run(hvm_vm *vm) {
       case HVM_OP_DIE:
         fprintf(stderr, "DIE\n");
         goto end;
+      case HVM_OP_TAILCALL: // 1B OP | 8B DEST
+        dest = READ_U64(&vm->program[vm->ip + 1]);
+        parent_frame = *vm->top;
+        frame        = hvm_new_frame();
+        frame->return_addr     = parent_frame->return_addr;
+        frame->return_register = parent_frame->return_register;
+        vm->ip = dest;
+        *(vm->top) = frame;
+        continue;
       case HVM_OP_CALL: // 1B OP | 8B DEST | 1B REG
         dest = READ_U64(&vm->program[vm->ip + 1]);
         reg  = vm->program[vm->ip + 9];
@@ -63,7 +74,7 @@ void hvm_vm_run(hvm_vm *vm) {
         vm->ip = dest;
         vm->top++;
         *(vm->top) = frame;
-        break;
+        continue;
       case HVM_OP_RETURN: // 1B OP | 1B REG
         reg = vm->program[vm->ip + 1];
         // Current frame
@@ -71,7 +82,20 @@ void hvm_vm_run(hvm_vm *vm) {
         vm->ip = frame->return_addr;
         vm->top--;
         vm->general_regs[frame->return_register] = vm->general_regs[reg];
-        break;
+        continue;
+      case HVM_OP_JUMP: // 1B OP | 4B DIFF
+        diff = READ_I32(&vm->program[vm->ip + 1]);
+        if(diff >= 0) {
+          vm->ip += (uint64_t)diff;
+        } else {
+          // TODO: Check for reverse-overflow (ie. abs(diff) > vm->ip)
+          vm->ip -= (uint64_t)(diff * -1);
+        }
+        continue;
+      case HVM_OP_GOTO: // 1B OP | 8B DEST
+        dest = READ_U64(&vm->program[vm->ip + 1]);
+        vm->ip = dest;
+        continue;
 
       case HVM_OP_SETSTRING:  // 1 = reg, 2-5 = const
       case HVM_OP_SETINTEGER: // 1B OP | 1B REG | 4B CONST
