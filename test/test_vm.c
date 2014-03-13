@@ -14,12 +14,17 @@ void test_heap() {
   hvm_obj_ref    *ref2;;
 
   hvm_obj_struct *s = hvm_new_obj_struct();
-  hvm_obj_struct_set(s, 2, ref);
-  hvm_obj_struct_set(s, 3, ref);
-  hvm_obj_struct_set(s, 1, ref);
-
-  ref2 = hvm_obj_struct_get(s, 2);
-  str2 = (hvm_obj_string*)(ref2->data);
+  hvm_obj_ref *sref = hvm_new_obj_ref();
+  sref->type = HVM_STRUCTURE;
+  sref->data.v = s;
+  
+  hvm_obj_ref *sym = hvm_new_obj_ref();
+  sym->type = HVM_SYMBOL;
+  sym->data.u64 = 0;
+  hvm_obj_struct_set(sref, sym, ref);
+  
+  ref2 = hvm_obj_struct_get(sref, sym);
+  str2 = ref2->data.v;
   printf("str2->data: %s\n", str2->data);
 }
 
