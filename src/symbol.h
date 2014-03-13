@@ -8,12 +8,14 @@
 // Double in size when out of space
 #define HVM_SYMBOL_TABLE_GROWTH_RATE  2
 
-typedef uint64_t hvm_symbol_id;
-
+/// Internal symbol table.
 typedef struct hvm_symbol_table {
+  /// Heap data.
   struct hvm_symbol_table_entry** symbols;
-  uint64_t                        next_id;
-  uint64_t                        size;
+  /// Next index in the heap.
+  uint64_t next_id;
+  /// Size of the allocated heap (in entries).
+  uint64_t size;
 } hvm_symbol_table;
 
 typedef struct hvm_symbol_table_entry {

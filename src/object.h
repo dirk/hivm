@@ -19,14 +19,19 @@ typedef enum {
   HVM_SYMBOL = 6// Internally same as HVM_INTEGER
 } hvm_obj_type;
 
+/// @brief Union of types for the data field in hvm_obj_ref.
 union hvm_obj_ref_data {
+  /// Signed integer (used by HVM_INTEGER)
   int64_t  i64;
+  /// Unsigned integer (likely unused)
   uint64_t u64;
+  /// Void pointer
   void*    v;
 };
 
-/// Base reference to an object
+/// Base reference to an object.
 typedef struct hvm_obj_ref {
+  /// Type of data stored in/pointed to by the reference.
   hvm_obj_type type;
   /// 8 bytes of data to play with; can be used as pointer or literal.
   union hvm_obj_ref_data data;
@@ -37,8 +42,10 @@ typedef struct hvm_obj_string {
   char* data;
 } hvm_obj_string;
 
+/// Dynamic array complex data type.
 typedef struct hvm_obj_array {
 #ifdef GLIB_MAJOR_VERSION
+  /// Pointer to the internal glib GArray instance.
   GArray *array;
 #else
   void *array;
@@ -47,17 +54,20 @@ typedef struct hvm_obj_array {
   // unsigned int length;
 } hvm_obj_array;
 
+/// Pair of symbol ID and object references in a hvm_obj_struct's heap.
 typedef struct hvm_obj_struct_heap_pair {
   hvm_symbol_id id;
   hvm_obj_ref*  obj;
 } hvm_obj_struct_heap_pair;
 
-///@details `memory size (bytes) = heap_size (pairs) * 2 (words/pair) * 8 (bytes/word)`
+/// @brief   Structure/table complex data type.
+/// @details `memory size (bytes) = heap_size (pairs) * 2 (words/pair) * 8 (bytes/word)`
 typedef struct hvm_obj_struct {
   /// Binary heap of symbol-integer-and-pointer pairs.
   hvm_obj_struct_heap_pair** heap;
-  /// Number of pairs in the binary heap.
+  /// Number of pairs allocated for the binary heap.
   unsigned int heap_size;
+  /// Number of pairs in the binary heap.
   unsigned int heap_length;
 } hvm_obj_struct;
 

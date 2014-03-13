@@ -13,6 +13,9 @@ typedef byte hvm_opcode;
 /// VM instruction
 typedef uint64_t hvm_instruction;
 
+/// Internal ID of a symbol.
+typedef uint64_t hvm_symbol_id;
+
 /// Size of chunks to be allocated for storing bytecodes.
 #define HVM_GENERATOR_GROW_RATE 65536
 
@@ -76,11 +79,13 @@ typedef struct hvm_vm {
   /// Size of program memory (in bytes)
   uint64_t program_size;
 
+  /// Pool of constants (dynamic array).
   hvm_const_pool const_pool;
   /// General purpose registers ($r0...$rN)
   struct hvm_obj_ref* general_regs[HVM_GENERAL_REGISTERS];
   // heap
   // object space
+  /// VM-wide global variables
   struct hvm_obj_struct *globals;
 } hvm_vm;
 
@@ -91,17 +96,36 @@ hvm_vm *hvm_new_vm();
 /// @memberof hvm_vm
 void hvm_vm_run(hvm_vm*);
 
-void hvm_vm_set_const(hvm_vm*, uint32_t, struct hvm_obj_ref*);
-struct hvm_obj_ref* hvm_vm_get_const(hvm_vm*, uint32_t);
+/// Set a constant in the VM constant table.
+/// @memberof hvm_vm
+/// @param    vm
+/// @param    id
+/// @param    obj
+/// @retval   hvm_obj_ref
+void hvm_vm_set_const(hvm_vm *vm, uint32_t id, struct hvm_obj_ref* obj);
+/// Get a constant.
+/// @memberof hvm_vm
+/// @param    vm
+/// @param    id
+/// @retval   hvm_obj_ref
+struct hvm_obj_ref* hvm_vm_get_const(hvm_vm *vm, uint32_t id);
 
 struct hvm_obj_ref* hvm_const_pool_get_const(hvm_const_pool*, uint32_t);
 void hvm_const_pool_set_const(hvm_const_pool*, uint32_t, struct hvm_obj_ref*);
 
-struct hvm_obj_ref* hvm_get_local(struct hvm_frame*, uint64_t);
-void hvm_set_local(struct hvm_frame*, uint64_t, struct hvm_obj_ref*);
+/// Get a local variable from a stack frame.
+/// @memberof hvm_vm
+struct hvm_obj_ref* hvm_get_local(struct hvm_frame*, hvm_symbol_id);
+/// Set a local variable in a stack frame.
+/// @memberof hvm_vm
+void hvm_set_local(struct hvm_frame*, hvm_symbol_id, struct hvm_obj_ref*);
 
-struct hvm_obj_ref* hvm_get_global(hvm_vm*, uint64_t);
-void hvm_set_global(hvm_vm*, uint64_t, struct hvm_obj_ref*);
+/// Get a global variable from the VM global struct (by symbol ID).
+/// @memberof hvm_vm
+struct hvm_obj_ref* hvm_get_global(hvm_vm*, hvm_symbol_id);
+/// Set a global variable in the VM.
+/// @memberof hvm_vm
+void hvm_set_global(hvm_vm*, hvm_symbol_id, struct hvm_obj_ref*);
 
 /// Opcodes
 typedef enum {
