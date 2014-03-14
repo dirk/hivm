@@ -1,5 +1,7 @@
 # Hivm
 
+[![Build Status](https://travis-ci.org/dirk/hivm.png?branch=master)](https://travis-ci.org/dirk/hivm)
+
 For now you'll probably just want to read over the [notes](manual/notes.md) and [instruction set](manual/instructions.md).
 
 ## The Manifesto
