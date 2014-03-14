@@ -84,3 +84,32 @@ The generator API will provide a handy utility function ("lexicalize"?) which wi
 ## Constants
 
 Bytecode chunks may include a constant pool for any necessary values. Instructions reference constants locally to their chunks. These chunk-relative references are resolved to VM-relative references when the chunk is loaded.
+
+## Examples
+
+### Anonymous functions
+
+The following is pseudo-JS and pseudo-ASM for implementing an anonymous function.
+
+```js
+var a = function() { ... }
+// (stuff)
+a()
+```
+
+```ruby
+# @_anonymous_123 will be resolved to a relative address by the generator
+# and will be marked for absolute address resolution in the chunk created
+# by the generator.
+SETCONSTANT $r0, @_anonymous_123
+CALL _js_new_function, $r1, "(anonymous)", $r0
+SETLOCAL :a, $r1 # :a is in the constant pool and resolved ahead-of-time
+# (stuff)
+GETLOCAL $r2, :a # Get the function struct created by _js_new_function
+STRUCTGET $r3, $r2, :_js_function_addr # Get the internal address
+CALLDYNAMIC $r3, $null # Invoke the code at that address (_anonymous_123)
+
+_anonymous_123:
+  ...
+  RETURN $null
+```

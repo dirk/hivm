@@ -50,17 +50,32 @@ typedef struct hvm_gen_item_op_e {
   int32_t diff;
 } hvm_gen_item_op_e;
 
+/*
+typedef enum {
+  HVM_MACRO_SUB
+} hvm_gen_macro_type;
 typedef struct hvm_gen_item_macro {
   hvm_gen_item_type type;
+  hvm_gen_macro_type macro;
+  char *name;
 } hvm_gen_item_macro;
+*/
 
 typedef struct hvm_gen_item_label {
   hvm_gen_item_type type;
+  char *name;
 } hvm_gen_item_label;
+
+
 
 typedef union hvm_gen_item {
   hvm_gen_item_op_a  op_a;
-  hvm_gen_item_macro macro;
+  hvm_gen_item_op_a  op_b1;
+  hvm_gen_item_op_a  op_b2;
+  hvm_gen_item_op_a  op_c;
+  hvm_gen_item_op_a  op_d;
+  hvm_gen_item_op_a  op_e;
+  // hvm_gen_item_macro macro;
   hvm_gen_item_label label;
 } hvm_gen_item;
 
@@ -78,5 +93,8 @@ typedef struct hvm_gen {
 } hvm_gen;
 
 hvm_gen *hvm_new_gen();
+hvm_gen_item_label *hvm_new_item_label();
+
+void hvm_gen_noop(hvm_gen*);
 
 #endif
