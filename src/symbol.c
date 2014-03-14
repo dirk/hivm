@@ -1,5 +1,6 @@
 #include <stdlib.h>
-#include <strings.h>
+#include <stdint.h>
+#include <string.h>
 #include <assert.h>
 
 #include "symbol.h"
