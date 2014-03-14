@@ -133,21 +133,22 @@ typedef enum {
   HVM_OP_DIE  = 1,       // 1B OP
   HVM_OP_JUMP = 3,       // 1B OP | 4B DIFF
   HVM_OP_GOTO = 2,       // 1B OP | 8B DEST
-  HVM_OP_CALL = 4,       // 1B OP | 8B DEST | 1B REG
-  HVM_OP_TAILCALL = 5,   // 1B OP | 8B DEST
-  HVM_OP_RETURN = 6,     // 1B OP | 1B REG
-  HVM_OP_IF = 7,         // 1B OP | 1B REG  | 8B DEST
+  HVM_OP_CALL = 4,       // 1B OP | 4B CONST | 1B REG
+  HVM_OP_CALLDYNAMIC = 5,// 1B OP | 1B REG   | 1B REG
+  HVM_OP_TAILCALL = 6,   // 1B OP | 8B DEST
+  HVM_OP_RETURN = 7,     // 1B OP | 1B REG
+  HVM_OP_IF = 8,         // 1B OP | 1B REG  | 8B DEST
 
-  HVM_OP_SETSTRING = 8,  // 1B OP | 1B REG  | 4B CONST
-  HVM_OP_SETINTEGER = 9, // 1B OP | 1B REG  | 4B CONST
-  HVM_OP_SETFLOAT = 10,  // 1B OP | 1B REG  | 4B CONST
-  HVM_OP_SETSTRUCT = 11, // 1B OP | 1B REG  | 4B CONST
-  HVM_OP_SETNULL = 12,   // 1B OP | 1B REG
+  HVM_OP_SETSTRING = 10, // 1B OP | 1B REG  | 4B CONST
+  HVM_OP_SETINTEGER = 11,// 1B OP | 1B REG  | 4B CONST
+  HVM_OP_SETFLOAT = 12,  // 1B OP | 1B REG  | 4B CONST
+  HVM_OP_SETSTRUCT = 13, // 1B OP | 1B REG  | 4B CONST
+  HVM_OP_SETNULL = 14,   // 1B OP | 1B REG
 
-  HVM_OP_SETLOCAL = 15,  // 1B OP | 4B SYM  | 1B REG
-  HVM_OP_GETLOCAL = 16,  // 1B OP | 1B REG  | 4B SYM
-  HVM_OP_SETGLOBAL = 17, // 1B OP | 4B SYM  | 1B REG
-  HVM_OP_GETGLOBAL = 18, // 1B OP | 1B REG  | 4B SYM
+  HVM_OP_GETLOCAL = 15,  // 1B OP | 1B REG  | 4B SYM
+  HVM_OP_SETLOCAL = 16,  // 1B OP | 4B SYM  | 1B REG
+  HVM_OP_GETGLOBAL = 17, // 1B OP | 1B REG  | 4B SYM
+  HVM_OP_SETGLOBAL = 18, // 1B OP | 4B SYM  | 1B REG
   
   HVM_GETCLOSURE = 20,   // 1B OP | 1B REG
   
@@ -157,7 +158,10 @@ typedef enum {
   HVM_DIV = 24,          // 1B OP | 3B REGs
   HVM_MOD = 25,          // 1B OP | 3B REGs
   HVM_POW = 26,          // 1B OP | 3B REGs
-  
+
+  // TODO: Bitwise instructions
+  // TODO: Exception instructions
+
   HVM_ARRAYPUSH = 27,    // 1B OP | 2B REGS
   HVM_ARRAYSHIFT = 28,   // 1B OP | 2B REGS
   HVM_ARRAYPOP = 29,     // 1B OP | 2B REGS

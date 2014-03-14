@@ -1,6 +1,6 @@
 # Hivm
 
-For now you'll probably just want to read over the [notes](NOTES.md) and [instruction set](INSTRUCTIONS.md).
+For now you'll probably just want to read over the [notes](manual/notes.md) and [instruction set](manual/instructions.md).
 
 ## The Manifesto
 

@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <assert.h>
 
 #include "vm.h"
 #include "symbol.h"
@@ -65,11 +66,27 @@ void hvm_vm_run(hvm_vm *vm) {
         vm->ip = dest;
         *(vm->top) = frame;
         continue;
-      case HVM_OP_CALL: // 1B OP | 8B DEST | 1B REG
-        dest = READ_U64(&vm->program[vm->ip + 1]);
-        reg  = vm->program[vm->ip + 9];
+      case HVM_OP_CALL: // 1B OP | 4B CONST | 1B REG
+        const_index = READ_U32(&vm->program[vm->ip + 1]);
+        val = hvm_vm_get_const(vm, const_index);
+        assert(val->type == HVM_INTEGER);
+        dest = (uint64_t)val->data.i64;
+        // reg  = vm->program[vm->ip + 5];
         frame = hvm_new_frame();
-        frame->return_addr     = vm->ip + 10; // Instruction is 10 bytes long.
+        frame->return_addr     = vm->ip + 6; // Instruction is 6 bytes long.
+        frame->return_register = reg;
+        vm->ip = dest;
+        vm->top++;
+        *(vm->top) = frame;
+        continue;
+      case HVM_OP_CALLDYNAMIC: // 1B OP | 1B REG | 1B REG
+        reg  = vm->program[vm->ip + 1];
+        val  = vm->general_regs[reg];
+        assert(val->type == HVM_INTEGER);
+        dest = (uint64_t)val->data.i64;
+        reg  = vm->program[vm->ip + 2]; // Return register now
+        frame = hvm_new_frame();
+        frame->return_addr     = vm->ip + 3; // Instruction 3 bytes long.
         frame->return_register = reg;
         vm->ip = dest;
         vm->top++;
