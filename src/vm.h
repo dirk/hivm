@@ -81,6 +81,8 @@ typedef struct hvm_vm {
 
   /// Pool of constants (dynamic array).
   hvm_const_pool const_pool;
+  /// Symbol table: resolves symbols to code locations
+  struct hvm_obj_struct *symbol_table;
   /// General purpose registers ($r0...$rN)
   struct hvm_obj_ref* general_regs[HVM_GENERAL_REGISTERS];
   // heap
@@ -133,7 +135,7 @@ typedef enum {
   HVM_OP_DIE  = 1,       // 1B OP
   HVM_OP_JUMP = 3,       // 1B OP | 4B DIFF
   HVM_OP_GOTO = 2,       // 1B OP | 8B DEST
-  HVM_OP_CALL = 4,       // 1B OP | 4B CONST | 1B REG
+  HVM_OP_CALL = 4,       // 1B OP | 8B DEST  | 1B REG
   HVM_OP_CALLDYNAMIC = 5,// 1B OP | 1B REG   | 1B REG
   HVM_OP_TAILCALL = 6,   // 1B OP | 8B DEST
   HVM_OP_RETURN = 7,     // 1B OP | 1B REG

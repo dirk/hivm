@@ -46,7 +46,7 @@
 ## Control flow & subroutines
 
 `call SUB RET`
-:  Invoke the subroutine at address in integer constant referenced by index SUB. RET can be a register for return or $null for no return or ignoring return.
+:  Invoke the subroutine at SUB. RET can be a register for return or $null for no return or ignoring return.
 
 `calldynamic SUB RET`
 :  Invoke subroutine at address in SUB (register, not integer constant).
