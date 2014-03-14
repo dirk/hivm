@@ -96,6 +96,19 @@ void hvm_vm_run(hvm_vm *vm) {
         dest = READ_U64(&vm->program[vm->ip + 1]);
         vm->ip = dest;
         continue;
+      case HVM_OP_IF: // 1B OP | 1B REG  | 8B DEST
+        reg  = vm->program[vm->ip + 1];
+        dest = READ_U64(&vm->program[vm->ip + 2]);
+        val  = vm->general_regs[reg];
+        if(val->type == HVM_NULL || (val->type == HVM_INTEGER && val->data.i64 == 0)) {
+          // Falsey, add on the 9 bytes for the instruction parameters and continue onwards.
+          vm->ip += 9;
+          break;
+        } else {
+          // Truthy, go straight to destination.
+          vm->ip = dest;
+          continue;
+        }
 
       case HVM_OP_SETSTRING:  // 1 = reg, 2-5 = const
       case HVM_OP_SETINTEGER: // 1B OP | 1B REG | 4B CONST
