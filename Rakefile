@@ -10,7 +10,7 @@ $cflags  = "-g -Wall -Wextra -Wconversion -std=c99 -I. #{include_env 'CFLAGS'}".
 def cflags_for file
   basename = File.basename file
   cflags = $cflags
-  if basename == "object.o"
+  if basename == "object.o" || basename == "generator.o"
     cflags += " #{`pkg-config --cflags glib-2.0`.strip}"
   end
   return cflags
@@ -37,7 +37,7 @@ end
 # desc "Compile"
 file 'libhivem.a' => [
   # Source
-  'src/vm.o', 'src/object.o', 'src/symbol.o', 'src/frame.o'
+  'src/vm.o', 'src/object.o', 'src/symbol.o', 'src/frame.o', 'src/generator.o'
 ] do |t|
   # sh "cc -o #{t.name} #{t.prerequisites.join ' '} #{LDFLAGS} #{CFLAGS}"
   sh "#{$ar} rcs #{t.name} #{t.prerequisites.join ' '}"

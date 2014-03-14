@@ -58,16 +58,25 @@ typedef struct hvm_gen_item_label {
   hvm_gen_item_type type;
 } hvm_gen_item_label;
 
-union hvm_gen_item {
+typedef union hvm_gen_item {
   hvm_gen_item_op_a  op_a;
   hvm_gen_item_macro macro;
   hvm_gen_item_label label;
-};
+} hvm_gen_item;
+
 
 /// @brief Stores instructions, constants, etc. for a chunk. Can then generate the
 ///        appropriate bytecode for that chunk.
 typedef struct hvm_gen {
+#ifdef GLIB_MAJOR_VERSION
+  /// Stream of items (ops and meta-tags).
+  GArray *items;
+#else
+  void *items;
+#endif
   // nothing
 } hvm_gen;
+
+hvm_gen *hvm_new_gen();
 
 #endif
