@@ -34,15 +34,9 @@ typedef struct hvm_chunk {
 
 } hvm_chunk;
 
-/// @brief Stores instructions, constants, etc. for a chunk. Can then generate the
-///        appropriate bytecode for that chunk.
-typedef struct hvm_generator {
-  // nothing
-} hvm_generator;
-
 /// Generates bytecode.
 /// @memberof hvm_generator
-void hvm_generator_bytecode(hvm_generator*);
+// void hvm_generate_bytecode(struct hvm_gen*);
 
 /// @brief   Constant pools map an integer to a constant.
 /// @details Can store approximately 4 billion constants (32-bit indexes).

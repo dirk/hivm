@@ -19,23 +19,43 @@ typedef enum {
   HVM_GEN_LABEL
 } hvm_gen_item_type;
 
+// OPCODES --------------------------------------------------------------------
 typedef struct hvm_gen_item_op_a {
   hvm_gen_item_type type;
   byte reg1;
   byte reg2;
   byte reg3;
 } hvm_gen_item_op_a;
-
-typedef struct hvm_gen_item_macro {
+typedef struct hvm_gen_item_op_b1 {
   hvm_gen_item_type type;
   byte reg;
   uint32_t sym;
+} hvm_gen_item_op_b1;
+typedef struct hvm_gen_item_op_b2 {
+  hvm_gen_item_type type;
+  uint32_t sym;
+  byte reg;
+} hvm_gen_item_op_b2;
+typedef struct hvm_gen_item_op_c {
+  hvm_gen_item_type type;
+  byte reg;
+  uint32_t cnst;
+} hvm_gen_item_op_c;
+typedef struct hvm_gen_item_op_d {
+  hvm_gen_item_type type;
+  uint64_t dest;
+} hvm_gen_item_op_d;
+typedef struct hvm_gen_item_op_e {
+  hvm_gen_item_type type;
+  int32_t diff;
+} hvm_gen_item_op_e;
+
+typedef struct hvm_gen_item_macro {
+  hvm_gen_item_type type;
 } hvm_gen_item_macro;
 
 typedef struct hvm_gen_item_label {
   hvm_gen_item_type type;
-  uint32_t sym;
-  byte reg;
 } hvm_gen_item_label;
 
 union hvm_gen_item {

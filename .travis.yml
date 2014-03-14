@@ -1,0 +1,4 @@
+language: c
+compiler: clang
+install: gem install rake
+script: rake
