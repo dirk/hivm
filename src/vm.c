@@ -6,6 +6,7 @@
 #include "symbol.h"
 #include "object.h"
 #include "frame.h"
+#include "generator.h"
 
 struct hvm_obj_ref* hvm_const_null = &(hvm_obj_ref){
   .type = HVM_NULL,
