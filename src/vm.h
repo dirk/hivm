@@ -173,6 +173,8 @@ typedef enum {
   HVM_STRUCTNEW = 38,    // 1B OP | 1B REG
   HVM_STRUCTHAS = 39,    // 1B OP | 3B REGS
 
+  HVM_OP_LITINTEGER = 40,// 1B OP | 1B REG  | 8B LIT
+
 } hvm_opcodes;
 
 #endif

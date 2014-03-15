@@ -36,6 +36,7 @@ hvm_vm *hvm_new_vm() {
 #define READ_U32(V) *(uint32_t*)(V)
 #define READ_U64(V) *(uint64_t*)(V)
 #define READ_I32(V) *(int32_t*)(V)
+#define READ_I64(V) *(int64_t*)(V)
 
 #define AREG areg = vm->program[vm->ip + 1];
 #define BREG breg = vm->program[vm->ip + 2];
@@ -46,6 +47,7 @@ void hvm_vm_run(hvm_vm *vm) {
   uint32_t const_index, sym_id;
   uint64_t dest;//, return_addr;
   int32_t diff;
+  int64_t i64_literal;
   unsigned char reg, areg, breg, creg;
   hvm_obj_ref *a, *b, *c, *arr, *idx, *key, *val, *strct;
   hvm_frame *frame, *parent_frame;
@@ -126,6 +128,14 @@ void hvm_vm_run(hvm_vm *vm) {
           continue;
         }
 
+      case HVM_OP_LITINTEGER: // 1B OP | 1B REG | 8B LIT
+        reg         = vm->program[vm->ip + 1];
+        i64_literal = READ_I64(&vm->program[vm->ip + 2]);
+        val         = hvm_new_obj_int();
+        val->data.i64 = i64_literal;
+        vm->ip += 9;
+        break;
+      
       case HVM_OP_SETSTRING:  // 1 = reg, 2-5 = const
       case HVM_OP_SETINTEGER: // 1B OP | 1B REG | 4B CONST
       case HVM_OP_SETFLOAT:

@@ -102,6 +102,11 @@ NOTE: May want to make a `setconstant` instruction available.
 `setnull A`
 :  Set register A to null.
 
+## Literal assignment
+
+`litinteger A I`
+:  Set A to literal integer I.
+
 ## Miscellaneous
 
 `noop`
