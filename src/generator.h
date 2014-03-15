@@ -11,10 +11,12 @@
 
 typedef enum {
   HVM_GEN_OPA,
-  HVM_GEN_OPB1,
-  HVM_GEN_OPB2,
+  HVM_GEN_OPB1, // 1B OP | 1B REG | 4B SYM
+  HVM_GEN_OPB2, // 1B OP | 4B SYM | 1B REG
   HVM_GEN_OPC,
-  HVM_GEN_OPD,
+  HVM_GEN_OPD1,
+  HVM_GEN_OPD2,
+  HVM_GEN_OPD3,
   HVM_GEN_OPE,
   HVM_GEN_OPF,
   HVM_GEN_MACRO,
@@ -30,11 +32,15 @@ typedef struct hvm_gen_item_op_a {
 } hvm_gen_item_op_a;
 typedef struct hvm_gen_item_op_b1 {
   hvm_gen_item_type type;
+  // 1B OP | 1B REG | 4B SYM
+  byte op;
   byte reg;
   uint32_t sym;
 } hvm_gen_item_op_b1;
 typedef struct hvm_gen_item_op_b2 {
   hvm_gen_item_type type;
+  // 1B OP | 4B SYM | 1B REG
+  byte op;
   uint32_t sym;
   byte reg;
 } hvm_gen_item_op_b2;
@@ -43,10 +49,23 @@ typedef struct hvm_gen_item_op_c {
   byte reg;
   uint32_t cnst;
 } hvm_gen_item_op_c;
-typedef struct hvm_gen_item_op_d {
+typedef struct hvm_gen_item_op_d1 {
   hvm_gen_item_type type;
+  byte op;
   uint64_t dest;
-} hvm_gen_item_op_d;
+} hvm_gen_item_op_d1;
+typedef struct hvm_gen_item_op_d2 {
+  hvm_gen_item_type type;
+  byte op;
+  uint64_t dest;
+  byte ret;
+} hvm_gen_item_op_d2;
+typedef struct hvm_gen_item_op_d3 {
+  hvm_gen_item_type type;
+  byte op;
+  byte val;
+  uint64_t dest;
+} hvm_gen_item_op_d3;
 typedef struct hvm_gen_item_op_e {
   hvm_gen_item_type type;
   byte op;
@@ -80,8 +99,10 @@ typedef union hvm_gen_item {
   hvm_gen_item_op_a  op_b1;
   hvm_gen_item_op_a  op_b2;
   hvm_gen_item_op_a  op_c;
-  hvm_gen_item_op_a  op_d;
-  hvm_gen_item_op_a  op_e;
+  hvm_gen_item_op_d1 op_d1;
+  hvm_gen_item_op_d2 op_d2;
+  hvm_gen_item_op_d3 op_d3;
+  hvm_gen_item_op_e  op_e;
   // hvm_gen_item_macro macro;
   hvm_gen_item_label label;
 } hvm_gen_item;
@@ -104,5 +125,11 @@ hvm_gen_item_label *hvm_new_item_label();
 
 void hvm_gen_noop(hvm_gen*);
 void hvm_gen_jump(hvm_gen*, int32_t);
+void hvm_gen_goto(hvm_gen*, uint64_t);
+void hvm_gen_call(hvm_gen*, uint64_t, byte);
+void hvm_gen_if(hvm_gen*, byte, uint64_t);
+
+void hvm_gen_getlocal(hvm_gen*, byte, uint32_t);
+void hvm_gen_setlocal(hvm_gen*, uint32_t, byte);
 
 #endif

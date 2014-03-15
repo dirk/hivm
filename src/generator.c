@@ -27,3 +27,43 @@ void hvm_gen_jump(hvm_gen *gen, int32_t diff) {
   jmp->diff = diff;
   g_array_append_val(gen->items, jmp);
 }
+void hvm_gen_goto(hvm_gen *gen, uint64_t dest) {
+  hvm_gen_item_op_d1 *gt = malloc(sizeof(hvm_gen_item_op_d1));
+  gt->type = HVM_GEN_OPD1;
+  gt->op = HVM_OP_GOTO;
+  gt->dest = dest;
+  g_array_append_val(gen->items, gt);
+}
+void hvm_gen_call(hvm_gen *gen, uint64_t dest, byte ret) {
+  hvm_gen_item_op_d2 *call = malloc(sizeof(hvm_gen_item_op_d2));
+  call->type = HVM_GEN_OPD2;
+  call->op = HVM_OP_GOTO;
+  call->dest = dest;
+  call->ret  = ret;
+  g_array_append_val(gen->items, call);
+}
+void hvm_gen_if(hvm_gen *gen, byte val, uint64_t dest) {
+  hvm_gen_item_op_d3 *i = malloc(sizeof(hvm_gen_item_op_d3));
+  i->type = HVM_GEN_OPD2;
+  i->op = HVM_OP_GOTO;
+  i->val  = val;
+  i->dest = dest;
+  g_array_append_val(gen->items, i);
+}
+
+void hvm_gen_getlocal(hvm_gen *gen, byte reg, uint32_t sym) {
+  hvm_gen_item_op_b1 *op = malloc(sizeof(hvm_gen_item_op_b1));
+  op->type = HVM_GEN_OPB1;
+  op->op   = HVM_OP_SETLOCAL;
+  op->reg  = reg;
+  op->sym  = sym;
+  g_array_append_val(gen->items, op);
+}
+void hvm_gen_setlocal(hvm_gen *gen, uint32_t sym, byte reg) {
+  hvm_gen_item_op_b2 *op = malloc(sizeof(hvm_gen_item_op_b2));
+  op->type = HVM_GEN_OPB2;
+  op->op   = HVM_OP_SETLOCAL;
+  op->sym  = sym;
+  op->reg  = reg;
+  g_array_append_val(gen->items, op);
+}
