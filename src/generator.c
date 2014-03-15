@@ -54,7 +54,7 @@ void hvm_gen_if(hvm_gen *gen, byte val, uint64_t dest) {
 void hvm_gen_getlocal(hvm_gen *gen, byte reg, uint32_t sym) {
   hvm_gen_item_op_b1 *op = malloc(sizeof(hvm_gen_item_op_b1));
   op->type = HVM_GEN_OPB1;
-  op->op   = HVM_OP_SETLOCAL;
+  op->op   = HVM_OP_GETLOCAL;
   op->reg  = reg;
   op->sym  = sym;
   g_array_append_val(gen->items, op);
