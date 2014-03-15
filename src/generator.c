@@ -67,3 +67,39 @@ void hvm_gen_setlocal(hvm_gen *gen, uint32_t sym, byte reg) {
   op->reg  = reg;
   g_array_append_val(gen->items, op);
 }
+
+void hvm_gen_getglobal(hvm_gen *gen, byte reg, uint32_t sym) {
+  hvm_gen_item_op_b1 *op = malloc(sizeof(hvm_gen_item_op_b1));
+  op->type = HVM_GEN_OPB1;
+  op->op   = HVM_OP_GETGLOBAL;
+  op->reg  = reg;
+  op->sym  = sym;
+  g_array_append_val(gen->items, op);
+}
+void hvm_gen_setglobal(hvm_gen *gen, uint32_t sym, byte reg) {
+  hvm_gen_item_op_b2 *op = malloc(sizeof(hvm_gen_item_op_b2));
+  op->type = HVM_GEN_OPB2;
+  op->op   = HVM_OP_SETGLOBAL;
+  op->sym  = sym;
+  op->reg  = reg;
+  g_array_append_val(gen->items, op);
+}
+
+// 1B OP | 1B REG
+void hvm_gen_getclosure(hvm_gen *gen, byte reg) {
+  hvm_gen_item_op_a1 *op = malloc(sizeof(hvm_gen_item_op_a1));
+  op->type = HVM_GEN_OPA1;
+  op->op   = HVM_GETCLOSURE;
+  op->reg1 = reg;
+  g_array_append_val(gen->items, op);
+}
+
+// 1B OP | 1B REG | 8B LITERAL
+void hvm_gen_litinteger(hvm_gen *gen, byte reg, int64_t val) {
+  hvm_gen_item_op_g *op = malloc(sizeof(hvm_gen_item_op_g));
+  op->type = HVM_GEN_OPG;
+  op->op   = HVM_OP_LITINTEGER;
+  op->reg  = reg;
+  op->lit  = val;
+  g_array_append_val(gen->items, op);
+}
