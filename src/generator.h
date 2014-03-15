@@ -21,78 +21,81 @@ typedef enum {
   HVM_GEN_OPD2,
   HVM_GEN_OPD3,
   HVM_GEN_OPE,
-  HVM_GEN_OPF,
+  HVM_GEN_OPF, // 1B OP
   HVM_GEN_OPG, // 1B OP | 1B REG | 8B LITERAL
   HVM_GEN_MACRO,
   HVM_GEN_LABEL
 } hvm_gen_item_type;
 
+#define HVM_GEN_ITEM_HEAD hvm_gen_item_type type;
+
 // OPCODES --------------------------------------------------------------------
 typedef struct hvm_gen_item_op_a1 {
-  hvm_gen_item_type type;
+  HVM_GEN_ITEM_HEAD;
   byte op;
   byte reg1;
 } hvm_gen_item_op_a1;
 typedef struct hvm_gen_item_op_a2 {
-  hvm_gen_item_type type;
+  HVM_GEN_ITEM_HEAD;
   byte op;
   byte reg1;
   byte reg2;
 } hvm_gen_item_op_a2;
 typedef struct hvm_gen_item_op_a3 {
-  hvm_gen_item_type type;
+  HVM_GEN_ITEM_HEAD;
   byte op;
   byte reg1;
   byte reg2;
   byte reg3;
 } hvm_gen_item_op_a3;
 typedef struct hvm_gen_item_op_b1 {
-  hvm_gen_item_type type;
+  HVM_GEN_ITEM_HEAD;
   // 1B OP | 1B REG | 4B SYM
   byte op;
   byte reg;
   uint32_t sym;
 } hvm_gen_item_op_b1;
 typedef struct hvm_gen_item_op_b2 {
-  hvm_gen_item_type type;
+  HVM_GEN_ITEM_HEAD;
   // 1B OP | 4B SYM | 1B REG
   byte op;
   uint32_t sym;
   byte reg;
 } hvm_gen_item_op_b2;
 typedef struct hvm_gen_item_op_c {
-  hvm_gen_item_type type;
+  HVM_GEN_ITEM_HEAD;
   byte reg;
   uint32_t cnst;
 } hvm_gen_item_op_c;
 typedef struct hvm_gen_item_op_d1 {
-  hvm_gen_item_type type;
+  HVM_GEN_ITEM_HEAD;
   byte op;
   uint64_t dest;
 } hvm_gen_item_op_d1;
 typedef struct hvm_gen_item_op_d2 {
-  hvm_gen_item_type type;
+  HVM_GEN_ITEM_HEAD;
   byte op;
   uint64_t dest;
   byte ret;
 } hvm_gen_item_op_d2;
 typedef struct hvm_gen_item_op_d3 {
-  hvm_gen_item_type type;
+  HVM_GEN_ITEM_HEAD;
   byte op;
   byte val;
   uint64_t dest;
 } hvm_gen_item_op_d3;
 typedef struct hvm_gen_item_op_e {
-  hvm_gen_item_type type;
+  HVM_GEN_ITEM_HEAD;
   byte op;
   int32_t diff;
 } hvm_gen_item_op_e;
 typedef struct hvm_gen_item_op_f {
-  hvm_gen_item_type type;
+  HVM_GEN_ITEM_HEAD;
+  // 1B OP
   byte op;
 } hvm_gen_item_op_f;
 typedef struct hvm_gen_item_op_g {
-  hvm_gen_item_type type;
+  HVM_GEN_ITEM_HEAD;
   // 1B OP | 1B REG | 8B LITERAL
   byte op;
   byte reg;
@@ -111,7 +114,7 @@ typedef struct hvm_gen_item_macro {
 */
 
 typedef struct hvm_gen_item_label {
-  hvm_gen_item_type type;
+  HVM_GEN_ITEM_HEAD;
   char *name;
 } hvm_gen_item_label;
 
@@ -126,6 +129,7 @@ typedef union hvm_gen_item {
   hvm_gen_item_op_d2 op_d2;
   hvm_gen_item_op_d3 op_d3;
   hvm_gen_item_op_e  op_e;
+  hvm_gen_item_op_f  op_f;
   hvm_gen_item_op_g  op_g;
   // hvm_gen_item_macro macro;
   hvm_gen_item_label label;
@@ -146,21 +150,21 @@ typedef struct hvm_gen {
 hvm_gen *hvm_new_gen();
 hvm_gen_item_label *hvm_new_item_label();
 
-void hvm_gen_noop(hvm_gen*);
-void hvm_gen_jump(hvm_gen*, int32_t);
-void hvm_gen_goto(hvm_gen*, uint64_t);
-void hvm_gen_call(hvm_gen*, uint64_t, byte);
-void hvm_gen_if(hvm_gen*, byte, uint64_t);
+void hvm_gen_noop(hvm_gen *gen);
+void hvm_gen_jump(hvm_gen *gen, int32_t diff);
+void hvm_gen_goto(hvm_gen *gen, uint64_t dest);
+void hvm_gen_call(hvm_gen *gen, uint64_t dest, byte ret);
+void hvm_gen_if(hvm_gen *gen, byte val, uint64_t dest);
 
-void hvm_gen_getlocal(hvm_gen*, byte, uint32_t);
-void hvm_gen_setlocal(hvm_gen*, uint32_t, byte);
+void hvm_gen_getlocal(hvm_gen *gen, byte reg, uint32_t sym);
+void hvm_gen_setlocal(hvm_gen *gen, uint32_t sym, byte reg);
 
-void hvm_gen_getglobal(hvm_gen*, byte, uint32_t);
-void hvm_gen_setglobal(hvm_gen*, uint32_t, byte);
+void hvm_gen_getglobal(hvm_gen *gen, byte reg, uint32_t sym);
+void hvm_gen_setglobal(hvm_gen *gen, uint32_t sym, byte reg);
 
-void hvm_gen_getclosure(hvm_gen*, byte);
+void hvm_gen_getclosure(hvm_gen *gen, byte reg);
 
-void hvm_gen_litinteger(hvm_gen*, byte, int64_t);
+void hvm_gen_litinteger(hvm_gen *gen, byte reg, int64_t val);
 
 void hvm_gen_arraypush(hvm_gen *gen, byte arr, byte val);
 void hvm_gen_arrayshift(hvm_gen *gen, byte reg, byte arr);
