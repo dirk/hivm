@@ -104,6 +104,8 @@ void hvm_gen_litinteger(hvm_gen *gen, byte reg, int64_t val) {
   g_array_append_val(gen->items, op);
 }
 
+// ARRAYS ---------------------------------------------------------------------
+
 // 1B OP | 2B REGS
 void hvm_gen_arraypush(hvm_gen *gen, byte arr, byte val) {
   hvm_gen_item_op_a2 *op = malloc(sizeof(hvm_gen_item_op_a2));
@@ -172,5 +174,44 @@ void hvm_gen_arraynew(hvm_gen *gen, byte reg, byte size) {
   op->op   = HVM_ARRAYNEW;
   op->reg1 = reg;
   op->reg2 = size;
+  g_array_append_val(gen->items, op);
+}
+
+// STRUCTS --------------------------------------------------------------------
+
+// 1B OP | 3B REGS
+void hvm_gen_structget(hvm_gen *gen, byte reg, byte strct, byte key) {
+  hvm_gen_item_op_a3 *op = malloc(sizeof(hvm_gen_item_op_a3));
+  op->type = HVM_GEN_OPA3;
+  op->op   = HVM_STRUCTGET;
+  op->reg1 = reg;
+  op->reg2 = strct;
+  op->reg3 = key;
+  g_array_append_val(gen->items, op);
+}
+void hvm_gen_structdelete(hvm_gen *gen, byte reg, byte strct, byte key) {
+  hvm_gen_item_op_a3 *op = malloc(sizeof(hvm_gen_item_op_a3));
+  op->type = HVM_GEN_OPA3;
+  op->op   = HVM_STRUCTDELETE;
+  op->reg1 = reg;
+  op->reg2 = strct;
+  op->reg3 = key;
+  g_array_append_val(gen->items, op);
+}
+void hvm_gen_structset(hvm_gen *gen, byte strct, byte key, byte val) {
+  hvm_gen_item_op_a3 *op = malloc(sizeof(hvm_gen_item_op_a3));
+  op->type = HVM_GEN_OPA3;
+  op->op   = HVM_STRUCTSET;
+  op->reg1 = strct;
+  op->reg2 = key;
+  op->reg3 = val;
+  g_array_append_val(gen->items, op);
+}
+// 1B OP | 1B REG
+void hvm_gen_structnew(hvm_gen *gen, byte reg) {
+  hvm_gen_item_op_a1 *op = malloc(sizeof(hvm_gen_item_op_a1));
+  op->type = HVM_GEN_OPA2;
+  op->op   = HVM_STRUCTNEW;
+  op->reg1 = reg;
   g_array_append_val(gen->items, op);
 }

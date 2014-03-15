@@ -171,4 +171,9 @@ void hvm_gen_arrayremove(hvm_gen *gen, byte reg, byte arr, byte idx);
 void hvm_gen_arrayset(hvm_gen *gen, byte arr, byte idx, byte val);
 void hvm_gen_arraynew(hvm_gen *gen, byte reg, byte size);
 
+void hvm_gen_structget(hvm_gen *gen, byte reg, byte strct, byte key);
+void hvm_gen_structdelete(hvm_gen *gen, byte reg, byte strct, byte key);
+void hvm_gen_structset(hvm_gen *gen, byte strct, byte key, byte val);
+void hvm_gen_structnew(hvm_gen *gen, byte reg);
+
 #endif
