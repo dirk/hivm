@@ -7,6 +7,7 @@
 // C-type  = 1B OP | 1B REG  | 4B CONST
 // D-type  = 1B OP | 8B DEST
 // E-type  = 1B OP | 4B DIFF
+// F-type  = 1B OP
 
 typedef enum {
   HVM_GEN_OPA,
@@ -15,6 +16,7 @@ typedef enum {
   HVM_GEN_OPC,
   HVM_GEN_OPD,
   HVM_GEN_OPE,
+  HVM_GEN_OPF,
   HVM_GEN_MACRO,
   HVM_GEN_LABEL
 } hvm_gen_item_type;
@@ -47,8 +49,13 @@ typedef struct hvm_gen_item_op_d {
 } hvm_gen_item_op_d;
 typedef struct hvm_gen_item_op_e {
   hvm_gen_item_type type;
+  byte op;
   int32_t diff;
 } hvm_gen_item_op_e;
+typedef struct hvm_gen_item_op_f {
+  hvm_gen_item_type type;
+  byte op;
+} hvm_gen_item_op_f;
 
 /*
 typedef enum {
@@ -96,5 +103,6 @@ hvm_gen *hvm_new_gen();
 hvm_gen_item_label *hvm_new_item_label();
 
 void hvm_gen_noop(hvm_gen*);
+void hvm_gen_jump(hvm_gen*, int32_t);
 
 #endif
