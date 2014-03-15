@@ -103,3 +103,74 @@ void hvm_gen_litinteger(hvm_gen *gen, byte reg, int64_t val) {
   op->lit  = val;
   g_array_append_val(gen->items, op);
 }
+
+// 1B OP | 2B REGS
+void hvm_gen_arraypush(hvm_gen *gen, byte arr, byte val) {
+  hvm_gen_item_op_a2 *op = malloc(sizeof(hvm_gen_item_op_a2));
+  op->type = HVM_GEN_OPA2;
+  op->op   = HVM_ARRAYPUSH;
+  op->reg1 = arr;
+  op->reg2 = val;
+  g_array_append_val(gen->items, op);
+}
+void hvm_gen_arrayshift(hvm_gen *gen, byte reg, byte arr) {
+  hvm_gen_item_op_a2 *op = malloc(sizeof(hvm_gen_item_op_a2));
+  op->type = HVM_GEN_OPA2;
+  op->op   = HVM_ARRAYSHIFT;
+  op->reg1 = reg;
+  op->reg2 = arr;
+  g_array_append_val(gen->items, op);
+}
+void hvm_gen_arraypop(hvm_gen *gen, byte reg, byte arr) {
+  hvm_gen_item_op_a2 *op = malloc(sizeof(hvm_gen_item_op_a2));
+  op->type = HVM_GEN_OPA2;
+  op->op   = HVM_ARRAYPOP;
+  op->reg1 = reg;
+  op->reg2 = arr;
+  g_array_append_val(gen->items, op);
+}
+void hvm_gen_arrayunshift(hvm_gen *gen, byte arr, byte val) {
+  hvm_gen_item_op_a2 *op = malloc(sizeof(hvm_gen_item_op_a2));
+  op->type = HVM_GEN_OPA2;
+  op->op   = HVM_ARRAYUNSHIFT;
+  op->reg1 = arr;
+  op->reg2 = val;
+  g_array_append_val(gen->items, op);
+}
+// 1B OP | 3B REGS
+void hvm_gen_arrayget(hvm_gen *gen, byte reg, byte arr, byte idx) {
+  hvm_gen_item_op_a3 *op = malloc(sizeof(hvm_gen_item_op_a3));
+  op->type = HVM_GEN_OPA3;
+  op->op   = HVM_ARRAYGET;
+  op->reg1 = reg;
+  op->reg2 = arr;
+  op->reg3 = idx;
+  g_array_append_val(gen->items, op);
+}
+void hvm_gen_arrayremove(hvm_gen *gen, byte reg, byte arr, byte idx) {
+  hvm_gen_item_op_a3 *op = malloc(sizeof(hvm_gen_item_op_a3));
+  op->type = HVM_GEN_OPA3;
+  op->op   = HVM_ARRAYREMOVE;
+  op->reg1 = reg;
+  op->reg2 = arr;
+  op->reg3 = idx;
+  g_array_append_val(gen->items, op);
+}
+void hvm_gen_arrayset(hvm_gen *gen, byte arr, byte idx, byte val) {
+  hvm_gen_item_op_a3 *op = malloc(sizeof(hvm_gen_item_op_a3));
+  op->type = HVM_GEN_OPA3;
+  op->op   = HVM_ARRAYSET;
+  op->reg1 = arr;
+  op->reg2 = idx;
+  op->reg3 = val;
+  g_array_append_val(gen->items, op);
+}
+// 1B OP | 2B REGS
+void hvm_gen_arraynew(hvm_gen *gen, byte reg, byte size) {
+  hvm_gen_item_op_a2 *op = malloc(sizeof(hvm_gen_item_op_a2));
+  op->type = HVM_GEN_OPA2;
+  op->op   = HVM_ARRAYNEW;
+  op->reg1 = reg;
+  op->reg2 = size;
+  g_array_append_val(gen->items, op);
+}

@@ -12,6 +12,8 @@
 typedef enum {
   HVM_GEN_OPA,
   HVM_GEN_OPA1, // 1B OP | 1B REG
+  HVM_GEN_OPA2, // 1B OP | 1B REG | 1B REG
+  HVM_GEN_OPA3, // 1B OP | 1B REG | 1B REG | 1B REG
   HVM_GEN_OPB1, // 1B OP | 1B REG | 4B SYM
   HVM_GEN_OPB2, // 1B OP | 4B SYM | 1B REG
   HVM_GEN_OPC,
@@ -31,12 +33,19 @@ typedef struct hvm_gen_item_op_a1 {
   byte op;
   byte reg1;
 } hvm_gen_item_op_a1;
-typedef struct hvm_gen_item_op_a {
+typedef struct hvm_gen_item_op_a2 {
   hvm_gen_item_type type;
+  byte op;
+  byte reg1;
+  byte reg2;
+} hvm_gen_item_op_a2;
+typedef struct hvm_gen_item_op_a3 {
+  hvm_gen_item_type type;
+  byte op;
   byte reg1;
   byte reg2;
   byte reg3;
-} hvm_gen_item_op_a;
+} hvm_gen_item_op_a3;
 typedef struct hvm_gen_item_op_b1 {
   hvm_gen_item_type type;
   // 1B OP | 1B REG | 4B SYM
@@ -106,14 +115,13 @@ typedef struct hvm_gen_item_label {
   char *name;
 } hvm_gen_item_label;
 
-
-
 typedef union hvm_gen_item {
-  hvm_gen_item_op_a  op_a;
   hvm_gen_item_op_a1 op_a1;
-  hvm_gen_item_op_a  op_b1;
-  hvm_gen_item_op_a  op_b2;
-  hvm_gen_item_op_a  op_c;
+  hvm_gen_item_op_a2 op_a2;
+  hvm_gen_item_op_a3 op_a3;
+  hvm_gen_item_op_b1 op_b1;
+  hvm_gen_item_op_b2 op_b2;
+  hvm_gen_item_op_c  op_c;
   hvm_gen_item_op_d1 op_d1;
   hvm_gen_item_op_d2 op_d2;
   hvm_gen_item_op_d3 op_d3;
@@ -122,7 +130,6 @@ typedef union hvm_gen_item {
   // hvm_gen_item_macro macro;
   hvm_gen_item_label label;
 } hvm_gen_item;
-
 
 /// @brief Stores instructions, constants, etc. for a chunk. Can then generate the
 ///        appropriate bytecode for that chunk.
@@ -154,5 +161,14 @@ void hvm_gen_setglobal(hvm_gen*, uint32_t, byte);
 void hvm_gen_getclosure(hvm_gen*, byte);
 
 void hvm_gen_litinteger(hvm_gen*, byte, int64_t);
+
+void hvm_gen_arraypush(hvm_gen *gen, byte arr, byte val);
+void hvm_gen_arrayshift(hvm_gen *gen, byte reg, byte arr);
+void hvm_gen_arraypop(hvm_gen *gen, byte reg, byte arr);
+void hvm_gen_arrayunshift(hvm_gen *gen, byte arr, byte val);
+void hvm_gen_arrayget(hvm_gen *gen, byte reg, byte arr, byte idx);
+void hvm_gen_arrayremove(hvm_gen *gen, byte reg, byte arr, byte idx);
+void hvm_gen_arrayset(hvm_gen *gen, byte arr, byte idx, byte val);
+void hvm_gen_arraynew(hvm_gen *gen, byte reg, byte size);
 
 #endif
