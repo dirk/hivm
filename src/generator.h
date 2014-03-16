@@ -10,6 +10,7 @@
 // F-type  = 1B OP
 
 typedef enum {
+  HVM_GEN_BASE,
   HVM_GEN_OPA,
   HVM_GEN_OPA1, // 1B OP | 1B REG
   HVM_GEN_OPA2, // 1B OP | 1B REG | 1B REG
@@ -29,6 +30,10 @@ typedef enum {
 } hvm_gen_item_type;
 
 #define HVM_GEN_ITEM_HEAD hvm_gen_item_type type;
+
+typedef struct hvm_gen_item_base {
+  HVM_GEN_ITEM_HEAD;
+} hvm_gen_item_base;
 
 // OPCODES --------------------------------------------------------------------
 typedef struct hvm_gen_item_op_a1 {
@@ -136,6 +141,7 @@ typedef struct hvm_gen_item_block {
 } hvm_gen_item_block;
 
 typedef union hvm_gen_item {
+  hvm_gen_item_base  base;
   hvm_gen_item_op_a1 op_a1;
   hvm_gen_item_op_a2 op_a2;
   hvm_gen_item_op_a3 op_a3;
@@ -165,34 +171,34 @@ hvm_gen_item_label *hvm_new_item_label();
 
 struct hvm_chunk *hvm_gen_chunk(hvm_gen *gen);
 
-void hvm_gen_noop(hvm_gen *gen);
-void hvm_gen_jump(hvm_gen *gen, int32_t diff);
-void hvm_gen_goto(hvm_gen *gen, uint64_t dest);
-void hvm_gen_call(hvm_gen *gen, uint64_t dest, byte ret);
-void hvm_gen_if(hvm_gen *gen, byte val, uint64_t dest);
+void hvm_gen_noop(hvm_gen_item_block *block);
+void hvm_gen_jump(hvm_gen_item_block *block, int32_t diff);
+void hvm_gen_goto(hvm_gen_item_block *block, uint64_t dest);
+void hvm_gen_call(hvm_gen_item_block *block, uint64_t dest, byte ret);
+void hvm_gen_if(hvm_gen_item_block *block, byte val, uint64_t dest);
 
-void hvm_gen_getlocal(hvm_gen *gen, byte reg, uint32_t sym);
-void hvm_gen_setlocal(hvm_gen *gen, uint32_t sym, byte reg);
+void hvm_gen_getlocal(hvm_gen_item_block *block, byte reg, uint32_t sym);
+void hvm_gen_setlocal(hvm_gen_item_block *block, uint32_t sym, byte reg);
 
-void hvm_gen_getglobal(hvm_gen *gen, byte reg, uint32_t sym);
-void hvm_gen_setglobal(hvm_gen *gen, uint32_t sym, byte reg);
+void hvm_gen_getglobal(hvm_gen_item_block *block, byte reg, uint32_t sym);
+void hvm_gen_setglobal(hvm_gen_item_block *block, uint32_t sym, byte reg);
 
-void hvm_gen_getclosure(hvm_gen *gen, byte reg);
+void hvm_gen_getclosure(hvm_gen_item_block *block, byte reg);
 
-void hvm_gen_litinteger(hvm_gen *gen, byte reg, int64_t val);
+void hvm_gen_litinteger(hvm_gen_item_block *block, byte reg, int64_t val);
 
-void hvm_gen_arraypush(hvm_gen *gen, byte arr, byte val);
-void hvm_gen_arrayshift(hvm_gen *gen, byte reg, byte arr);
-void hvm_gen_arraypop(hvm_gen *gen, byte reg, byte arr);
-void hvm_gen_arrayunshift(hvm_gen *gen, byte arr, byte val);
-void hvm_gen_arrayget(hvm_gen *gen, byte reg, byte arr, byte idx);
-void hvm_gen_arrayremove(hvm_gen *gen, byte reg, byte arr, byte idx);
-void hvm_gen_arrayset(hvm_gen *gen, byte arr, byte idx, byte val);
-void hvm_gen_arraynew(hvm_gen *gen, byte reg, byte size);
+void hvm_gen_arraypush(hvm_gen_item_block *block, byte arr, byte val);
+void hvm_gen_arrayshift(hvm_gen_item_block *block, byte reg, byte arr);
+void hvm_gen_arraypop(hvm_gen_item_block *block, byte reg, byte arr);
+void hvm_gen_arrayunshift(hvm_gen_item_block *block, byte arr, byte val);
+void hvm_gen_arrayget(hvm_gen_item_block *block, byte reg, byte arr, byte idx);
+void hvm_gen_arrayremove(hvm_gen_item_block *block, byte reg, byte arr, byte idx);
+void hvm_gen_arrayset(hvm_gen_item_block *block, byte arr, byte idx, byte val);
+void hvm_gen_arraynew(hvm_gen_item_block *block, byte reg, byte size);
 
-void hvm_gen_structget(hvm_gen *gen, byte reg, byte strct, byte key);
-void hvm_gen_structdelete(hvm_gen *gen, byte reg, byte strct, byte key);
-void hvm_gen_structset(hvm_gen *gen, byte strct, byte key, byte val);
-void hvm_gen_structnew(hvm_gen *gen, byte reg);
+void hvm_gen_structget(hvm_gen_item_block *block, byte reg, byte strct, byte key);
+void hvm_gen_structdelete(hvm_gen_item_block *block, byte reg, byte strct, byte key);
+void hvm_gen_structset(hvm_gen_item_block *block, byte strct, byte key, byte val);
+void hvm_gen_structnew(hvm_gen_item_block *block, byte reg);
 
 #endif
