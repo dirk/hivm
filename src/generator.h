@@ -17,12 +17,12 @@ typedef enum {
   HVM_GEN_OPB1, // 1B OP | 1B REG | 4B SYM
   HVM_GEN_OPB2, // 1B OP | 4B SYM | 1B REG
   HVM_GEN_OPC,
-  HVM_GEN_OPD1,
-  HVM_GEN_OPD2,
-  HVM_GEN_OPD3,
-  HVM_GEN_OPE,
-  HVM_GEN_OPF, // 1B OP
-  HVM_GEN_OPG, // 1B OP | 1B REG | 8B LITERAL
+  HVM_GEN_OPD1, // 1B OP | 8B DEST
+  HVM_GEN_OPD2, // 1B OP | 8B DEST | 1B RET
+  HVM_GEN_OPD3, // 1B OP | 1B VAL  | 8B DEST
+  HVM_GEN_OPE,  // 1B OP | 4B DIFF
+  HVM_GEN_OPF,  // 1B OP
+  HVM_GEN_OPG,  // 1B OP | 1B REG | 8B LITERAL
   HVM_GEN_LABEL,
   HVM_GEN_SUB,
   HVM_GEN_BLOCK
@@ -77,6 +77,7 @@ typedef struct hvm_gen_item_op_c {
 } hvm_gen_item_op_c;
 typedef struct hvm_gen_item_op_d1 {
   HVM_GEN_ITEM_HEAD;
+  // 1B OP | 8B DEST
   byte op;
   uint64_t dest;
 } hvm_gen_item_op_d1;

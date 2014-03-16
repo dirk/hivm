@@ -59,17 +59,69 @@ void write_op_a3(hvm_chunk *chunk, hvm_gen_item_op_a3 *op) {
   memcpy(&chunk[3], &op->reg3, sizeof(byte));
   chunk->size += 4;
 }
-
+void write_op_b1(hvm_chunk *chunk, hvm_gen_item_op_b1 *op) {
+  // 1B OP | 1B REG | 4B SYM
+  memcpy(&chunk[0], &op->op, sizeof(byte));
+  memcpy(&chunk[1], &op->reg, sizeof(byte));
+  memcpy(&chunk[2], &op->sym, sizeof(uint32_t));
+  chunk->size += 6;
+}
+void write_op_b2(hvm_chunk *chunk, hvm_gen_item_op_b2 *op) {
+  // 1B OP | 4B SYM | 1B REG
+  memcpy(&chunk[0], &op->op, sizeof(byte));
+  memcpy(&chunk[1], &op->sym, sizeof(uint32_t));
+  memcpy(&chunk[5], &op->reg, sizeof(byte));
+  chunk->size += 6;
+}
+void write_op_d1(hvm_chunk *chunk, hvm_gen_item_op_d1 *op) {
+  // 1B OP | 8B DEST
+  memcpy(&chunk[0], &op->op, sizeof(byte));
+  memcpy(&chunk[1], &op->dest, sizeof(uint64_t));
+  chunk->size += 9;
+}
+void write_op_d2(hvm_chunk *chunk, hvm_gen_item_op_d2 *op) {
+  // 1B OP | 8B DEST | 1B RET
+  memcpy(&chunk[0], &op->op, sizeof(byte));
+  memcpy(&chunk[1], &op->dest, sizeof(uint64_t));
+  memcpy(&chunk[9], &op->ret, sizeof(byte));
+  chunk->size += 10;
+}
+void write_op_d3(hvm_chunk *chunk, hvm_gen_item_op_d3 *op) {
+  // 1B OP | 1B VAL  | 8B DEST
+  memcpy(&chunk[0], &op->op, sizeof(byte));
+  memcpy(&chunk[1], &op->val, sizeof(byte));
+  memcpy(&chunk[2], &op->dest, sizeof(uint64_t));
+  chunk->size += 10;
+}
+void write_op_e(hvm_chunk *chunk, hvm_gen_item_op_e *op) {
+  // 1B OP | 4B DIFF
+  memcpy(&chunk[0], &op->op, sizeof(byte));
+  memcpy(&chunk[1], &op->diff, sizeof(int32_t));
+  chunk->size += 5;
+}
+void write_op_f(hvm_chunk *chunk, hvm_gen_item_op_f *op) {
+  // 1B OP
+  memcpy(&chunk[0], &op->op, sizeof(byte));
+  chunk->size += 1;
+}
+void write_op_g(hvm_chunk *chunk, hvm_gen_item_op_g *op) {
+  // 1B OP | 1B REG | 8B LITERAL
+  memcpy(&chunk[0], &op->op, sizeof(byte));
+  memcpy(&chunk[1], &op->reg, sizeof(byte));
+  memcpy(&chunk[2], &op->lit, sizeof(int64_t));
+  chunk->size += 10;
+}
 
 void hvm_gen_process_block(hvm_chunk *chunk, struct gen_data *data, hvm_gen_item_block *block) {
   // Map labels to indexes
   GHashTable *labels = g_hash_table_new(g_str_hash, g_str_equal);
   // Unmapped labels (built up during processing and then emptied/resolved
   // at the end).
-  GList *label_uses = NULL;
+  // GList *label_uses = NULL;
 
   unsigned int len = block->items->len;
   unsigned int i;
+  uint64_t *idxptr;
   
   for(i = 0; i < len; i++) {
     hvm_chunk_expand_if_necessary(chunk);
@@ -80,6 +132,15 @@ void hvm_gen_process_block(hvm_chunk *chunk, struct gen_data *data, hvm_gen_item
       case HVM_GEN_SUB:
         hvm_gen_data_add_symbol(data, item.sub.name, idx);
         break;
+      case HVM_GEN_LABEL:
+        // FIXME: Duplicate labels will leak.
+        idxptr = malloc(sizeof(uint64_t));
+        *idxptr = idx;
+        g_hash_table_replace(labels, item.label.name, idxptr);
+        break;
+      case HVM_GEN_BLOCK:
+        hvm_gen_process_block(chunk, data, &item.block);
+        break;
       case HVM_GEN_OPA1:
         write_op_a1(chunk, &item.op_a1);
         break;
@@ -88,6 +149,30 @@ void hvm_gen_process_block(hvm_chunk *chunk, struct gen_data *data, hvm_gen_item
         break;
       case HVM_GEN_OPA3:
         write_op_a3(chunk, &item.op_a3);
+        break;
+      case HVM_GEN_OPB1:
+        write_op_b1(chunk, &item.op_b1);
+        break;
+      case HVM_GEN_OPB2:
+        write_op_b2(chunk, &item.op_b2);
+        break;
+      case HVM_GEN_OPD1:
+        write_op_d1(chunk, &item.op_d1);
+        break;
+      case HVM_GEN_OPD2:
+        write_op_d2(chunk, &item.op_d2);
+        break;
+      case HVM_GEN_OPD3:
+        write_op_d3(chunk, &item.op_d3);
+        break;
+      case HVM_GEN_OPE:
+        write_op_e(chunk, &item.op_e);
+        break;
+      case HVM_GEN_OPF:
+        write_op_f(chunk, &item.op_f);
+        break;
+      case HVM_GEN_OPG:
+        write_op_g(chunk, &item.op_g);
         break;
       default:
         fprintf(stderr, "Don't know what to do with item type: %d\n", item.base.type);
