@@ -11,7 +11,6 @@
 
 typedef enum {
   HVM_GEN_BASE,
-  HVM_GEN_OPA,
   HVM_GEN_OPA1, // 1B OP | 1B REG
   HVM_GEN_OPA2, // 1B OP | 1B REG | 1B REG
   HVM_GEN_OPA3, // 1B OP | 1B REG | 1B REG | 1B REG
@@ -38,17 +37,20 @@ typedef struct hvm_gen_item_base {
 // OPCODES --------------------------------------------------------------------
 typedef struct hvm_gen_item_op_a1 {
   HVM_GEN_ITEM_HEAD;
+  // 1B OP | 1B REG
   byte op;
   byte reg1;
 } hvm_gen_item_op_a1;
 typedef struct hvm_gen_item_op_a2 {
   HVM_GEN_ITEM_HEAD;
+  // 1B OP | 1B REG | 1B REG
   byte op;
   byte reg1;
   byte reg2;
 } hvm_gen_item_op_a2;
 typedef struct hvm_gen_item_op_a3 {
   HVM_GEN_ITEM_HEAD;
+  // 1B OP | 1B REG | 1B REG | 1B REG
   byte op;
   byte reg1;
   byte reg2;

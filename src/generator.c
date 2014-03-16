@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
+#include <string.h>
 
 #include <glib.h>
 
@@ -23,9 +24,9 @@ struct gen_data {
   // string symbol name => list of positions
   GHashTable *symbols;
 };
-void hvm_gen_data_add_symbol(struct gen_data *gd, char *sym, uint32_t idx) {
+void hvm_gen_data_add_symbol(struct gen_data *gd, char *sym, uint64_t idx) {
   GList *positions = g_hash_table_lookup(gd->symbols, sym);
-  uint32_t *idxptr = malloc(sizeof(uint32_t));
+  uint64_t *idxptr = malloc(sizeof(uint64_t));
   *idxptr = idx;
   positions = g_list_append(positions, idxptr);
   g_hash_table_replace(gd->symbols, sym, positions);
@@ -37,7 +38,30 @@ void hvm_gen_data_add_reloc(struct gen_data *gd, hvm_chunk_relocation *reloc) {
   g_array_append_val(gd->relocs, reloc);
 }
 
-void hvm_gen_process_block(hvm_chunk *chunk, hvm_gen_item_block *block) {
+void write_op_a1(hvm_chunk *chunk, hvm_gen_item_op_a1 *op) {
+  // 1B OP | 1B REG
+  memcpy(&chunk[0], &op->op, sizeof(byte));
+  memcpy(&chunk[1], &op->reg1, sizeof(byte));
+  chunk->size += 2;
+}
+void write_op_a2(hvm_chunk *chunk, hvm_gen_item_op_a2 *op) {
+  // 1B OP | 1B REG | 1B REG
+  memcpy(&chunk[0], &op->op, sizeof(byte));
+  memcpy(&chunk[1], &op->reg1, sizeof(byte));
+  memcpy(&chunk[2], &op->reg2, sizeof(byte));
+  chunk->size += 3;
+}
+void write_op_a3(hvm_chunk *chunk, hvm_gen_item_op_a3 *op) {
+  // 1B OP | 1B REG | 1B REG | 1B REG
+  memcpy(&chunk[0], &op->op, sizeof(byte));
+  memcpy(&chunk[1], &op->reg1, sizeof(byte));
+  memcpy(&chunk[2], &op->reg2, sizeof(byte));
+  memcpy(&chunk[3], &op->reg3, sizeof(byte));
+  chunk->size += 4;
+}
+
+
+void hvm_gen_process_block(hvm_chunk *chunk, struct gen_data *data, hvm_gen_item_block *block) {
   // Map labels to indexes
   GHashTable *labels = g_hash_table_new(g_str_hash, g_str_equal);
   // Unmapped labels (built up during processing and then emptied/resolved
@@ -46,10 +70,25 @@ void hvm_gen_process_block(hvm_chunk *chunk, hvm_gen_item_block *block) {
 
   unsigned int len = block->items->len;
   unsigned int i;
+  
   for(i = 0; i < len; i++) {
+    hvm_chunk_expand_if_necessary(chunk);
+    uint64_t idx = chunk->size;// Index into chunk for this instruction
     // Processing each item
     hvm_gen_item item = g_array_index(block->items, hvm_gen_item, i);
     switch(item.base.type) {
+      case HVM_GEN_SUB:
+        hvm_gen_data_add_symbol(data, item.sub.name, idx);
+        break;
+      case HVM_GEN_OPA1:
+        write_op_a1(chunk, &item.op_a1);
+        break;
+      case HVM_GEN_OPA2:
+        write_op_a2(chunk, &item.op_a2);
+        break;
+      case HVM_GEN_OPA3:
+        write_op_a3(chunk, &item.op_a3);
+        break;
       default:
         fprintf(stderr, "Don't know what to do with item type: %d\n", item.base.type);
         break;
@@ -68,7 +107,7 @@ struct hvm_chunk *hvm_gen_chunk(hvm_gen *gen) {
   gd.constants = g_array_new(TRUE, TRUE, sizeof(hvm_chunk_constant*));
   gd.symbols   = g_hash_table_new(g_str_hash, g_str_equal);
 
-  hvm_gen_process_block(chunk, &gen->block);
+  hvm_gen_process_block(chunk, &gd, &gen->block);
 
   return chunk;
 }
