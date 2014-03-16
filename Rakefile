@@ -37,7 +37,8 @@ end
 # desc "Compile"
 file 'libhivem.a' => [
   # Source
-  'src/vm.o', 'src/object.o', 'src/symbol.o', 'src/frame.o', 'src/generator.o'
+  'src/vm.o', 'src/object.o', 'src/symbol.o', 'src/frame.o', 'src/chunk.o',
+  'src/generator.o',
 ] do |t|
   # sh "cc -o #{t.name} #{t.prerequisites.join ' '} #{LDFLAGS} #{CFLAGS}"
   sh "#{$ar} rcs #{t.name} #{t.prerequisites.join ' '}"

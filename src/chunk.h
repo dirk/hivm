@@ -27,4 +27,6 @@ typedef struct hvm_chunk {
   // DATA
 } hvm_chunk;
 
+hvm_chunk *hvm_new_chunk();
+
 #endif
