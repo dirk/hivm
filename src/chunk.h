@@ -1,6 +1,17 @@
 #ifndef HVM_CHUNK_H
 #define HVM_CHUNK_H
 
+typedef struct hvm_chunk_relocation {
+  /// Index into the data for the start of the 8-byte code address to be
+  /// relocated (had the start of the chunk in the VM added to it).
+  uint64_t index;
+} hvm_chunk_relocation;
+
+typedef struct hvm_chunk_constant {
+  uint64_t            index;
+  struct hvm_obj_ref* object;
+} hvm_chunk_constant;
+
 /// @brief Chunk of instruction code and data (constants, etc.).
 typedef struct hvm_chunk {
   // This is mostly inspired by the ELF format. There are three main sections
@@ -25,6 +36,12 @@ typedef struct hvm_chunk {
   //      reliable).
   
   // DATA
+  /// Raw instructions.
+  byte *data;
+  /// Number of bytes used by the data.
+  uint64_t size;
+  /// Total size of the data (includes unused space).
+  uint64_t capacity;
 } hvm_chunk;
 
 hvm_chunk *hvm_new_chunk();
