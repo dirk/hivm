@@ -19,7 +19,10 @@ typedef struct hvm_chunk {
   // Symbols:
   //   1. Resolves symbols used in SETSYMBOL instructions to their proper IDs.
   //   2. Resolves symbols used in CALLs to the proper addresses through the
-  //      VM's subroutine symbol table.
+  //      VM's subroutine symbol table (this of course requires those symbols
+  //      and addresses to already be known, making this really only useful
+  //      during various bootstrappings when load-order is well-known and
+  //      reliable).
   
   // DATA
 } hvm_chunk;
