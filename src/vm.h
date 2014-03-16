@@ -79,7 +79,7 @@ typedef struct hvm_vm {
   /// VM-wide global variables
   struct hvm_obj_struct *globals;
   /// Symbol lookup
-  struct hvm_symbol_table *symbols;
+  struct hvm_symbol_store *symbols;
 } hvm_vm;
 
 /// Create a new virtual machine.

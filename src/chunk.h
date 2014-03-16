@@ -15,7 +15,7 @@ typedef struct hvm_chunk_constant {
 /// @brief Chunk of instruction code and data (constants, etc.).
 typedef struct hvm_chunk {
   // This is mostly inspired by the ELF format. There are three main sections
-  // to a chunk: relocations, substitutions, and data.
+  // to a chunk: relocations, substitutions, symbols, and data.
   
   // RELOCATIONS (relocs)
   // Specifies points in the code where relative addresses need to be adjusted
@@ -34,6 +34,10 @@ typedef struct hvm_chunk {
   //      and addresses to already be known, making this really only useful
   //      during various bootstrappings when load-order is well-known and
   //      reliable).
+  
+  // SYMBOLS
+  // Defines symbols (ie. subroutines) and their locations to be inserted into
+  // the VM's symbol table.
   
   // DATA
   /// Raw instructions.
