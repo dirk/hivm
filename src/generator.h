@@ -150,6 +150,8 @@ typedef struct hvm_gen {
 hvm_gen *hvm_new_gen();
 hvm_gen_item_label *hvm_new_item_label();
 
+struct hvm_chunk *hvm_gen_chunk(hvm_gen *gen);
+
 void hvm_gen_noop(hvm_gen *gen);
 void hvm_gen_jump(hvm_gen *gen, int32_t diff);
 void hvm_gen_goto(hvm_gen *gen, uint64_t dest);

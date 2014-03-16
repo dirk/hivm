@@ -5,12 +5,56 @@
 #include <glib.h>
 
 #include "vm.h"
+#include "chunk.h"
 #include "generator.h"
 
 hvm_gen *hvm_new_gen() {
   hvm_gen *gen = malloc(sizeof(hvm_gen));
   gen->items = g_array_new(TRUE, TRUE, sizeof(hvm_gen_item));
   return gen;
+}
+
+// Internal data used during the generation of a chunk.
+struct gen_data {
+  // array of positions (hvm_chunk_relocation)
+  GArray *relocs;
+  // array of constants (hvm_chunk_constant)
+  GArray *constants;
+  // string symbol name => list of positions
+  GHashTable *symbols;
+};
+void hvm_gen_data_add_symbol(struct gen_data *gd, char *sym, uint32_t idx) {
+  GList *positions = g_hash_table_lookup(gd->symbols, sym);
+  uint32_t *idxptr = malloc(sizeof(uint32_t));
+  *idxptr = idx;
+  positions = g_list_append(positions, idxptr);
+  g_hash_table_replace(gd->symbols, sym, positions);
+}
+void hvm_gen_data_add_constant(struct gen_data *gd, hvm_chunk_constant *constant) {
+  g_array_append_val(gd->constants, constant);
+}
+void hvm_gen_data_add_reloc(struct gen_data *gd, hvm_chunk_relocation *reloc) {
+  g_array_append_val(gd->relocs, reloc);
+}
+
+struct hvm_chunk *hvm_gen_chunk(hvm_gen *gen) {
+  hvm_chunk *chunk = hvm_new_chunk();
+  uint64_t start_size = 1024;
+  chunk->data = calloc(start_size, sizeof(byte));
+  chunk->capacity = start_size;
+
+  struct gen_data gd;
+  gd.relocs    = g_array_new(TRUE, TRUE, sizeof(hvm_chunk_relocation*));
+  gd.constants = g_array_new(TRUE, TRUE, sizeof(hvm_chunk_constant*));
+  gd.symbols   = g_hash_table_new(g_str_hash, g_str_equal);
+
+  unsigned int len = gen->items->len;
+  unsigned int i;
+  for(i = 0; i < len; i++) {
+    // Processing each instruction
+  }
+
+  return chunk;
 }
 
 void hvm_gen_noop(hvm_gen *gen) {
