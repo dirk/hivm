@@ -10,7 +10,7 @@
 
 hvm_gen *hvm_new_gen() {
   hvm_gen *gen = malloc(sizeof(hvm_gen));
-  gen->items = g_array_new(TRUE, TRUE, sizeof(hvm_gen_item));
+  gen->block.items = g_array_new(TRUE, TRUE, sizeof(hvm_gen_item));
   return gen;
 }
 
@@ -48,7 +48,7 @@ struct hvm_chunk *hvm_gen_chunk(hvm_gen *gen) {
   gd.constants = g_array_new(TRUE, TRUE, sizeof(hvm_chunk_constant*));
   gd.symbols   = g_hash_table_new(g_str_hash, g_str_equal);
 
-  unsigned int len = gen->items->len;
+  unsigned int len = gen->block.items->len;
   unsigned int i;
   for(i = 0; i < len; i++) {
     // Processing each instruction
@@ -61,7 +61,7 @@ void hvm_gen_noop(hvm_gen *gen) {
   hvm_gen_item_op_f *noop = malloc(sizeof(hvm_gen_item_op_f));
   noop->type = HVM_GEN_OPF;
   noop->op   = HVM_OP_NOOP;
-  g_array_append_val(gen->items, noop);
+  g_array_append_val(gen->block.items, noop);
 }
 
 void hvm_gen_jump(hvm_gen *gen, int32_t diff) {
@@ -69,14 +69,14 @@ void hvm_gen_jump(hvm_gen *gen, int32_t diff) {
   jmp->type = HVM_GEN_OPE;
   jmp->op = HVM_OP_JUMP;
   jmp->diff = diff;
-  g_array_append_val(gen->items, jmp);
+  g_array_append_val(gen->block.items, jmp);
 }
 void hvm_gen_goto(hvm_gen *gen, uint64_t dest) {
   hvm_gen_item_op_d1 *gt = malloc(sizeof(hvm_gen_item_op_d1));
   gt->type = HVM_GEN_OPD1;
   gt->op = HVM_OP_GOTO;
   gt->dest = dest;
-  g_array_append_val(gen->items, gt);
+  g_array_append_val(gen->block.items, gt);
 }
 void hvm_gen_call(hvm_gen *gen, uint64_t dest, byte ret) {
   hvm_gen_item_op_d2 *call = malloc(sizeof(hvm_gen_item_op_d2));
@@ -84,7 +84,7 @@ void hvm_gen_call(hvm_gen *gen, uint64_t dest, byte ret) {
   call->op = HVM_OP_GOTO;
   call->dest = dest;
   call->ret  = ret;
-  g_array_append_val(gen->items, call);
+  g_array_append_val(gen->block.items, call);
 }
 void hvm_gen_if(hvm_gen *gen, byte val, uint64_t dest) {
   hvm_gen_item_op_d3 *i = malloc(sizeof(hvm_gen_item_op_d3));
@@ -92,7 +92,7 @@ void hvm_gen_if(hvm_gen *gen, byte val, uint64_t dest) {
   i->op = HVM_OP_GOTO;
   i->val  = val;
   i->dest = dest;
-  g_array_append_val(gen->items, i);
+  g_array_append_val(gen->block.items, i);
 }
 
 void hvm_gen_getlocal(hvm_gen *gen, byte reg, uint32_t sym) {
@@ -101,7 +101,7 @@ void hvm_gen_getlocal(hvm_gen *gen, byte reg, uint32_t sym) {
   op->op   = HVM_OP_GETLOCAL;
   op->reg  = reg;
   op->sym  = sym;
-  g_array_append_val(gen->items, op);
+  g_array_append_val(gen->block.items, op);
 }
 void hvm_gen_setlocal(hvm_gen *gen, uint32_t sym, byte reg) {
   hvm_gen_item_op_b2 *op = malloc(sizeof(hvm_gen_item_op_b2));
@@ -109,7 +109,7 @@ void hvm_gen_setlocal(hvm_gen *gen, uint32_t sym, byte reg) {
   op->op   = HVM_OP_SETLOCAL;
   op->sym  = sym;
   op->reg  = reg;
-  g_array_append_val(gen->items, op);
+  g_array_append_val(gen->block.items, op);
 }
 
 void hvm_gen_getglobal(hvm_gen *gen, byte reg, uint32_t sym) {
@@ -118,7 +118,7 @@ void hvm_gen_getglobal(hvm_gen *gen, byte reg, uint32_t sym) {
   op->op   = HVM_OP_GETGLOBAL;
   op->reg  = reg;
   op->sym  = sym;
-  g_array_append_val(gen->items, op);
+  g_array_append_val(gen->block.items, op);
 }
 void hvm_gen_setglobal(hvm_gen *gen, uint32_t sym, byte reg) {
   hvm_gen_item_op_b2 *op = malloc(sizeof(hvm_gen_item_op_b2));
@@ -126,7 +126,7 @@ void hvm_gen_setglobal(hvm_gen *gen, uint32_t sym, byte reg) {
   op->op   = HVM_OP_SETGLOBAL;
   op->sym  = sym;
   op->reg  = reg;
-  g_array_append_val(gen->items, op);
+  g_array_append_val(gen->block.items, op);
 }
 
 // 1B OP | 1B REG
@@ -135,7 +135,7 @@ void hvm_gen_getclosure(hvm_gen *gen, byte reg) {
   op->type = HVM_GEN_OPA1;
   op->op   = HVM_GETCLOSURE;
   op->reg1 = reg;
-  g_array_append_val(gen->items, op);
+  g_array_append_val(gen->block.items, op);
 }
 
 // 1B OP | 1B REG | 8B LITERAL
@@ -145,7 +145,7 @@ void hvm_gen_litinteger(hvm_gen *gen, byte reg, int64_t val) {
   op->op   = HVM_OP_LITINTEGER;
   op->reg  = reg;
   op->lit  = val;
-  g_array_append_val(gen->items, op);
+  g_array_append_val(gen->block.items, op);
 }
 
 // ARRAYS ---------------------------------------------------------------------
@@ -157,7 +157,7 @@ void hvm_gen_arraypush(hvm_gen *gen, byte arr, byte val) {
   op->op   = HVM_ARRAYPUSH;
   op->reg1 = arr;
   op->reg2 = val;
-  g_array_append_val(gen->items, op);
+  g_array_append_val(gen->block.items, op);
 }
 void hvm_gen_arrayshift(hvm_gen *gen, byte reg, byte arr) {
   hvm_gen_item_op_a2 *op = malloc(sizeof(hvm_gen_item_op_a2));
@@ -165,7 +165,7 @@ void hvm_gen_arrayshift(hvm_gen *gen, byte reg, byte arr) {
   op->op   = HVM_ARRAYSHIFT;
   op->reg1 = reg;
   op->reg2 = arr;
-  g_array_append_val(gen->items, op);
+  g_array_append_val(gen->block.items, op);
 }
 void hvm_gen_arraypop(hvm_gen *gen, byte reg, byte arr) {
   hvm_gen_item_op_a2 *op = malloc(sizeof(hvm_gen_item_op_a2));
@@ -173,7 +173,7 @@ void hvm_gen_arraypop(hvm_gen *gen, byte reg, byte arr) {
   op->op   = HVM_ARRAYPOP;
   op->reg1 = reg;
   op->reg2 = arr;
-  g_array_append_val(gen->items, op);
+  g_array_append_val(gen->block.items, op);
 }
 void hvm_gen_arrayunshift(hvm_gen *gen, byte arr, byte val) {
   hvm_gen_item_op_a2 *op = malloc(sizeof(hvm_gen_item_op_a2));
@@ -181,7 +181,7 @@ void hvm_gen_arrayunshift(hvm_gen *gen, byte arr, byte val) {
   op->op   = HVM_ARRAYUNSHIFT;
   op->reg1 = arr;
   op->reg2 = val;
-  g_array_append_val(gen->items, op);
+  g_array_append_val(gen->block.items, op);
 }
 // 1B OP | 3B REGS
 void hvm_gen_arrayget(hvm_gen *gen, byte reg, byte arr, byte idx) {
@@ -191,7 +191,7 @@ void hvm_gen_arrayget(hvm_gen *gen, byte reg, byte arr, byte idx) {
   op->reg1 = reg;
   op->reg2 = arr;
   op->reg3 = idx;
-  g_array_append_val(gen->items, op);
+  g_array_append_val(gen->block.items, op);
 }
 void hvm_gen_arrayremove(hvm_gen *gen, byte reg, byte arr, byte idx) {
   hvm_gen_item_op_a3 *op = malloc(sizeof(hvm_gen_item_op_a3));
@@ -200,7 +200,7 @@ void hvm_gen_arrayremove(hvm_gen *gen, byte reg, byte arr, byte idx) {
   op->reg1 = reg;
   op->reg2 = arr;
   op->reg3 = idx;
-  g_array_append_val(gen->items, op);
+  g_array_append_val(gen->block.items, op);
 }
 void hvm_gen_arrayset(hvm_gen *gen, byte arr, byte idx, byte val) {
   hvm_gen_item_op_a3 *op = malloc(sizeof(hvm_gen_item_op_a3));
@@ -209,7 +209,7 @@ void hvm_gen_arrayset(hvm_gen *gen, byte arr, byte idx, byte val) {
   op->reg1 = arr;
   op->reg2 = idx;
   op->reg3 = val;
-  g_array_append_val(gen->items, op);
+  g_array_append_val(gen->block.items, op);
 }
 // 1B OP | 2B REGS
 void hvm_gen_arraynew(hvm_gen *gen, byte reg, byte size) {
@@ -218,7 +218,7 @@ void hvm_gen_arraynew(hvm_gen *gen, byte reg, byte size) {
   op->op   = HVM_ARRAYNEW;
   op->reg1 = reg;
   op->reg2 = size;
-  g_array_append_val(gen->items, op);
+  g_array_append_val(gen->block.items, op);
 }
 
 // STRUCTS --------------------------------------------------------------------
@@ -231,7 +231,7 @@ void hvm_gen_structget(hvm_gen *gen, byte reg, byte strct, byte key) {
   op->reg1 = reg;
   op->reg2 = strct;
   op->reg3 = key;
-  g_array_append_val(gen->items, op);
+  g_array_append_val(gen->block.items, op);
 }
 void hvm_gen_structdelete(hvm_gen *gen, byte reg, byte strct, byte key) {
   hvm_gen_item_op_a3 *op = malloc(sizeof(hvm_gen_item_op_a3));
@@ -240,7 +240,7 @@ void hvm_gen_structdelete(hvm_gen *gen, byte reg, byte strct, byte key) {
   op->reg1 = reg;
   op->reg2 = strct;
   op->reg3 = key;
-  g_array_append_val(gen->items, op);
+  g_array_append_val(gen->block.items, op);
 }
 void hvm_gen_structset(hvm_gen *gen, byte strct, byte key, byte val) {
   hvm_gen_item_op_a3 *op = malloc(sizeof(hvm_gen_item_op_a3));
@@ -249,7 +249,7 @@ void hvm_gen_structset(hvm_gen *gen, byte strct, byte key, byte val) {
   op->reg1 = strct;
   op->reg2 = key;
   op->reg3 = val;
-  g_array_append_val(gen->items, op);
+  g_array_append_val(gen->block.items, op);
 }
 // 1B OP | 1B REG
 void hvm_gen_structnew(hvm_gen *gen, byte reg) {
@@ -257,5 +257,5 @@ void hvm_gen_structnew(hvm_gen *gen, byte reg) {
   op->type = HVM_GEN_OPA2;
   op->op   = HVM_STRUCTNEW;
   op->reg1 = reg;
-  g_array_append_val(gen->items, op);
+  g_array_append_val(gen->block.items, op);
 }

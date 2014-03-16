@@ -23,8 +23,9 @@ typedef enum {
   HVM_GEN_OPE,
   HVM_GEN_OPF, // 1B OP
   HVM_GEN_OPG, // 1B OP | 1B REG | 8B LITERAL
-  HVM_GEN_MACRO,
-  HVM_GEN_LABEL
+  HVM_GEN_LABEL,
+  HVM_GEN_SUB,
+  HVM_GEN_BLOCK
 } hvm_gen_item_type;
 
 #define HVM_GEN_ITEM_HEAD hvm_gen_item_type type;
@@ -113,10 +114,26 @@ typedef struct hvm_gen_item_macro {
 } hvm_gen_item_macro;
 */
 
+// Labels inside blocks (for use with JUMPs and GOTOs).
 typedef struct hvm_gen_item_label {
   HVM_GEN_ITEM_HEAD;
   char *name;
 } hvm_gen_item_label;
+
+// Subroutine label
+typedef struct hvm_gen_item_sub {
+  HVM_GEN_ITEM_HEAD;
+  char *name;
+} hvm_gen_item_sub;
+
+typedef struct hvm_gen_item_block {
+  HVM_GEN_ITEM_HEAD;
+#ifdef GLIB_MAJOR_VERSION
+  GArray *items;
+#else
+  void *items;
+#endif
+} hvm_gen_item_block;
 
 typedef union hvm_gen_item {
   hvm_gen_item_op_a1 op_a1;
@@ -133,18 +150,14 @@ typedef union hvm_gen_item {
   hvm_gen_item_op_g  op_g;
   // hvm_gen_item_macro macro;
   hvm_gen_item_label label;
+  hvm_gen_item_sub   sub;
+  hvm_gen_item_block block;
 } hvm_gen_item;
 
 /// @brief Stores instructions, constants, etc. for a chunk. Can then generate the
 ///        appropriate bytecode for that chunk.
 typedef struct hvm_gen {
-#ifdef GLIB_MAJOR_VERSION
-  /// Stream of items (ops and meta-tags).
-  GArray *items;
-#else
-  void *items;
-#endif
-  // nothing
+  hvm_gen_item_block block;
 } hvm_gen;
 
 hvm_gen *hvm_new_gen();
