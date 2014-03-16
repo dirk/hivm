@@ -49,5 +49,6 @@ typedef struct hvm_chunk {
 } hvm_chunk;
 
 hvm_chunk *hvm_new_chunk();
+void hvm_chunk_expand_if_necessary(hvm_chunk *chunk);
 
 #endif
