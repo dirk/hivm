@@ -40,7 +40,7 @@ hvm_symbol_table_entry *hvm_symbol_table_add(hvm_symbol_table *st, char *value) 
 
 uint64_t hvm_symbolicate(hvm_symbol_table *st, char *value) {
   hvm_symbol_table_entry *entry;
-  uint64_t i = 1;
+  uint64_t i;
   for(i = 1; i < st->next_id; i++) {
     entry = st->symbols[i];
     if(strcmp(entry->value, value) == 0) {

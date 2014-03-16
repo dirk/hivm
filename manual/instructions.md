@@ -48,8 +48,11 @@
 `call SUB RET`
 :  Invoke the subroutine at SUB. RET can be a register for return or $null for no return or ignoring return.
 
-`calldynamic SUB RET`
-:  Invoke subroutine at address in SUB (register, not integer constant).
+`callsymbolic SYM RET`
+:  Invoke subroutine identified by the symbol (ID) in register SYM.
+
+`calladdress SUB RET`
+:  Invoke subroutine at address in register SUB.
 
 `tailcall SUB`
 :  Same as `call` but does not grow the stack. Current subroutine's return will be the return from SUB.
@@ -131,6 +134,9 @@ NOTE: May want to make a `setconstant` instruction available.
 
 `findlexical V N`
 :  **Slow stack search operation.** Climb the stack searching for a local by symbol name N; if found store in V.
+
+`symbolicate SYM STR`
+:  Look up the symbol ID for the string in STR and update SYM with that value.
 
 ### Closures
 

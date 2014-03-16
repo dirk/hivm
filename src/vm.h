@@ -29,11 +29,6 @@ typedef uint64_t hvm_symbol_id;
 
 extern struct hvm_obj_ref* hvm_const_null;
 
-/// @brief Chunk of instruction code and data (constants, etc.).
-typedef struct hvm_chunk {
-
-} hvm_chunk;
-
 /// Generates bytecode.
 /// @memberof hvm_generator
 // void hvm_generate_bytecode(struct hvm_gen*);
@@ -83,6 +78,8 @@ typedef struct hvm_vm {
   // object space
   /// VM-wide global variables
   struct hvm_obj_struct *globals;
+  /// Symbol lookup
+  struct hvm_symbol_table *symbols;
 } hvm_vm;
 
 /// Create a new virtual machine.
@@ -130,7 +127,7 @@ typedef enum {
   HVM_OP_JUMP = 3,       // 1B OP | 4B DIFF
   HVM_OP_GOTO = 2,       // 1B OP | 8B DEST
   HVM_OP_CALL = 4,       // 1B OP | 8B DEST  | 1B REG
-  HVM_OP_CALLDYNAMIC = 5,// 1B OP | 1B REG   | 1B REG
+  HVM_OP_CALLADDRESS = 5,// 1B OP | 1B REG   | 1B REG
   HVM_OP_TAILCALL = 6,   // 1B OP | 8B DEST
   HVM_OP_RETURN = 7,     // 1B OP | 1B REG
   HVM_OP_IF = 8,         // 1B OP | 1B REG  | 8B DEST

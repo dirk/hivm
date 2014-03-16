@@ -80,7 +80,7 @@ void hvm_vm_run(hvm_vm *vm) {
         vm->top++;
         *(vm->top) = frame;
         continue;
-      case HVM_OP_CALLDYNAMIC: // 1B OP | 1B REG | 1B REG
+      case HVM_OP_CALLADDRESS: // 1B OP | 1B REG | 1B REG
         reg  = vm->program[vm->ip + 1];
         val  = vm->general_regs[reg];
         assert(val->type == HVM_INTEGER);
@@ -316,6 +316,8 @@ void hvm_vm_run(hvm_vm *vm) {
         // structhas B S K
         fprintf(stderr, "STRUCTHAS not implemented yet!\n");
         goto end;
+
+      // TODO: Implement SYMBOLICATE.
 
       default:
         fprintf(stderr, "Unknown instruction: %u\n", instr);
