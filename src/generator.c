@@ -38,20 +38,23 @@ void hvm_gen_data_add_reloc(struct gen_data *gd, hvm_chunk_relocation *reloc) {
   g_array_append_val(gd->relocs, reloc);
 }
 
-void write_op_a1(hvm_chunk *chunk, hvm_gen_item_op_a1 *op) {
+#define WRITE_OP(NAME) __attribute__((always_inline)) void write_op_##NAME \
+                         (hvm_chunk *chunk, hvm_gen_item_op_##NAME *op) 
+
+WRITE_OP(a1) {
   // 1B OP | 1B REG
   memcpy(&chunk[0], &op->op, sizeof(byte));
   memcpy(&chunk[1], &op->reg1, sizeof(byte));
   chunk->size += 2;
 }
-void write_op_a2(hvm_chunk *chunk, hvm_gen_item_op_a2 *op) {
+WRITE_OP(a2) {
   // 1B OP | 1B REG | 1B REG
   memcpy(&chunk[0], &op->op, sizeof(byte));
   memcpy(&chunk[1], &op->reg1, sizeof(byte));
   memcpy(&chunk[2], &op->reg2, sizeof(byte));
   chunk->size += 3;
 }
-void write_op_a3(hvm_chunk *chunk, hvm_gen_item_op_a3 *op) {
+WRITE_OP(a3) {
   // 1B OP | 1B REG | 1B REG | 1B REG
   memcpy(&chunk[0], &op->op, sizeof(byte));
   memcpy(&chunk[1], &op->reg1, sizeof(byte));
@@ -59,52 +62,52 @@ void write_op_a3(hvm_chunk *chunk, hvm_gen_item_op_a3 *op) {
   memcpy(&chunk[3], &op->reg3, sizeof(byte));
   chunk->size += 4;
 }
-void write_op_b1(hvm_chunk *chunk, hvm_gen_item_op_b1 *op) {
+WRITE_OP(b1) {
   // 1B OP | 1B REG | 4B SYM
   memcpy(&chunk[0], &op->op, sizeof(byte));
   memcpy(&chunk[1], &op->reg, sizeof(byte));
   memcpy(&chunk[2], &op->sym, sizeof(uint32_t));
   chunk->size += 6;
 }
-void write_op_b2(hvm_chunk *chunk, hvm_gen_item_op_b2 *op) {
+WRITE_OP(b2) {
   // 1B OP | 4B SYM | 1B REG
   memcpy(&chunk[0], &op->op, sizeof(byte));
   memcpy(&chunk[1], &op->sym, sizeof(uint32_t));
   memcpy(&chunk[5], &op->reg, sizeof(byte));
   chunk->size += 6;
 }
-void write_op_d1(hvm_chunk *chunk, hvm_gen_item_op_d1 *op) {
+WRITE_OP(d1) {
   // 1B OP | 8B DEST
   memcpy(&chunk[0], &op->op, sizeof(byte));
   memcpy(&chunk[1], &op->dest, sizeof(uint64_t));
   chunk->size += 9;
 }
-void write_op_d2(hvm_chunk *chunk, hvm_gen_item_op_d2 *op) {
+WRITE_OP(d2) {
   // 1B OP | 8B DEST | 1B RET
   memcpy(&chunk[0], &op->op, sizeof(byte));
   memcpy(&chunk[1], &op->dest, sizeof(uint64_t));
   memcpy(&chunk[9], &op->ret, sizeof(byte));
   chunk->size += 10;
 }
-void write_op_d3(hvm_chunk *chunk, hvm_gen_item_op_d3 *op) {
+WRITE_OP(d3) {
   // 1B OP | 1B VAL  | 8B DEST
   memcpy(&chunk[0], &op->op, sizeof(byte));
   memcpy(&chunk[1], &op->val, sizeof(byte));
   memcpy(&chunk[2], &op->dest, sizeof(uint64_t));
   chunk->size += 10;
 }
-void write_op_e(hvm_chunk *chunk, hvm_gen_item_op_e *op) {
+WRITE_OP(e) {
   // 1B OP | 4B DIFF
   memcpy(&chunk[0], &op->op, sizeof(byte));
   memcpy(&chunk[1], &op->diff, sizeof(int32_t));
   chunk->size += 5;
 }
-void write_op_f(hvm_chunk *chunk, hvm_gen_item_op_f *op) {
+WRITE_OP(f) {
   // 1B OP
   memcpy(&chunk[0], &op->op, sizeof(byte));
   chunk->size += 1;
 }
-void write_op_g(hvm_chunk *chunk, hvm_gen_item_op_g *op) {
+WRITE_OP(g) {
   // 1B OP | 1B REG | 8B LITERAL
   memcpy(&chunk[0], &op->op, sizeof(byte));
   memcpy(&chunk[1], &op->reg, sizeof(byte));
