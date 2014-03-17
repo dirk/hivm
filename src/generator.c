@@ -12,7 +12,7 @@
 
 hvm_gen *hvm_new_gen() {
   hvm_gen *gen = malloc(sizeof(hvm_gen));
-  gen->block.items = g_array_new(TRUE, TRUE, sizeof(hvm_gen_item));
+  gen->block.items = g_array_new(TRUE, TRUE, sizeof(hvm_gen_item*));
   return gen;
 }
 
@@ -152,64 +152,64 @@ void hvm_gen_process_block(hvm_chunk *chunk, struct gen_data *data, hvm_gen_item
     hvm_chunk_expand_if_necessary(chunk);
     uint64_t idx = chunk->size;// Index into chunk for this instruction
     // Processing each item
-    hvm_gen_item item = g_array_index(block->items, hvm_gen_item, i);
-    switch(item.base.type) {
+    hvm_gen_item *item = g_array_index(block->items, hvm_gen_item*, i);
+    switch(item->base.type) {
       case HVM_GEN_SUB:
-        hvm_gen_data_add_symbol(data, item.sub.name, idx);
+        hvm_gen_data_add_symbol(data, item->sub.name, idx);
         break;
       case HVM_GEN_LABEL:
         // FIXME: Duplicate labels will leak.
         idxptr = malloc(sizeof(uint64_t));
         *idxptr = idx;
-        g_hash_table_replace(labels, item.label.name, idxptr);
+        g_hash_table_replace(labels, item->label.name, idxptr);
         break;
       case HVM_GEN_BLOCK:
-        hvm_gen_process_block(chunk, data, &item.block);
+        hvm_gen_process_block(chunk, data, &item->block);
         break;
       case HVM_GEN_OPA1:
-        write_op_a1(chunk, data, &item.op_a1);
+        write_op_a1(chunk, data, &item->op_a1);
         break;
       case HVM_GEN_OPA2:
-        write_op_a2(chunk, data, &item.op_a2);
+        write_op_a2(chunk, data, &item->op_a2);
         break;
       case HVM_GEN_OPA3:
-        write_op_a3(chunk, data, &item.op_a3);
+        write_op_a3(chunk, data, &item->op_a3);
         break;
       case HVM_GEN_OPB1:
-        write_op_b1(chunk, data, &item.op_b1);
+        write_op_b1(chunk, data, &item->op_b1);
         break;
       case HVM_GEN_OPB2:
-        write_op_b2(chunk, data, &item.op_b2);
+        write_op_b2(chunk, data, &item->op_b2);
         break;
       case HVM_GEN_OPD1:
-        write_op_d1(chunk, data, &item.op_d1);
+        write_op_d1(chunk, data, &item->op_d1);
         break;
       case HVM_GEN_OPD2:
-        write_op_d2(chunk, data, &item.op_d2);
+        write_op_d2(chunk, data, &item->op_d2);
         break;
       case HVM_GEN_OPD3:
-        write_op_d3(chunk, data, &item.op_d3);
+        write_op_d3(chunk, data, &item->op_d3);
         break;
       case HVM_GEN_OPE:
-        write_op_e(chunk, data, &item.op_e);
+        write_op_e(chunk, data, &item->op_e);
         break;
       case HVM_GEN_OPF:
-        write_op_f(chunk, data, &item.op_f);
+        write_op_f(chunk, data, &item->op_f);
         break;
       case HVM_GEN_OPG:
-        write_op_g(chunk, data, &item.op_g);
+        write_op_g(chunk, data, &item->op_g);
         break;
 
       case HVM_GEN_OPD1_LABEL:
-        exists = g_hash_table_lookup_extended(labels, item.op_d1_label.dest, NULL, NULL);
+        exists = g_hash_table_lookup_extended(labels, item->op_d1_label.dest, NULL, NULL);
         byte op = HVM_OP_GOTO;
         uint64_t dest = 0;
         if(exists) {
-          idxptr = g_hash_table_lookup(labels, item.op_d1_label.dest);
+          idxptr = g_hash_table_lookup(labels, item->op_d1_label.dest);
           dest = *idxptr;
         } else {
           struct label_use *use = malloc(sizeof(struct label_use));
-          use->name = item.op_d1_label.dest;
+          use->name = item->op_d1_label.dest;
           use->idx  = chunk->size + 1;// Add one for the byte for the op.
           label_uses = g_list_prepend(label_uses, use);
         }
@@ -222,40 +222,40 @@ void hvm_gen_process_block(hvm_chunk *chunk, struct gen_data *data, hvm_gen_item
         hvm_chunk_constant *cnst = malloc(sizeof(hvm_chunk_constant));
         sub = 0;
         cnst->index = chunk->size + 2;// One for op, one for reg.
-        if(item.op_h_data.data_type == HVM_GEN_DATA_STRING) {
+        if(item->op_h_data.data_type == HVM_GEN_DATA_STRING) {
           ref->type = HVM_STRING;
           // Not bothering with hvm_obj_string since this never actually
           // goes into the VM.
-          ref->data.v = item.op_h_data.data.string;
+          ref->data.v = item->op_h_data.data.string;
           cnst->object = ref;
-          WRITE(0, &item.op_h_data.op, byte);
-          WRITE(1, &item.op_h_data.reg, byte);
+          WRITE(0, &item->op_h_data.op, byte);
+          WRITE(1, &item->op_h_data.reg, byte);
           sub = hvm_gen_data_add_constant(data, cnst);
-        } else if(item.op_h_data.data_type == HVM_GEN_DATA_INTEGER) {
-          ref->data.i64 = item.op_h_data.data.i64;
+        } else if(item->op_h_data.data_type == HVM_GEN_DATA_INTEGER) {
+          ref->data.i64 = item->op_h_data.data.i64;
           ref->type = HVM_INTEGER;
           cnst->object = ref;
-          WRITE(0, &item.op_h_data.op, byte);
-          WRITE(1, &item.op_h_data.reg, byte);
+          WRITE(0, &item->op_h_data.op, byte);
+          WRITE(1, &item->op_h_data.reg, byte);
           sub = hvm_gen_data_add_constant(data, cnst);
-        } else if(item.op_h_data.data_type == HVM_GEN_DATA_SYMBOL) {
+        } else if(item->op_h_data.data_type == HVM_GEN_DATA_SYMBOL) {
           ref->type = HVM_SYMBOL;
-          ref->data.v = item.op_h_data.data.string;
+          ref->data.v = item->op_h_data.data.string;
           cnst->object = ref;
-          WRITE(0, &item.op_h_data.op, byte);
-          WRITE(1, &item.op_h_data.reg, byte);
+          WRITE(0, &item->op_h_data.op, byte);
+          WRITE(1, &item->op_h_data.reg, byte);
           sub = hvm_gen_data_add_constant(data, cnst);
         } else {
           WRITE(0, &zero, byte);
           WRITE(1, &zero, byte);
-          fprintf(stderr, "Don't know what to do with data type: %d\n", item.op_h_data.data_type);
+          fprintf(stderr, "Don't know what to do with data type: %d\n", item->op_h_data.data_type);
         }
         WRITE(2, &sub, uint32_t);
         chunk->size += 6;
         break;
 
       default:
-        fprintf(stderr, "Don't know what to do with item type: %d\n", item.base.type);
+        fprintf(stderr, "Don't know what to do with item type: %d\n", item->base.type);
         break;
     }
   }

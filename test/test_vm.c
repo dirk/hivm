@@ -39,6 +39,8 @@ void test_generator() {
   hvm_gen_sub(&gen->block, "_test");
   hvm_gen_litinteger(&gen->block, 2, 123456789);
   hvm_gen_return(&gen->block, 2);
+
+  hvm_chunk *chunk = hvm_gen_chunk(gen);
 }
 
 int main(int argc, char **argv) {
