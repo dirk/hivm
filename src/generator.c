@@ -32,9 +32,10 @@ void hvm_gen_data_add_symbol(struct gen_data *gd, char *sym, uint64_t idx) {
   positions = g_list_append(positions, idxptr);
   g_hash_table_replace(gd->symbols, sym, positions);
 }
-void hvm_gen_data_add_constant(struct gen_data *gd, hvm_chunk_constant *constant) {
+uint32_t hvm_gen_data_add_constant(struct gen_data *gd, hvm_chunk_constant *constant) {
   // TODO: Dedup.
   g_array_append_val(gd->constants, constant);
+  return (uint32_t)(gd->constants->len - 1);
 }
 void hvm_gen_data_add_reloc(struct gen_data *gd, uint64_t relocation_idx) {
   g_array_append_val(gd->relocs, relocation_idx);
@@ -139,6 +140,7 @@ void hvm_gen_process_block(hvm_chunk *chunk, struct gen_data *data, hvm_gen_item
   GList *label_uses = NULL;
 
   const uint32_t zero = 0;
+  uint32_t sub;
 
   unsigned int len = block->items->len;
   unsigned int i;
@@ -218,6 +220,7 @@ void hvm_gen_process_block(hvm_chunk *chunk, struct gen_data *data, hvm_gen_item
       case HVM_GEN_OPH_DATA:
         ref = hvm_new_obj_ref();
         hvm_chunk_constant *cnst = malloc(sizeof(hvm_chunk_constant));
+        sub = 0;
         cnst->index = chunk->size + 2;// One for op, one for reg.
         if(item.op_h_data.data_type == HVM_GEN_DATA_STRING) {
           ref->type = HVM_STRING;
@@ -227,27 +230,27 @@ void hvm_gen_process_block(hvm_chunk *chunk, struct gen_data *data, hvm_gen_item
           cnst->object = ref;
           WRITE(0, &item.op_h_data.op, byte);
           WRITE(1, &item.op_h_data.reg, byte);
-          hvm_gen_data_add_constant(data, cnst);
+          sub = hvm_gen_data_add_constant(data, cnst);
         } else if(item.op_h_data.data_type == HVM_GEN_DATA_INTEGER) {
           ref->data.i64 = item.op_h_data.data.i64;
           ref->type = HVM_INTEGER;
           cnst->object = ref;
           WRITE(0, &item.op_h_data.op, byte);
           WRITE(1, &item.op_h_data.reg, byte);
-          hvm_gen_data_add_constant(data, cnst);
+          sub = hvm_gen_data_add_constant(data, cnst);
         } else if(item.op_h_data.data_type == HVM_GEN_DATA_SYMBOL) {
           ref->type = HVM_SYMBOL;
           ref->data.v = item.op_h_data.data.string;
           cnst->object = ref;
           WRITE(0, &item.op_h_data.op, byte);
           WRITE(1, &item.op_h_data.reg, byte);
-          hvm_gen_data_add_constant(data, cnst);
+          sub = hvm_gen_data_add_constant(data, cnst);
         } else {
           WRITE(0, &zero, byte);
           WRITE(1, &zero, byte);
           fprintf(stderr, "Don't know what to do with data type: %d\n", item.op_h_data.data_type);
         }
-        WRITE(2, &zero, uint32_t);
+        WRITE(2, &sub, uint32_t);
         chunk->size += 6;
         break;
 
