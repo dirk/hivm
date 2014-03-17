@@ -23,7 +23,7 @@ typedef enum {
 union hvm_obj_ref_data {
   /// Signed integer (used by HVM_INTEGER)
   int64_t  i64;
-  /// Unsigned integer (likely unused)
+  /// Unsigned integer (used by HVM_SYMBOL)
   uint64_t u64;
   /// Void pointer
   void*    v;
