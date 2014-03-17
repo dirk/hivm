@@ -13,6 +13,9 @@ def cflags_for file
   if basename == "object.o" || basename == "generator.o"
     cflags += " #{`pkg-config --cflags glib-2.0`.strip}"
   end
+  if basename == "generator.o"
+    cflags += ' -Wno-unused-parameter'
+  end
   return cflags
 end
 

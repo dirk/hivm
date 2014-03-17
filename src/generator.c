@@ -34,16 +34,18 @@ void hvm_gen_data_add_symbol(struct gen_data *gd, char *sym, uint64_t idx) {
 void hvm_gen_data_add_constant(struct gen_data *gd, hvm_chunk_constant *constant) {
   g_array_append_val(gd->constants, constant);
 }
-void hvm_gen_data_add_reloc(struct gen_data *gd, hvm_chunk_relocation *reloc) {
-  g_array_append_val(gd->relocs, reloc);
+void hvm_gen_data_add_reloc(struct gen_data *gd, uint64_t relocation_idx) {
+  g_array_append_val(gd->relocs, relocation_idx);
 }
 
 // eg. WRITE_OP(a1) becomes:
 //   "__attribute(...) void write_op_a1(hvm_chunk, hvm_gen_item_op_a1 *op)"
 #define WRITE_OP(NAME) __attribute__((always_inline)) void write_op_##NAME \
-                         (hvm_chunk *chunk, hvm_gen_item_op_##NAME *op) 
+                         (hvm_chunk *chunk, struct gen_data *data, hvm_gen_item_op_##NAME *op) 
 
 #define WRITE(OFFSET, VAL, SIZE) memcpy(&chunk->data[chunk->size + OFFSET], VAL, sizeof(SIZE));
+
+#define RELOCATION(OFFSET) hvm_gen_data_add_reloc(data, chunk->size + OFFSET);
 
 WRITE_OP(a1) {
   // 1B OP | 1B REG
@@ -84,6 +86,7 @@ WRITE_OP(d1) {
   // 1B OP | 8B DEST
   WRITE(0, &op->op, byte);
   WRITE(1, &op->dest, uint64_t);
+  RELOCATION(1);
   chunk->size += 9;
 }
 WRITE_OP(d2) {
@@ -91,6 +94,7 @@ WRITE_OP(d2) {
   WRITE(0, &op->op, byte);
   WRITE(1, &op->dest, uint64_t);
   WRITE(9, &op->ret, byte);
+  RELOCATION(1);
   chunk->size += 10;
 }
 WRITE_OP(d3) {
@@ -98,6 +102,7 @@ WRITE_OP(d3) {
   WRITE(0, &op->op, byte);
   WRITE(1, &op->val, byte);
   WRITE(2, &op->dest, uint64_t);
+  RELOCATION(2);
   chunk->size += 10;
 }
 WRITE_OP(e) {
@@ -155,37 +160,37 @@ void hvm_gen_process_block(hvm_chunk *chunk, struct gen_data *data, hvm_gen_item
         hvm_gen_process_block(chunk, data, &item.block);
         break;
       case HVM_GEN_OPA1:
-        write_op_a1(chunk, &item.op_a1);
+        write_op_a1(chunk, data, &item.op_a1);
         break;
       case HVM_GEN_OPA2:
-        write_op_a2(chunk, &item.op_a2);
+        write_op_a2(chunk, data, &item.op_a2);
         break;
       case HVM_GEN_OPA3:
-        write_op_a3(chunk, &item.op_a3);
+        write_op_a3(chunk, data, &item.op_a3);
         break;
       case HVM_GEN_OPB1:
-        write_op_b1(chunk, &item.op_b1);
+        write_op_b1(chunk, data, &item.op_b1);
         break;
       case HVM_GEN_OPB2:
-        write_op_b2(chunk, &item.op_b2);
+        write_op_b2(chunk, data, &item.op_b2);
         break;
       case HVM_GEN_OPD1:
-        write_op_d1(chunk, &item.op_d1);
+        write_op_d1(chunk, data, &item.op_d1);
         break;
       case HVM_GEN_OPD2:
-        write_op_d2(chunk, &item.op_d2);
+        write_op_d2(chunk, data, &item.op_d2);
         break;
       case HVM_GEN_OPD3:
-        write_op_d3(chunk, &item.op_d3);
+        write_op_d3(chunk, data, &item.op_d3);
         break;
       case HVM_GEN_OPE:
-        write_op_e(chunk, &item.op_e);
+        write_op_e(chunk, data, &item.op_e);
         break;
       case HVM_GEN_OPF:
-        write_op_f(chunk, &item.op_f);
+        write_op_f(chunk, data, &item.op_f);
         break;
       case HVM_GEN_OPG:
-        write_op_g(chunk, &item.op_g);
+        write_op_g(chunk, data, &item.op_g);
         break;
 
       case HVM_GEN_OPD1_LABEL:
@@ -236,7 +241,7 @@ struct hvm_chunk *hvm_gen_chunk(hvm_gen *gen) {
   chunk->capacity = start_size;
 
   struct gen_data gd;
-  gd.relocs    = g_array_new(TRUE, TRUE, sizeof(hvm_chunk_relocation*));
+  gd.relocs    = g_array_new(TRUE, TRUE, sizeof(uint64_t));
   gd.constants = g_array_new(TRUE, TRUE, sizeof(hvm_chunk_constant*));
   gd.symbols   = g_hash_table_new(g_str_hash, g_str_equal);
 
