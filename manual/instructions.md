@@ -118,6 +118,9 @@ NOTE: May want to make a `setconstant` instruction available.
 `exit STATUS`
 :  Exit interpreter with integer status code in STATUS.
 
+`symbolicate SYM STR`
+:  Look up the symbol ID for the string in STR and update SYM with that value.
+
 ## Local/global variables
 
 `setlocal N V`
@@ -134,9 +137,6 @@ NOTE: May want to make a `setconstant` instruction available.
 
 `findlexical V N`
 :  **Slow stack search operation.** Climb the stack searching for a local by symbol name N; if found store in V.
-
-`symbolicate SYM STR`
-:  Look up the symbol ID for the string in STR and update SYM with that value.
 
 ### Closures
 

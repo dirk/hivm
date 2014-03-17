@@ -23,6 +23,9 @@ typedef enum {
   HVM_GEN_OPE,  // 1B OP | 4B DIFF
   HVM_GEN_OPF,  // 1B OP
   HVM_GEN_OPG,  // 1B OP | 1B REG | 8B LITERAL
+
+  HVM_GEN_OPD1_LABEL,
+
   HVM_GEN_LABEL,
   HVM_GEN_SUB,
   HVM_GEN_BLOCK
@@ -111,6 +114,12 @@ typedef struct hvm_gen_item_op_g {
   int64_t lit;
 } hvm_gen_item_op_g;
 
+typedef struct hvm_gen_item_op_d1_label {
+  HVM_GEN_ITEM_HEAD;
+  byte op;
+  char* dest;
+} hvm_gen_item_op_d1_label;
+
 /*
 typedef enum {
   HVM_MACRO_SUB
@@ -157,6 +166,9 @@ typedef union hvm_gen_item {
   hvm_gen_item_op_e  op_e;
   hvm_gen_item_op_f  op_f;
   hvm_gen_item_op_g  op_g;
+  
+  hvm_gen_item_op_d1_label op_d1_label;
+  
   // hvm_gen_item_macro macro;
   hvm_gen_item_label label;
   hvm_gen_item_sub   sub;
@@ -203,5 +215,8 @@ void hvm_gen_structget(hvm_gen_item_block *block, byte reg, byte strct, byte key
 void hvm_gen_structdelete(hvm_gen_item_block *block, byte reg, byte strct, byte key);
 void hvm_gen_structset(hvm_gen_item_block *block, byte strct, byte key, byte val);
 void hvm_gen_structnew(hvm_gen_item_block *block, byte reg);
+
+// META-GENERATORS
+void hvm_gen_goto_label(hvm_gen_item_block *block, char *name);
 
 #endif

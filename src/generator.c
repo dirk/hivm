@@ -38,94 +38,104 @@ void hvm_gen_data_add_reloc(struct gen_data *gd, hvm_chunk_relocation *reloc) {
   g_array_append_val(gd->relocs, reloc);
 }
 
+// eg. WRITE_OP(a1) becomes:
+//   "__attribute(...) void write_op_a1(hvm_chunk, hvm_gen_item_op_a1 *op)"
 #define WRITE_OP(NAME) __attribute__((always_inline)) void write_op_##NAME \
                          (hvm_chunk *chunk, hvm_gen_item_op_##NAME *op) 
 
+#define WRITE(OFFSET, VAL, SIZE) memcpy(&chunk->data[chunk->size + OFFSET], VAL, sizeof(SIZE));
+
 WRITE_OP(a1) {
   // 1B OP | 1B REG
-  memcpy(&chunk[0], &op->op, sizeof(byte));
-  memcpy(&chunk[1], &op->reg1, sizeof(byte));
+  WRITE(0, &op->op, byte);
+  WRITE(1, &op->reg1, byte);
   chunk->size += 2;
 }
 WRITE_OP(a2) {
   // 1B OP | 1B REG | 1B REG
-  memcpy(&chunk[0], &op->op, sizeof(byte));
-  memcpy(&chunk[1], &op->reg1, sizeof(byte));
-  memcpy(&chunk[2], &op->reg2, sizeof(byte));
+  WRITE(0, &op->op, byte);
+  WRITE(1, &op->reg1, byte);
+  WRITE(2, &op->reg2, byte);
   chunk->size += 3;
 }
 WRITE_OP(a3) {
   // 1B OP | 1B REG | 1B REG | 1B REG
-  memcpy(&chunk[0], &op->op, sizeof(byte));
-  memcpy(&chunk[1], &op->reg1, sizeof(byte));
-  memcpy(&chunk[2], &op->reg2, sizeof(byte));
-  memcpy(&chunk[3], &op->reg3, sizeof(byte));
+  WRITE(0, &op->op, byte);
+  WRITE(1, &op->reg1, byte);
+  WRITE(2, &op->reg2, byte);
+  WRITE(3, &op->reg3, byte);
   chunk->size += 4;
 }
 WRITE_OP(b1) {
   // 1B OP | 1B REG | 4B SYM
-  memcpy(&chunk[0], &op->op, sizeof(byte));
-  memcpy(&chunk[1], &op->reg, sizeof(byte));
-  memcpy(&chunk[2], &op->sym, sizeof(uint32_t));
+  WRITE(0, &op->op, byte);
+  WRITE(1, &op->reg, byte);
+  WRITE(2, &op->sym, uint32_t);
   chunk->size += 6;
 }
 WRITE_OP(b2) {
   // 1B OP | 4B SYM | 1B REG
-  memcpy(&chunk[0], &op->op, sizeof(byte));
-  memcpy(&chunk[1], &op->sym, sizeof(uint32_t));
-  memcpy(&chunk[5], &op->reg, sizeof(byte));
+  WRITE(0, &op->op, byte);
+  WRITE(1, &op->sym, uint32_t);
+  WRITE(5, &op->reg, byte);
   chunk->size += 6;
 }
 WRITE_OP(d1) {
   // 1B OP | 8B DEST
-  memcpy(&chunk[0], &op->op, sizeof(byte));
-  memcpy(&chunk[1], &op->dest, sizeof(uint64_t));
+  WRITE(0, &op->op, byte);
+  WRITE(1, &op->dest, uint64_t);
   chunk->size += 9;
 }
 WRITE_OP(d2) {
   // 1B OP | 8B DEST | 1B RET
-  memcpy(&chunk[0], &op->op, sizeof(byte));
-  memcpy(&chunk[1], &op->dest, sizeof(uint64_t));
-  memcpy(&chunk[9], &op->ret, sizeof(byte));
+  WRITE(0, &op->op, byte);
+  WRITE(1, &op->dest, uint64_t);
+  WRITE(9, &op->ret, byte);
   chunk->size += 10;
 }
 WRITE_OP(d3) {
   // 1B OP | 1B VAL  | 8B DEST
-  memcpy(&chunk[0], &op->op, sizeof(byte));
-  memcpy(&chunk[1], &op->val, sizeof(byte));
-  memcpy(&chunk[2], &op->dest, sizeof(uint64_t));
+  WRITE(0, &op->op, byte);
+  WRITE(1, &op->val, byte);
+  WRITE(2, &op->dest, uint64_t);
   chunk->size += 10;
 }
 WRITE_OP(e) {
   // 1B OP | 4B DIFF
-  memcpy(&chunk[0], &op->op, sizeof(byte));
-  memcpy(&chunk[1], &op->diff, sizeof(int32_t));
+  WRITE(0, &op->op, byte);
+  WRITE(1, &op->diff, int32_t);
   chunk->size += 5;
 }
 WRITE_OP(f) {
   // 1B OP
-  memcpy(&chunk[0], &op->op, sizeof(byte));
+  WRITE(0, &op->op, byte);
   chunk->size += 1;
 }
 WRITE_OP(g) {
   // 1B OP | 1B REG | 8B LITERAL
-  memcpy(&chunk[0], &op->op, sizeof(byte));
-  memcpy(&chunk[1], &op->reg, sizeof(byte));
-  memcpy(&chunk[2], &op->lit, sizeof(int64_t));
+  WRITE(0, &op->op, byte);
+  WRITE(1, &op->reg, byte);
+  WRITE(2, &op->lit, int64_t);
   chunk->size += 10;
 }
+
+struct label_use {
+  char *name;
+  uint64_t idx;// Position of the address to be updated.
+};
 
 void hvm_gen_process_block(hvm_chunk *chunk, struct gen_data *data, hvm_gen_item_block *block) {
   // Map labels to indexes
   GHashTable *labels = g_hash_table_new(g_str_hash, g_str_equal);
   // Unmapped labels (built up during processing and then emptied/resolved
   // at the end).
-  // GList *label_uses = NULL;
+  GList *label_uses = NULL;
 
   unsigned int len = block->items->len;
   unsigned int i;
   uint64_t *idxptr;
-  
+  gboolean exists;
+
   for(i = 0; i < len; i++) {
     hvm_chunk_expand_if_necessary(chunk);
     uint64_t idx = chunk->size;// Index into chunk for this instruction
@@ -177,11 +187,46 @@ void hvm_gen_process_block(hvm_chunk *chunk, struct gen_data *data, hvm_gen_item
       case HVM_GEN_OPG:
         write_op_g(chunk, &item.op_g);
         break;
+
+      case HVM_GEN_OPD1_LABEL:
+        exists = g_hash_table_lookup_extended(labels, item.op_d1_label.dest, NULL, NULL);
+        byte op = HVM_OP_GOTO;
+        uint64_t dest = 0;
+        if(exists) {
+          idxptr = g_hash_table_lookup(labels, item.op_d1_label.dest);
+          dest = *idxptr;
+        } else {
+          struct label_use *use = malloc(sizeof(struct label_use));
+          use->name = item.op_d1_label.dest;
+          use->idx  = chunk->size + 1;// Add one for the byte for the op.
+          label_uses = g_list_prepend(label_uses, use);
+        }
+        WRITE(0, &op, byte);
+        WRITE(1, &dest, uint64_t);
+        chunk->size += 9;
+        break;
+
       default:
         fprintf(stderr, "Don't know what to do with item type: %d\n", item.base.type);
         break;
     }
   }
+
+  GList *u = g_list_first(label_uses);
+  while(u != NULL) {
+    struct label_use *use = u->data;
+    exists = g_hash_table_lookup_extended(labels, use->name, NULL, NULL);
+    if(exists) {
+      idxptr = g_hash_table_lookup(labels, use->name);
+      uint64_t dest = *idxptr;
+      memcpy(&chunk->data[use->idx], &dest, sizeof(uint64_t));
+    } else {
+      fprintf(stderr, "Label not found: %s\n", use->name);
+    }
+    free(use);
+    u = g_list_next(u);
+  }
+  g_list_free(label_uses);
 }
 
 struct hvm_chunk *hvm_gen_chunk(hvm_gen *gen) {
@@ -221,6 +266,13 @@ void hvm_gen_goto(hvm_gen_item_block *block, uint64_t dest) {
   gt->type = HVM_GEN_OPD1;
   gt->op = HVM_OP_GOTO;
   gt->dest = dest;
+  GEN_PUSH_ITEM(gt);
+}
+void hvm_gen_goto_label(hvm_gen_item_block *block, char *name) {
+  hvm_gen_item_op_d1_label *gt = malloc(sizeof(hvm_gen_item_op_d1));
+  gt->type = HVM_GEN_OPD1_LABEL;
+  gt->op = HVM_OP_GOTO;
+  gt->dest = name;
   GEN_PUSH_ITEM(gt);
 }
 void hvm_gen_call(hvm_gen_item_block *block, uint64_t dest, byte ret) {
