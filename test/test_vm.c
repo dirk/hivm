@@ -37,10 +37,13 @@ void test_generator() {
   hvm_gen_set_symbol(&gen->block, 1, "_test");
   hvm_gen_callsymbolic(&gen->block, 1, 2);
   hvm_gen_sub(&gen->block, "_test");
+  hvm_gen_goto_label(&gen->block, "label");
+  hvm_gen_label(&gen->block, "label");
   hvm_gen_litinteger(&gen->block, 2, 123456789);
   hvm_gen_return(&gen->block, 2);
 
   hvm_chunk *chunk = hvm_gen_chunk(gen);
+  hvm_chunk_disassemble(chunk);
 }
 
 int main(int argc, char **argv) {

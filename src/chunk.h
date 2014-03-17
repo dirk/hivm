@@ -20,13 +20,15 @@ typedef struct hvm_chunk {
   // RELOCATIONS (relocs)
   // Specifies points in the code where relative addresses need to be adjusted
   // to absolute addresses.
+  hvm_chunk_relocation **relocs;// NULL-terminated array of relocs
 
-  // SUBSTITUTIONS (subs)
+  // CONSTANT SUBSTITUTIONS (consts)
   // Constants:
   //   Defines constant values and positions in the code where they are used.
   //   When the chunk is loaded these constants are pulled into the VM's
   //   constant table and the constant indexes in the code (specified by the 
   //   usage positions) are updated to use the VM's constant indexes.
+  hvm_chunk_constant **consts;// NULL-terminated array
 
   // SYMBOLS
   // Defines symbols (ie. subroutines) and their locations to be inserted into
@@ -43,5 +45,7 @@ typedef struct hvm_chunk {
 
 hvm_chunk *hvm_new_chunk();
 void hvm_chunk_expand_if_necessary(hvm_chunk *chunk);
+
+void hvm_chunk_disassemble(hvm_chunk *chunk);
 
 #endif

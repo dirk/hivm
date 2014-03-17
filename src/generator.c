@@ -215,6 +215,7 @@ void hvm_gen_process_block(hvm_chunk *chunk, struct gen_data *data, hvm_gen_item
         }
         WRITE(0, &op, byte);
         WRITE(1, &dest, uint64_t);
+        RELOCATION(1);
         chunk->size += 9;
         break;
       case HVM_GEN_OPH_DATA:
@@ -290,6 +291,25 @@ struct hvm_chunk *hvm_gen_chunk(hvm_gen *gen) {
 
   hvm_gen_process_block(chunk, &gd, &gen->block);
 
+  uint64_t i;
+
+  hvm_chunk_relocation **relocs = malloc(sizeof(hvm_chunk_relocation*) * (gd.relocs->len + 1));
+  for(i = 0; i < gd.relocs->len; i++) {
+    hvm_chunk_relocation *r = malloc(sizeof(hvm_chunk_relocation));
+    r->index = g_array_index(gd.relocs, uint64_t, i);
+    relocs[i] = r;
+  }
+  relocs[gd.relocs->len] = NULL;
+
+  hvm_chunk_constant **consts = malloc(sizeof(hvm_chunk_constant*) * (gd.constants->len + 1));
+  for(i = 0; i < gd.constants->len; i++) {
+    consts[i] = g_array_index(gd.constants, hvm_chunk_constant*, i);
+  }
+  consts[gd.constants->len] = NULL;
+
+  chunk->relocs = relocs;
+  chunk->consts = consts;
+
   return chunk;
 }
 
@@ -314,13 +334,6 @@ void hvm_gen_goto(hvm_gen_item_block *block, uint64_t dest) {
   gt->type = HVM_GEN_OPD1;
   gt->op = HVM_OP_GOTO;
   gt->dest = dest;
-  GEN_PUSH_ITEM(gt);
-}
-void hvm_gen_goto_label(hvm_gen_item_block *block, char *name) {
-  hvm_gen_item_op_d1_label *gt = malloc(sizeof(hvm_gen_item_op_d1));
-  gt->type = HVM_GEN_OPD1_LABEL;
-  gt->op = HVM_OP_GOTO;
-  gt->dest = name;
   GEN_PUSH_ITEM(gt);
 }
 void hvm_gen_call(hvm_gen_item_block *block, uint64_t dest, byte ret) {
@@ -540,6 +553,21 @@ char *strclone(char *str) {
   char  *clone = malloc(sizeof(char) * (size_t)(len + 1));
   strcpy(clone, str);
   return clone;
+}
+
+void hvm_gen_goto_label(hvm_gen_item_block *block, char *name) {
+  hvm_gen_item_op_d1_label *gt = malloc(sizeof(hvm_gen_item_op_d1));
+  gt->type = HVM_GEN_OPD1_LABEL;
+  gt->op = HVM_OP_GOTO;
+  gt->dest = strclone(name);
+  GEN_PUSH_ITEM(gt);
+}
+
+void hvm_gen_label(hvm_gen_item_block *block, char *name) {
+  hvm_gen_item_label *label = malloc(sizeof(hvm_gen_item_label));
+  label->type = HVM_GEN_LABEL;
+  label->name = strclone(name);
+  GEN_PUSH_ITEM(label);
 }
 
 void hvm_gen_set_symbol(hvm_gen_item_block *block, byte reg, char *string) {
