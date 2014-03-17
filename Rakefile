@@ -29,7 +29,9 @@ namespace "build" do
     headers = {
       "vm" => "hvm",
       "object" => "hvm_object",
-      "symbol" => "hvm_symbol"
+      "symbol" => "hvm_symbol",
+      "chunk"  => "hvm_chunk",
+      "generator" => "hvm_generator"
     }
     headers.each do |src, dst|
       sh "cp src/#{src}.h include/#{dst}.h"
