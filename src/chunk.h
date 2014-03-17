@@ -12,6 +12,11 @@ typedef struct hvm_chunk_constant {
   struct hvm_obj_ref* object;
 } hvm_chunk_constant;
 
+typedef struct hvm_chunk_symbol {
+  uint64_t index;
+  char     *name;
+} hvm_chunk_symbol;
+
 /// @brief Chunk of instruction code and data (constants, etc.).
 typedef struct hvm_chunk {
   // This is mostly inspired by the ELF format. There are three main sections
@@ -28,11 +33,12 @@ typedef struct hvm_chunk {
   //   When the chunk is loaded these constants are pulled into the VM's
   //   constant table and the constant indexes in the code (specified by the 
   //   usage positions) are updated to use the VM's constant indexes.
-  hvm_chunk_constant **consts;// NULL-terminated array
+  hvm_chunk_constant **constants;// NULL-terminated array
 
   // SYMBOLS
   // Defines symbols (ie. subroutines) and their locations to be inserted into
   // the VM's symbol table.
+  hvm_chunk_symbol **symbols;
 
   // DATA
   /// Raw instructions.

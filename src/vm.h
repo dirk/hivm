@@ -147,12 +147,12 @@ typedef enum {
   
   HVM_GETCLOSURE = 20,   // 1B OP | 1B REG
   
-  HVM_ADD = 21,          // 1B OP | 3B REGs
-  HVM_SUB = 22,          // 1B OP | 3B REGs
-  HVM_MUL = 23,          // 1B OP | 3B REGs
-  HVM_DIV = 24,          // 1B OP | 3B REGs
-  HVM_MOD = 25,          // 1B OP | 3B REGs
-  HVM_POW = 26,          // 1B OP | 3B REGs
+  HVM_OP_ADD = 21,          // 1B OP | 3B REGs
+  HVM_OP_SUB = 22,          // 1B OP | 3B REGs
+  HVM_OP_MUL = 23,          // 1B OP | 3B REGs
+  HVM_OP_DIV = 24,          // 1B OP | 3B REGs
+  HVM_OP_MOD = 25,          // 1B OP | 3B REGs
+  HVM_OP_POW = 26,          // 1B OP | 3B REGs
 
   // TODO: Bitwise instructions
   // TODO: Exception instructions

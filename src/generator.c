@@ -10,6 +10,13 @@
 #include "chunk.h"
 #include "generator.h"
 
+char *strclone(char *str) {
+  size_t len = strlen(str);
+  char  *clone = malloc(sizeof(char) * (size_t)(len + 1));
+  strcpy(clone, str);
+  return clone;
+}
+
 hvm_gen *hvm_new_gen() {
   hvm_gen *gen = malloc(sizeof(hvm_gen));
   gen->block.items = g_array_new(TRUE, TRUE, sizeof(hvm_gen_item*));
@@ -23,14 +30,20 @@ struct gen_data {
   // array of constants (hvm_chunk_constant)
   GArray *constants;
   // string symbol name => list of positions
-  GHashTable *symbols;
+  GArray *symbols;
 };
 void hvm_gen_data_add_symbol(struct gen_data *gd, char *sym, uint64_t idx) {
+  /*
   GList *positions = g_hash_table_lookup(gd->symbols, sym);
   uint64_t *idxptr = malloc(sizeof(uint64_t));
   *idxptr = idx;
   positions = g_list_append(positions, idxptr);
   g_hash_table_replace(gd->symbols, sym, positions);
+  */
+  hvm_chunk_symbol *cs = malloc(sizeof(hvm_chunk_symbol));
+  cs->index = idx;
+  cs->name = strclone(sym);
+  g_array_append_val(gd->symbols, cs);
 }
 uint32_t hvm_gen_data_add_constant(struct gen_data *gd, hvm_chunk_constant *constant) {
   // TODO: Dedup.
@@ -287,7 +300,7 @@ struct hvm_chunk *hvm_gen_chunk(hvm_gen *gen) {
   struct gen_data gd;
   gd.relocs    = g_array_new(TRUE, TRUE, sizeof(uint64_t));
   gd.constants = g_array_new(TRUE, TRUE, sizeof(hvm_chunk_constant*));
-  gd.symbols   = g_hash_table_new(g_str_hash, g_str_equal);
+  gd.symbols   = g_array_new(TRUE, TRUE, sizeof(hvm_chunk_symbol*));
 
   hvm_gen_process_block(chunk, &gd, &gen->block);
 
@@ -306,9 +319,16 @@ struct hvm_chunk *hvm_gen_chunk(hvm_gen *gen) {
     consts[i] = g_array_index(gd.constants, hvm_chunk_constant*, i);
   }
   consts[gd.constants->len] = NULL;
+  
+  hvm_chunk_symbol **syms = malloc(sizeof(hvm_chunk_symbol*) * (gd.symbols->len + 1));
+  for(i = 0; i < gd.symbols->len; i++) {
+    syms[i] = g_array_index(gd.symbols, hvm_chunk_symbol*, i);
+  }
+  syms[gd.symbols->len] = NULL;
 
-  chunk->relocs = relocs;
-  chunk->consts = consts;
+  chunk->relocs    = relocs;
+  chunk->constants = consts;
+  chunk->symbols   = syms;
 
   return chunk;
 }
@@ -546,14 +566,19 @@ void hvm_gen_setstring(hvm_gen_item_block *block, byte reg, uint32_t cnst) {
   GEN_PUSH_ITEM(op);
 }
 
+// 1B OP | 1B REG | 1B REG | 1B REG
+void hvm_gen_add(hvm_gen_item_block *block, byte a, byte b, byte c) {
+  hvm_gen_item_op_a3 *op = malloc(sizeof(hvm_gen_item_op_a3));
+  op->type = HVM_GEN_OPA3;
+  op->op   = HVM_OP_ADD;
+  op->reg1 = a;
+  op->reg2 = b;
+  op->reg3 = c;
+  GEN_PUSH_ITEM(op);
+}
+
 
 // META-GENERATORS
-char *strclone(char *str) {
-  size_t len = strlen(str);
-  char  *clone = malloc(sizeof(char) * (size_t)(len + 1));
-  strcpy(clone, str);
-  return clone;
-}
 
 void hvm_gen_goto_label(hvm_gen_item_block *block, char *name) {
   hvm_gen_item_op_d1_label *gt = malloc(sizeof(hvm_gen_item_op_d1));

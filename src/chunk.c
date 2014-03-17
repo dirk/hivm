@@ -25,9 +25,9 @@ void hvm_chunk_expand_if_necessary(hvm_chunk *chunk) {
 }
 
 char *human_name_for_obj_type(hvm_obj_ref* obj) {
-  static char *string = "string",
+  static char *string  = "string",
               *unknown = "unknown",
-              *symbol = "symbol",
+              *symbol  = "symbol",
               *integer = "integer";
   switch(obj->type) {
     case HVM_STRING:
@@ -38,6 +38,18 @@ char *human_name_for_obj_type(hvm_obj_ref* obj) {
       return integer;
     default:
       return unknown;
+  }
+}
+void print_constant_object(hvm_obj_ref* obj) {
+  switch(obj->type) {
+    case HVM_SYMBOL:
+      printf("%s", (char*)obj->data.v);
+      break;
+    // case HVM_STRING:
+    //   printf("%s", (char*)obj->data.v);
+    //   break;
+    default:
+      break;
   }
 }
 
@@ -53,15 +65,30 @@ void print_relocations(hvm_chunk *chunk) {
   printf("\n");
 }
 void print_constants(hvm_chunk *chunk) {
-  hvm_chunk_constant **consts = chunk->consts;
+  hvm_chunk_constant **consts = chunk->constants;
   hvm_chunk_constant *cnst;
   printf("consts:\n");
   int i = 0;
   while(*consts != NULL) {
     cnst = *consts;
-    printf("  #%-4d 0x%08llX  (%p)  %s\n", i, cnst->index, cnst->object, human_name_for_obj_type(cnst->object));
+    printf("  #%-4d 0x%08llX  (%p)  %-9s", i, cnst->index, cnst->object, human_name_for_obj_type(cnst->object));
+    print_constant_object(cnst->object);
+    printf("\n");
     i++;
     consts++;
+  }
+  printf("\n");
+}
+void print_symbols(hvm_chunk *chunk) {
+  hvm_chunk_symbol **syms = chunk->symbols;
+  hvm_chunk_symbol *sym;
+  printf("symbols:\n");
+  int i = 0;
+  while(*syms != NULL) {
+    sym = *syms;
+    printf("  0x%08llX  %s\n", sym->index, sym->name);
+    i++;
+    syms++;
   }
   printf("\n");
 }
@@ -74,7 +101,7 @@ void print_constants(hvm_chunk *chunk) {
 void print_data(hvm_chunk *chunk) {
   byte *data = chunk->data;
   byte op;
-  byte sym, reg1, ret;
+  byte sym, reg1, reg2, reg3, ret;
   uint32_t u32;
   uint64_t u64;
   int64_t  i64;
@@ -101,7 +128,14 @@ void print_data(hvm_chunk *chunk) {
         reg1 = data[i + 1];
         i64  = READ_I64(&data[i + 2]);
         i += 9;
-        printf("$%-2d = litinteger(%lld)\n", ret, i64);
+        printf("$%-2d = litinteger(%lld)\n", reg1, i64);
+        break;
+      case HVM_OP_ADD: // 1B OP | 1B REG | 1B REG | 1B REG
+        reg1 = data[i + 1];
+        reg2 = data[i + 2];
+        reg3 = data[i + 3];
+        i += 3;
+        printf("$%-2d = $%d + $%d\n", reg1, reg2, reg3);
         break;
       case HVM_OP_GOTO: // 1B OP | 8B DEST
         u64 = READ_U64(&data[i + 1]);
@@ -124,5 +158,6 @@ void print_data(hvm_chunk *chunk) {
 void hvm_chunk_disassemble(hvm_chunk *chunk) {
   print_relocations(chunk);
   print_constants(chunk);
+  print_symbols(chunk);
   print_data(chunk);
 }

@@ -39,7 +39,12 @@ void test_generator() {
   hvm_gen_sub(&gen->block, "_test");
   hvm_gen_goto_label(&gen->block, "label");
   hvm_gen_label(&gen->block, "label");
-  hvm_gen_litinteger(&gen->block, 2, 123456789);
+  // hvm_gen_litinteger(&gen->block, 2, 123456789);
+  
+  hvm_gen_litinteger(&gen->block, 3, 1);
+  hvm_gen_litinteger(&gen->block, 4, 2);
+  hvm_gen_add(&gen->block, 5, 3, 4);
+  
   hvm_gen_return(&gen->block, 2);
 
   hvm_chunk *chunk = hvm_gen_chunk(gen);
