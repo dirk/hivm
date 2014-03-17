@@ -221,7 +221,9 @@ void hvm_gen_noop(hvm_gen_item_block *block);
 void hvm_gen_jump(hvm_gen_item_block *block, int32_t diff);
 void hvm_gen_goto(hvm_gen_item_block *block, uint64_t dest);
 void hvm_gen_call(hvm_gen_item_block *block, uint64_t dest, byte ret);
+void hvm_gen_callsymbolic(hvm_gen_item_block *block, byte sym, byte ret);
 void hvm_gen_if(hvm_gen_item_block *block, byte val, uint64_t dest);
+void hvm_gen_return(hvm_gen_item_block *block, byte reg);
 
 void hvm_gen_getlocal(hvm_gen_item_block *block, byte reg, uint32_t sym);
 void hvm_gen_setlocal(hvm_gen_item_block *block, uint32_t sym, byte reg);
@@ -254,5 +256,6 @@ void hvm_gen_goto_label(hvm_gen_item_block *block, char *name);
 void hvm_gen_set_string(hvm_gen_item_block *block, byte reg, char *string);
 void hvm_gen_set_symbol(hvm_gen_item_block *block, byte reg, char *string);
 void hvm_gen_set_integer(hvm_gen_item_block *block, byte reg, int64_t integer);
+void hvm_gen_sub(hvm_gen_item_block *block, char *name);
 
 #endif

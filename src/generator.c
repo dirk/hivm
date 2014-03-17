@@ -340,6 +340,24 @@ void hvm_gen_if(hvm_gen_item_block *block, byte val, uint64_t dest) {
   GEN_PUSH_ITEM(i);
 }
 
+// 1B OP | 1B REG | 1B REG
+void hvm_gen_callsymbolic(hvm_gen_item_block *block, byte sym, byte ret) {
+  hvm_gen_item_op_a2 *op = malloc(sizeof(hvm_gen_item_op_a2));
+  op->type = HVM_GEN_OPA2;
+  op->op   = HVM_OP_CALLSYMBOLIC;
+  op->reg1 = sym;
+  op->reg2 = ret;
+  GEN_PUSH_ITEM(op);
+}
+// 1B OP | 1B REG
+void hvm_gen_return(hvm_gen_item_block *block, byte reg) {
+  hvm_gen_item_op_a1 *op = malloc(sizeof(hvm_gen_item_op_a1));
+  op->type = HVM_GEN_OPA1;
+  op->op   = HVM_OP_RETURN;
+  op->reg1 = reg;
+  GEN_PUSH_ITEM(op);
+}
+
 void hvm_gen_getlocal(hvm_gen_item_block *block, byte reg, uint32_t sym) {
   hvm_gen_item_op_b1 *op = malloc(sizeof(hvm_gen_item_op_b1));
   op->type = HVM_GEN_OPB1;
@@ -515,13 +533,22 @@ void hvm_gen_setstring(hvm_gen_item_block *block, byte reg, uint32_t cnst) {
   GEN_PUSH_ITEM(op);
 }
 
+
+// META-GENERATORS
+char *strclone(char *str) {
+  size_t len = strlen(str);
+  char  *clone = malloc(sizeof(char) * (size_t)(len + 1));
+  strcpy(clone, str);
+  return clone;
+}
+
 void hvm_gen_set_symbol(hvm_gen_item_block *block, byte reg, char *string) {
   hvm_gen_item_op_h_data *data = malloc(sizeof(hvm_gen_item_op_h_data));
   data->type = HVM_GEN_OPH_DATA;
   data->op = HVM_OP_SETSYMBOL;
   data->reg = reg;
   data->data_type = HVM_GEN_DATA_SYMBOL;
-  data->data.string = string;
+  data->data.string = strclone(string);
   GEN_PUSH_ITEM(data);
 }
 void hvm_gen_set_string(hvm_gen_item_block *block, byte reg, char *string) {
@@ -530,7 +557,7 @@ void hvm_gen_set_string(hvm_gen_item_block *block, byte reg, char *string) {
   data->op = HVM_OP_SETSTRING;
   data->reg = reg;
   data->data_type = HVM_GEN_DATA_STRING;
-  data->data.string = string;
+  data->data.string = strclone(string);
   GEN_PUSH_ITEM(data);
 }
 void hvm_gen_set_integer(hvm_gen_item_block *block, byte reg, int64_t integer) {
@@ -542,3 +569,11 @@ void hvm_gen_set_integer(hvm_gen_item_block *block, byte reg, int64_t integer) {
   data->data.i64 = integer;
   GEN_PUSH_ITEM(data);
 }
+
+void hvm_gen_sub(hvm_gen_item_block *block, char *name) {
+  hvm_gen_item_sub *sub = malloc(sizeof(hvm_gen_item_sub));
+  sub->type = HVM_GEN_SUB;
+  sub->name = strclone(name);
+  GEN_PUSH_ITEM(sub);
+}
+

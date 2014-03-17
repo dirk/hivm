@@ -3,7 +3,10 @@
 #include "hvm.h"
 #include "hvm_symbol.h"
 #include "hvm_object.h"
+#include "hvm_chunk.h"
+#include "hvm_generator.h"
 
+/*
 void test_heap() {
   hvm_obj_string *str = hvm_new_obj_string();
   str->data = "test";
@@ -27,9 +30,20 @@ void test_heap() {
   str2 = ref2->data.v;
   printf("str2->data: %s\n", str2->data);
 }
+*/
+
+void test_generator() {
+  hvm_gen *gen = hvm_new_gen();
+  hvm_gen_set_symbol(&gen->block, 1, "_test");
+  hvm_gen_callsymbolic(&gen->block, 1, 2);
+  hvm_gen_sub(&gen->block, "_test");
+  hvm_gen_litinteger(&gen->block, 2, 123456789);
+  hvm_gen_return(&gen->block, 2);
+}
 
 int main(int argc, char **argv) {
-  test_heap();
+  test_generator();
+  // test_heap();
 
   /*
   hvm_vm *vm = hvm_new_vm();
