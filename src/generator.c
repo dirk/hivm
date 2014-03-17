@@ -6,6 +6,7 @@
 #include <glib.h>
 
 #include "vm.h"
+#include "object.h"
 #include "chunk.h"
 #include "generator.h"
 
@@ -136,10 +137,13 @@ void hvm_gen_process_block(hvm_chunk *chunk, struct gen_data *data, hvm_gen_item
   // at the end).
   GList *label_uses = NULL;
 
+  const uint32_t zero = 0;
+
   unsigned int len = block->items->len;
   unsigned int i;
   uint64_t *idxptr;
   gboolean exists;
+  hvm_obj_ref *ref;
 
   for(i = 0; i < len; i++) {
     hvm_chunk_expand_if_necessary(chunk);
@@ -209,6 +213,33 @@ void hvm_gen_process_block(hvm_chunk *chunk, struct gen_data *data, hvm_gen_item
         WRITE(0, &op, byte);
         WRITE(1, &dest, uint64_t);
         chunk->size += 9;
+        break;
+      case HVM_GEN_OPH_DATA:
+        ref = hvm_new_obj_ref();
+        hvm_chunk_constant *cnst = malloc(sizeof(hvm_chunk_constant));
+        cnst->index = chunk->size + 2;// One for op, one for reg.
+        if(item.op_h_data.data_type == HVM_GEN_DATA_STRING) {
+          hvm_obj_string *str = hvm_new_obj_string();
+          str->data = item.op_h_data.data.string;
+          ref->type = HVM_STRING;
+          ref->data.v = str;
+          cnst->object = ref;
+          WRITE(0, &item.op_h_data.op, byte);
+          WRITE(1, &item.op_h_data.reg, byte);
+          WRITE(2, &zero, uint32_t);
+          hvm_gen_data_add_constant(data, cnst);
+        } else if(item.op_h_data.data_type == HVM_GEN_DATA_INTEGER) {
+          ref->data.i64 = item.op_h_data.data.i64;
+          ref->type = HVM_INTEGER;
+          cnst->object = ref;
+          WRITE(0, &item.op_h_data.op, byte);
+          WRITE(1, &item.op_h_data.reg, byte);
+          WRITE(2, &zero, uint32_t);
+          hvm_gen_data_add_constant(data, cnst);
+        } else {
+          fprintf(stderr, "Don't know what to do with data type: %d\n", item.op_h_data.data_type);
+        }
+        chunk->size += 6;
         break;
 
       default:
@@ -460,4 +491,33 @@ void hvm_gen_structnew(hvm_gen_item_block *block, byte reg) {
   op->op   = HVM_STRUCTNEW;
   op->reg1 = reg;
   GEN_PUSH_ITEM(op);
+}
+
+// 1B OP | 1B REG | 4B CONST
+void hvm_gen_setstring(hvm_gen_item_block *block, byte reg, uint32_t cnst) {
+  hvm_gen_item_op_h *op = malloc(sizeof(hvm_gen_item_op_h));
+  op->type = HVM_GEN_OPH;
+  op->op   = HVM_OP_SETSTRING;
+  op->reg  = reg;
+  op->cnst = cnst;
+  GEN_PUSH_ITEM(op);
+}
+
+void hvm_gen_set_string(hvm_gen_item_block *block, byte reg, char *string) {
+  hvm_gen_item_op_h_data *data = malloc(sizeof(hvm_gen_item_op_h_data));
+  data->type = HVM_GEN_OPH_DATA;
+  data->op = HVM_OP_SETSTRING;
+  data->reg = reg;
+  data->data_type = HVM_GEN_DATA_STRING;
+  data->data.string = string;
+  GEN_PUSH_ITEM(data);
+}
+void hvm_gen_set_integer(hvm_gen_item_block *block, byte reg, int64_t integer) {
+  hvm_gen_item_op_h_data *data = malloc(sizeof(hvm_gen_item_op_h_data));
+  data->type = HVM_GEN_OPH_DATA;
+  data->op = HVM_OP_SETSTRING;
+  data->reg = reg;
+  data->data_type = HVM_GEN_DATA_INTEGER;
+  data->data.i64 = integer;
+  GEN_PUSH_ITEM(data);
 }

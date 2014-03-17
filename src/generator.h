@@ -1,7 +1,7 @@
 #ifndef HVM_GEN_H
 #define HVM_GEN_H
 
-// A-type  = 1B OP | 1B REG  | 1B REG (| 1B REG)
+// A-type  = 1B OP | 1B REG  | 1B REG | 1B REG
 // B1-type = 1B OP | 1B REG  | 4B SYM
 // B2-type = 1B OP | 4B SYM  | 1B REG
 // C-type  = 1B OP | 1B REG  | 4B CONST
@@ -23,8 +23,10 @@ typedef enum {
   HVM_GEN_OPE,  // 1B OP | 4B DIFF
   HVM_GEN_OPF,  // 1B OP
   HVM_GEN_OPG,  // 1B OP | 1B REG | 8B LITERAL
+  HVM_GEN_OPH,  // 1B OP | 1B REG | 4B CONST
 
   HVM_GEN_OPD1_LABEL,
+  HVM_GEN_OPH_DATA, // 1B OP | 1B REG | [4B CONST]
 
   HVM_GEN_LABEL,
   HVM_GEN_SUB,
@@ -113,12 +115,38 @@ typedef struct hvm_gen_item_op_g {
   byte reg;
   int64_t lit;
 } hvm_gen_item_op_g;
+typedef struct hvm_gen_item_op_h {
+  HVM_GEN_ITEM_HEAD;
+  // 1B OP | 1B REG | 4B CONST
+  byte op;
+  byte reg;
+  uint32_t cnst;
+} hvm_gen_item_op_h;
 
 typedef struct hvm_gen_item_op_d1_label {
   HVM_GEN_ITEM_HEAD;
   byte op;
   char* dest;
 } hvm_gen_item_op_d1_label;
+
+typedef enum {
+  HVM_GEN_DATA_STRING,
+  HVM_GEN_DATA_INTEGER
+} hvm_gen_data_type;
+
+union hvm_gen_data {
+  int64_t  i64;
+  char*    string;
+};
+
+
+typedef struct hvm_gen_item_op_h_data {
+  HVM_GEN_ITEM_HEAD;
+  hvm_gen_data_type data_type;
+  byte op;
+  byte reg;
+  union hvm_gen_data data;
+} hvm_gen_item_op_h_data;
 
 /*
 typedef enum {
@@ -166,9 +194,11 @@ typedef union hvm_gen_item {
   hvm_gen_item_op_e  op_e;
   hvm_gen_item_op_f  op_f;
   hvm_gen_item_op_g  op_g;
-  
+  hvm_gen_item_op_h  op_h;
+
   hvm_gen_item_op_d1_label op_d1_label;
-  
+  hvm_gen_item_op_h_data   op_h_data;
+
   // hvm_gen_item_macro macro;
   hvm_gen_item_label label;
   hvm_gen_item_sub   sub;
@@ -216,7 +246,10 @@ void hvm_gen_structdelete(hvm_gen_item_block *block, byte reg, byte strct, byte 
 void hvm_gen_structset(hvm_gen_item_block *block, byte strct, byte key, byte val);
 void hvm_gen_structnew(hvm_gen_item_block *block, byte reg);
 
+void hvm_gen_setstring(hvm_gen_item_block *block, byte reg, uint32_t cnst);
+
 // META-GENERATORS
 void hvm_gen_goto_label(hvm_gen_item_block *block, char *name);
+void hvm_gen_set_string(hvm_gen_item_block *block, byte reg, char *string);
 
 #endif
