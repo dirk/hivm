@@ -131,7 +131,8 @@ typedef struct hvm_gen_item_op_d1_label {
 
 typedef enum {
   HVM_GEN_DATA_STRING,
-  HVM_GEN_DATA_INTEGER
+  HVM_GEN_DATA_INTEGER,
+  HVM_GEN_DATA_SYMBOL
 } hvm_gen_data_type;
 
 union hvm_gen_data {
@@ -251,5 +252,7 @@ void hvm_gen_setstring(hvm_gen_item_block *block, byte reg, uint32_t cnst);
 // META-GENERATORS
 void hvm_gen_goto_label(hvm_gen_item_block *block, char *name);
 void hvm_gen_set_string(hvm_gen_item_block *block, byte reg, char *string);
+void hvm_gen_set_symbol(hvm_gen_item_block *block, byte reg, char *string);
+void hvm_gen_set_integer(hvm_gen_item_block *block, byte reg, int64_t integer);
 
 #endif

@@ -33,6 +33,7 @@ void hvm_gen_data_add_symbol(struct gen_data *gd, char *sym, uint64_t idx) {
   g_hash_table_replace(gd->symbols, sym, positions);
 }
 void hvm_gen_data_add_constant(struct gen_data *gd, hvm_chunk_constant *constant) {
+  // TODO: Dedup.
   g_array_append_val(gd->constants, constant);
 }
 void hvm_gen_data_add_reloc(struct gen_data *gd, uint64_t relocation_idx) {
@@ -219,14 +220,13 @@ void hvm_gen_process_block(hvm_chunk *chunk, struct gen_data *data, hvm_gen_item
         hvm_chunk_constant *cnst = malloc(sizeof(hvm_chunk_constant));
         cnst->index = chunk->size + 2;// One for op, one for reg.
         if(item.op_h_data.data_type == HVM_GEN_DATA_STRING) {
-          hvm_obj_string *str = hvm_new_obj_string();
-          str->data = item.op_h_data.data.string;
           ref->type = HVM_STRING;
-          ref->data.v = str;
+          // Not bothering with hvm_obj_string since this never actually
+          // goes into the VM.
+          ref->data.v = item.op_h_data.data.string;
           cnst->object = ref;
           WRITE(0, &item.op_h_data.op, byte);
           WRITE(1, &item.op_h_data.reg, byte);
-          WRITE(2, &zero, uint32_t);
           hvm_gen_data_add_constant(data, cnst);
         } else if(item.op_h_data.data_type == HVM_GEN_DATA_INTEGER) {
           ref->data.i64 = item.op_h_data.data.i64;
@@ -234,11 +234,20 @@ void hvm_gen_process_block(hvm_chunk *chunk, struct gen_data *data, hvm_gen_item
           cnst->object = ref;
           WRITE(0, &item.op_h_data.op, byte);
           WRITE(1, &item.op_h_data.reg, byte);
-          WRITE(2, &zero, uint32_t);
+          hvm_gen_data_add_constant(data, cnst);
+        } else if(item.op_h_data.data_type == HVM_GEN_DATA_SYMBOL) {
+          ref->type = HVM_SYMBOL;
+          ref->data.v = item.op_h_data.data.string;
+          cnst->object = ref;
+          WRITE(0, &item.op_h_data.op, byte);
+          WRITE(1, &item.op_h_data.reg, byte);
           hvm_gen_data_add_constant(data, cnst);
         } else {
+          WRITE(0, &zero, byte);
+          WRITE(1, &zero, byte);
           fprintf(stderr, "Don't know what to do with data type: %d\n", item.op_h_data.data_type);
         }
+        WRITE(2, &zero, uint32_t);
         chunk->size += 6;
         break;
 
@@ -503,6 +512,15 @@ void hvm_gen_setstring(hvm_gen_item_block *block, byte reg, uint32_t cnst) {
   GEN_PUSH_ITEM(op);
 }
 
+void hvm_gen_set_symbol(hvm_gen_item_block *block, byte reg, char *string) {
+  hvm_gen_item_op_h_data *data = malloc(sizeof(hvm_gen_item_op_h_data));
+  data->type = HVM_GEN_OPH_DATA;
+  data->op = HVM_OP_SETSYMBOL;
+  data->reg = reg;
+  data->data_type = HVM_GEN_DATA_SYMBOL;
+  data->data.string = string;
+  GEN_PUSH_ITEM(data);
+}
 void hvm_gen_set_string(hvm_gen_item_block *block, byte reg, char *string) {
   hvm_gen_item_op_h_data *data = malloc(sizeof(hvm_gen_item_op_h_data));
   data->type = HVM_GEN_OPH_DATA;
