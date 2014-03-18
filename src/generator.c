@@ -23,16 +23,16 @@ hvm_gen *hvm_new_gen() {
   return gen;
 }
 
-// Internal data used during the generation of a chunk.
-struct gen_data {
-  // array of positions (hvm_chunk_relocation)
+/// Internal data used during the generation of a chunk.
+struct hvm_gen_data {
+  /// Array of positions (hvm_chunk_relocation)
   GArray *relocs;
-  // array of constants (hvm_chunk_constant)
+  /// Array of constants (hvm_chunk_constant)
   GArray *constants;
-  // string symbol name => list of positions
+  /// Array of subroutine symbols (hvm_chunk_symbol)
   GArray *symbols;
 };
-void hvm_gen_data_add_symbol(struct gen_data *gd, char *sym, uint64_t idx) {
+void hvm_gen_data_add_symbol(struct hvm_gen_data *gd, char *sym, uint64_t idx) {
   /*
   GList *positions = g_hash_table_lookup(gd->symbols, sym);
   uint64_t *idxptr = malloc(sizeof(uint64_t));
@@ -45,19 +45,19 @@ void hvm_gen_data_add_symbol(struct gen_data *gd, char *sym, uint64_t idx) {
   cs->name = gen_strclone(sym);
   g_array_append_val(gd->symbols, cs);
 }
-uint32_t hvm_gen_data_add_constant(struct gen_data *gd, hvm_chunk_constant *constant) {
+uint32_t hvm_gen_data_add_constant(struct hvm_gen_data *gd, hvm_chunk_constant *constant) {
   // TODO: Dedup.
   g_array_append_val(gd->constants, constant);
   return (uint32_t)(gd->constants->len - 1);
 }
-void hvm_gen_data_add_reloc(struct gen_data *gd, uint64_t relocation_idx) {
+void hvm_gen_data_add_reloc(struct hvm_gen_data *gd, uint64_t relocation_idx) {
   g_array_append_val(gd->relocs, relocation_idx);
 }
 
 // eg. WRITE_OP(a1) becomes:
 //   "__attribute(...) void write_op_a1(hvm_chunk, hvm_gen_item_op_a1 *op)"
 #define WRITE_OP(NAME) __attribute__((always_inline)) void write_op_##NAME \
-                         (hvm_chunk *chunk, struct gen_data *data, hvm_gen_item_op_##NAME *op) 
+                         (hvm_chunk *chunk, struct hvm_gen_data *data, hvm_gen_item_op_##NAME *op) 
 
 #define WRITE(OFFSET, VAL, SIZE) memcpy(&chunk->data[chunk->size + OFFSET], VAL, sizeof(SIZE));
 
@@ -139,13 +139,14 @@ WRITE_OP(g) {
   WRITE(2, &op->lit, int64_t);
   chunk->size += 10;
 }
-
+///@cond
 struct label_use {
   char *name;
   uint64_t idx;// Position of the address to be updated.
 };
+///@endcond
 
-void hvm_gen_process_block(hvm_chunk *chunk, struct gen_data *data, hvm_gen_item_block *block) {
+void hvm_gen_process_block(hvm_chunk *chunk, struct hvm_gen_data *data, hvm_gen_item_block *block) {
   // Map labels to indexes
   GHashTable *labels = g_hash_table_new(g_str_hash, g_str_equal);
   // Unmapped labels (built up during processing and then emptied/resolved
@@ -297,7 +298,7 @@ struct hvm_chunk *hvm_gen_chunk(hvm_gen *gen) {
   chunk->data = calloc(start_size, sizeof(byte));
   chunk->capacity = start_size;
 
-  struct gen_data gd;
+  struct hvm_gen_data gd;
   gd.relocs    = g_array_new(TRUE, TRUE, sizeof(uint64_t));
   gd.constants = g_array_new(TRUE, TRUE, sizeof(hvm_chunk_constant*));
   gd.symbols   = g_array_new(TRUE, TRUE, sizeof(hvm_chunk_symbol*));

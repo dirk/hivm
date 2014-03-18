@@ -62,6 +62,7 @@ typedef struct hvm_vm {
   struct hvm_frame* top;
   /// Call stack
   struct hvm_frame** stack;
+  /// Index of the current stack frame (total frames = stack_depth + 1)
   uint32_t stack_depth;
 
   /// Instruction pointer (indexes bytes in the program)

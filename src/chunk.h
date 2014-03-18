@@ -1,19 +1,27 @@
 #ifndef HVM_CHUNK_H
 #define HVM_CHUNK_H
 
+/// Locations where relative addresses have to be updated to absolute ones.
 typedef struct hvm_chunk_relocation {
   /// Index into the data for the start of the 8-byte code address to be
   /// relocated (had the start of the chunk in the VM added to it).
   uint64_t index;
 } hvm_chunk_relocation;
 
+/// Marks constants in the chunk to be added to the VM's constant table.
 typedef struct hvm_chunk_constant {
+  /// Index of the symbol ID (4 byte unsigned integer).
   uint64_t            index;
+  /// Actual (simplified) object; must be expanded into full object on load
+  /// by using hvm_chunk_get_constant_object().
   struct hvm_obj_ref* object;
 } hvm_chunk_constant;
 
+/// Marks subroutines in the chunk to be added to the VM's symbol table.
 typedef struct hvm_chunk_symbol {
+  /// Index of the start of the subroutine identified by the symbol.
   uint64_t index;
+  /// Name of that subroutine.
   char     *name;
 } hvm_chunk_symbol;
 
@@ -52,6 +60,9 @@ typedef struct hvm_chunk {
 hvm_chunk *hvm_new_chunk();
 void hvm_chunk_expand_if_necessary(hvm_chunk *chunk);
 
+/// Expands a simplified object representation in a chunk constant into a full
+/// constant object reference for use in the VM.
+/// @memberof hvm_chunk_constant
 hvm_obj_ref *hvm_chunk_get_constant_object(hvm_vm *vm, hvm_chunk_constant *cnst);
 
 void hvm_chunk_disassemble(hvm_chunk *chunk);

@@ -135,18 +135,20 @@ typedef enum {
   HVM_GEN_DATA_SYMBOL
 } hvm_gen_data_type;
 
-union hvm_gen_data {
+union hvm_gen_item_data {
   int64_t  i64;
   char*    string;
 };
 
-
 typedef struct hvm_gen_item_op_h_data {
   HVM_GEN_ITEM_HEAD;
+  /// Type of the literal data
   hvm_gen_data_type data_type;
   byte op;
+  /// Destination register
   byte reg;
-  union hvm_gen_data data;
+  /// Literal data
+  union hvm_gen_item_data data;
 } hvm_gen_item_op_h_data;
 
 /*
@@ -182,6 +184,7 @@ typedef struct hvm_gen_item_block {
 } hvm_gen_item_block;
 
 typedef union hvm_gen_item {
+///@cond
   hvm_gen_item_base  base;
   hvm_gen_item_op_a1 op_a1;
   hvm_gen_item_op_a2 op_a2;
@@ -204,11 +207,13 @@ typedef union hvm_gen_item {
   hvm_gen_item_label label;
   hvm_gen_item_sub   sub;
   hvm_gen_item_block block;
+///@endcond
 } hvm_gen_item;
 
 /// @brief Stores instructions, constants, etc. for a chunk. Can then generate the
 ///        appropriate bytecode for that chunk.
 typedef struct hvm_gen {
+  /// Root block of the generator.
   hvm_gen_item_block block;
 } hvm_gen;
 

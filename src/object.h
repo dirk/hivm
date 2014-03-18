@@ -40,12 +40,13 @@ typedef struct hvm_obj_ref {
   hvm_obj_type type;
   /// 8 bytes of data to play with; can be used as pointer or literal.
   union hvm_obj_ref_data data;
-  
+  /// Internal flags for the reference.
   byte flags;
 } hvm_obj_ref;
 
 // TYPES
 typedef struct hvm_obj_string {
+  /// Raw string data (NULL-terminated)
   char* data;
 } hvm_obj_string;
 
@@ -55,7 +56,9 @@ typedef struct hvm_obj_array {
   /// Pointer to the internal glib GArray instance.
   GArray *array;
 #else
+  /// @cond
   void *array;
+  /// @endcond
 #endif
   // hvm_obj_ref** data;
   // unsigned int length;
@@ -63,7 +66,9 @@ typedef struct hvm_obj_array {
 
 /// Pair of symbol ID and object references in a hvm_obj_struct's heap.
 typedef struct hvm_obj_struct_heap_pair {
+  /// Symbol key
   hvm_symbol_id id;
+  /// Object value
   hvm_obj_ref*  obj;
 } hvm_obj_struct_heap_pair;
 

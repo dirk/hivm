@@ -3,6 +3,7 @@
 #include <string.h>
 #include <assert.h>
 
+#include "vm.h"
 #include "symbol.h"
 
 hvm_symbol_store *hvm_new_symbol_store() {
@@ -13,7 +14,7 @@ hvm_symbol_store *hvm_new_symbol_store() {
   return st;
 }
 
-char *strclone(char *str) {
+char *hvm_sym_strclone(char *str) {
   size_t len = strlen(str);
   char  *clone = malloc(sizeof(char) * (size_t)(len + 1));
   strcpy(clone, str);
@@ -26,9 +27,9 @@ void hvm_symbol_store_expand(hvm_symbol_store *st) {
 }
 
 hvm_symbol_store_entry *hvm_symbol_store_add(hvm_symbol_store *st, char *value) {
-  uint64_t id = st->next_id;
+  hvm_symbol_id id = st->next_id;
   hvm_symbol_store_entry *entry = malloc(sizeof(hvm_symbol_store_entry));
-  entry->value = strclone(value);
+  entry->value = hvm_sym_strclone(value);
   entry->id = id;
   if(id >= (st->size - 1)) {
     hvm_symbol_store_expand(st);
@@ -38,9 +39,9 @@ hvm_symbol_store_entry *hvm_symbol_store_add(hvm_symbol_store *st, char *value) 
   return entry;
 }
 
-uint64_t hvm_symbolicate(hvm_symbol_store *st, char *value) {
+hvm_symbol_id hvm_symbolicate(hvm_symbol_store *st, char *value) {
   hvm_symbol_store_entry *entry;
-  uint64_t i;
+  hvm_symbol_id i;
   for(i = 1; i < st->next_id; i++) {
     entry = st->symbols[i];
     if(strcmp(entry->value, value) == 0) {

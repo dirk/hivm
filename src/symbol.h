@@ -13,19 +13,25 @@ typedef struct hvm_symbol_store {
   /// Heap data.
   struct hvm_symbol_store_entry** symbols;
   /// Next index in the heap.
-  uint64_t next_id;
+  hvm_symbol_id next_id;
   /// Size of the allocated heap (in entries).
   uint64_t size;
 } hvm_symbol_store;
 
+/// Entry mapping ID to string in the symbol store.
 typedef struct hvm_symbol_store_entry {
   /// Identifier (index) of the entry in the table.
-  uint64_t id;
+  hvm_symbol_id id;
   /// String value/name of the symbol.
-  char*    value;
+  char* value;
 } hvm_symbol_store_entry;
 
+/// Create a new symbol store
+/// @memberof hvm_symbol_store
 hvm_symbol_store *hvm_new_symbol_store();
-uint64_t hvm_symbolicate(hvm_symbol_store*, char*);
+/// Look up/add a string symbol to the symbol store
+/// @memberof hvm_symbol_store
+/// @returns  Symbol ID for the string
+hvm_symbol_id hvm_symbolicate(hvm_symbol_store*, char*);
 
 #endif
