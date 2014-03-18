@@ -4,6 +4,7 @@
 #include "vm.h"
 #include "object.h"
 #include "chunk.h"
+#include "symbol.h"
 
 hvm_chunk *hvm_new_chunk() {
   hvm_chunk *chunk = malloc(sizeof(hvm_chunk));
@@ -40,6 +41,29 @@ char *human_name_for_obj_type(hvm_obj_ref* obj) {
       return unknown;
   }
 }
+
+hvm_obj_ref *hvm_chunk_get_constant_object(hvm_vm *vm, hvm_chunk_constant *cnst) {
+  hvm_obj_ref* co = cnst->object;
+  if(co->type == HVM_STRING) {
+    hvm_obj_ref    *ref = hvm_new_obj_ref();
+    hvm_obj_string *str = hvm_new_obj_string();
+    ref->type  = HVM_STRING;
+    ref->flags = ref->flags | HVM_OBJ_FLAG_CONSTANT;
+    ref->data.v = str;
+    str->data = co->data.v;
+    return ref;
+  } else if(co->type == HVM_SYMBOL) {
+    hvm_obj_ref *ref = hvm_new_obj_ref();
+    ref->type = HVM_SYMBOL;
+    ref->flags = ref->flags | HVM_OBJ_FLAG_CONSTANT;
+    ref->data.u64 = hvm_symbolicate(vm->symbols, co->data.v);
+    return ref;
+  } else {
+    fprintf(stderr, "Can't yet handle object type %s\n", human_name_for_obj_type(co));
+    return hvm_const_null;
+  }
+}
+
 void print_constant_object(hvm_obj_ref* obj) {
   switch(obj->type) {
     case HVM_SYMBOL:
@@ -98,8 +122,7 @@ void print_symbols(hvm_chunk *chunk) {
 #define READ_I32(V) *(int32_t*)(V)
 #define READ_I64(V) *(int64_t*)(V)
 
-void print_data(hvm_chunk *chunk) {
-  byte *data = chunk->data;
+void hvm_print_data(byte *data, uint64_t size) {
   byte op;
   byte sym, reg1, reg2, reg3, ret;
   uint32_t u32;
@@ -108,7 +131,7 @@ void print_data(hvm_chunk *chunk) {
   unsigned long long int i = 0;
 
   printf("data:\n");
-  while(i < chunk->size) {
+  while(i < size) {
     op = data[i];
     printf("  0x%08llX  ", i);
     switch(op) {
@@ -159,5 +182,5 @@ void hvm_chunk_disassemble(hvm_chunk *chunk) {
   print_relocations(chunk);
   print_constants(chunk);
   print_symbols(chunk);
-  print_data(chunk);
+  hvm_print_data(chunk->data, chunk->size);
 }

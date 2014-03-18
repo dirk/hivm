@@ -52,6 +52,9 @@ typedef struct hvm_chunk {
 hvm_chunk *hvm_new_chunk();
 void hvm_chunk_expand_if_necessary(hvm_chunk *chunk);
 
+hvm_obj_ref *hvm_chunk_get_constant_object(hvm_vm *vm, hvm_chunk_constant *cnst);
+
 void hvm_chunk_disassemble(hvm_chunk *chunk);
+void hvm_print_data(byte *data, uint64_t size);
 
 #endif
