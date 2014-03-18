@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <assert.h>
 
 #include "hvm.h"
 #include "hvm_symbol.h"
@@ -36,19 +37,34 @@ void test_generator() {
   hvm_gen *gen = hvm_new_gen();
   hvm_gen_set_symbol(&gen->block, 1, "_test");
   hvm_gen_callsymbolic(&gen->block, 1, 2);
+  hvm_gen_die(&gen->block);
   hvm_gen_sub(&gen->block, "_test");
   hvm_gen_goto_label(&gen->block, "label");
   hvm_gen_label(&gen->block, "label");
-  // hvm_gen_litinteger(&gen->block, 2, 123456789);
-  
   hvm_gen_litinteger(&gen->block, 3, 1);
   hvm_gen_litinteger(&gen->block, 4, 2);
   hvm_gen_add(&gen->block, 5, 3, 4);
-  
-  hvm_gen_return(&gen->block, 2);
+  hvm_gen_return(&gen->block, 5);
 
   hvm_chunk *chunk = hvm_gen_chunk(gen);
   hvm_chunk_disassemble(chunk);
+
+  hvm_vm *vm = hvm_new_vm();
+
+  printf("LOADING...\n");
+  hvm_vm_load_chunk(vm, chunk);
+
+  printf("AFTER LOADING:\n");
+  hvm_print_data(vm->program, vm->program_size);
+
+  printf("RUNNING...\n");
+  hvm_vm_run(vm);
+
+  printf("\nAFTER RUNNING:\n");
+  hvm_obj_ref *reg = vm->general_regs[2];
+  printf("$2->type = %d\n", reg->type);
+  assert(reg->type == HVM_INTEGER);
+  printf("$2->value = %lld\n", reg->data.i64);
 }
 
 int main(int argc, char **argv) {
