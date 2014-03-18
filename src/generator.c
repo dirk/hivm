@@ -10,7 +10,7 @@
 #include "chunk.h"
 #include "generator.h"
 
-char *strclone(char *str) {
+char *gen_strclone(char *str) {
   size_t len = strlen(str);
   char  *clone = malloc(sizeof(char) * (size_t)(len + 1));
   strcpy(clone, str);
@@ -42,7 +42,7 @@ void hvm_gen_data_add_symbol(struct gen_data *gd, char *sym, uint64_t idx) {
   */
   hvm_chunk_symbol *cs = malloc(sizeof(hvm_chunk_symbol));
   cs->index = idx;
-  cs->name = strclone(sym);
+  cs->name = gen_strclone(sym);
   g_array_append_val(gd->symbols, cs);
 }
 uint32_t hvm_gen_data_add_constant(struct gen_data *gd, hvm_chunk_constant *constant) {
@@ -341,6 +341,12 @@ void hvm_gen_noop(hvm_gen_item_block *block) {
   noop->op   = HVM_OP_NOOP;
   GEN_PUSH_ITEM(noop);
 }
+void hvm_gen_die(hvm_gen_item_block *block) {
+  hvm_gen_item_op_f *die = malloc(sizeof(hvm_gen_item_op_f));
+  die->type = HVM_GEN_OPF;
+  die->op   = HVM_OP_DIE;
+  GEN_PUSH_ITEM(die);
+}
 
 void hvm_gen_jump(hvm_gen_item_block *block, int32_t diff) {
   hvm_gen_item_op_e *jmp = malloc(sizeof(hvm_gen_item_op_e));
@@ -584,14 +590,14 @@ void hvm_gen_goto_label(hvm_gen_item_block *block, char *name) {
   hvm_gen_item_op_d1_label *gt = malloc(sizeof(hvm_gen_item_op_d1));
   gt->type = HVM_GEN_OPD1_LABEL;
   gt->op = HVM_OP_GOTO;
-  gt->dest = strclone(name);
+  gt->dest = gen_strclone(name);
   GEN_PUSH_ITEM(gt);
 }
 
 void hvm_gen_label(hvm_gen_item_block *block, char *name) {
   hvm_gen_item_label *label = malloc(sizeof(hvm_gen_item_label));
   label->type = HVM_GEN_LABEL;
-  label->name = strclone(name);
+  label->name = gen_strclone(name);
   GEN_PUSH_ITEM(label);
 }
 
@@ -601,7 +607,7 @@ void hvm_gen_set_symbol(hvm_gen_item_block *block, byte reg, char *string) {
   data->op = HVM_OP_SETSYMBOL;
   data->reg = reg;
   data->data_type = HVM_GEN_DATA_SYMBOL;
-  data->data.string = strclone(string);
+  data->data.string = gen_strclone(string);
   GEN_PUSH_ITEM(data);
 }
 void hvm_gen_set_string(hvm_gen_item_block *block, byte reg, char *string) {
@@ -610,7 +616,7 @@ void hvm_gen_set_string(hvm_gen_item_block *block, byte reg, char *string) {
   data->op = HVM_OP_SETSTRING;
   data->reg = reg;
   data->data_type = HVM_GEN_DATA_STRING;
-  data->data.string = strclone(string);
+  data->data.string = gen_strclone(string);
   GEN_PUSH_ITEM(data);
 }
 void hvm_gen_set_integer(hvm_gen_item_block *block, byte reg, int64_t integer) {
@@ -626,7 +632,7 @@ void hvm_gen_set_integer(hvm_gen_item_block *block, byte reg, int64_t integer) {
 void hvm_gen_sub(hvm_gen_item_block *block, char *name) {
   hvm_gen_item_sub *sub = malloc(sizeof(hvm_gen_item_sub));
   sub->type = HVM_GEN_SUB;
-  sub->name = strclone(name);
+  sub->name = gen_strclone(name);
   GEN_PUSH_ITEM(sub);
 }
 

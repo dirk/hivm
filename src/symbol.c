@@ -5,7 +5,7 @@
 
 #include "symbol.h"
 
-hvm_symbol_store *new_hvm_symbol_store() {
+hvm_symbol_store *hvm_new_symbol_store() {
   hvm_symbol_store *st = malloc(sizeof(hvm_symbol_store));
   st->next_id = 1;
   st->size = HVM_SYMBOL_TABLE_INITIAL_SIZE;
@@ -30,7 +30,7 @@ hvm_symbol_store_entry *hvm_symbol_store_add(hvm_symbol_store *st, char *value) 
   hvm_symbol_store_entry *entry = malloc(sizeof(hvm_symbol_store_entry));
   entry->value = strclone(value);
   entry->id = id;
-  if(id >= st->size) {
+  if(id >= (st->size - 1)) {
     hvm_symbol_store_expand(st);
   }
   st->symbols[id] = entry;

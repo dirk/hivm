@@ -25,7 +25,7 @@ typedef struct hvm_symbol_store_entry {
   char*    value;
 } hvm_symbol_store_entry;
 
-hvm_symbol_store *new_hvm_symbol_store();
+hvm_symbol_store *hvm_new_symbol_store();
 uint64_t hvm_symbolicate(hvm_symbol_store*, char*);
 
 #endif

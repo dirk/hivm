@@ -218,6 +218,7 @@ hvm_gen_item_label *hvm_new_item_label();
 struct hvm_chunk *hvm_gen_chunk(hvm_gen *gen);
 
 void hvm_gen_noop(hvm_gen_item_block *block);
+void hvm_gen_die(hvm_gen_item_block *block);
 void hvm_gen_jump(hvm_gen_item_block *block, int32_t diff);
 void hvm_gen_goto(hvm_gen_item_block *block, uint64_t dest);
 void hvm_gen_call(hvm_gen_item_block *block, uint64_t dest, byte ret);

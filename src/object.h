@@ -16,7 +16,8 @@ typedef enum {
   HVM_STRING = 3,
   HVM_STRUCTURE = 4,
   HVM_ARRAY = 5,
-  HVM_SYMBOL = 6// Internally same as HVM_INTEGER
+  HVM_SYMBOL = 6,// Internally same as HVM_INTEGER
+  HVM_INTERNAL
 } hvm_obj_type;
 
 /// @brief Union of types for the data field in hvm_obj_ref.
@@ -29,12 +30,18 @@ union hvm_obj_ref_data {
   void*    v;
 };
 
+/// Exempts an object from garbage collection (and should eventually
+/// auto-promote to ancient generation).
+#define HVM_OBJ_FLAG_CONSTANT 0x2
+
 /// Base reference to an object.
 typedef struct hvm_obj_ref {
   /// Type of data stored in/pointed to by the reference.
   hvm_obj_type type;
   /// 8 bytes of data to play with; can be used as pointer or literal.
   union hvm_obj_ref_data data;
+  
+  byte flags;
 } hvm_obj_ref;
 
 // TYPES
