@@ -1,11 +1,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
+#include <string.h>
 
 #include "vm.h"
 #include "symbol.h"
 #include "object.h"
 #include "frame.h"
+#include "chunk.h"
 // #include "generator.h"
 
 struct hvm_obj_ref* hvm_const_null = &(hvm_obj_ref){
@@ -16,21 +18,86 @@ struct hvm_obj_ref* hvm_const_null = &(hvm_obj_ref){
 hvm_vm *hvm_new_vm() {
   hvm_vm *vm = malloc(sizeof(hvm_vm));
   vm->ip = 0;
-  vm->program_size = HVM_PROGRAM_INITIAL_SIZE;
-  vm->program = calloc(sizeof(byte), vm->program_size);
+  vm->program_capacity = HVM_PROGRAM_INITIAL_CAPACITY;
+  vm->program_size = 0;
+  vm->program = calloc(sizeof(byte), vm->program_capacity);
   vm->const_pool.next_index = 0;
   vm->const_pool.size = HVM_CONSTANT_POOL_INITIAL_SIZE;
   vm->const_pool.entries = malloc(sizeof(struct hvm_object_ref*) * 
     vm->const_pool.size);
   vm->globals = hvm_new_obj_struct();
   vm->symbol_table = hvm_new_obj_struct();
+  vm->symbols = hvm_new_symbol_store();
 
-  vm->root = hvm_new_frame();
   vm->stack = calloc(HVM_STACK_SIZE, sizeof(struct hvm_frame*));
+  vm->stack_depth = 0;
+  vm->root = hvm_new_frame();
   vm->stack[0] = vm->root;
-  vm->top = &vm->root;
+  vm->top = vm->stack[0];
 
   return vm;
+}
+
+void hvm_vm_expand_program(hvm_vm *vm) {
+  vm->program_capacity = HVM_PROGRAM_GROW_FUNCTION(vm->program_capacity);
+  vm->program = realloc(vm->program, sizeof(byte) * vm->program_capacity);
+}
+
+void hvm_vm_load_chunk_symbols(hvm_vm *vm, uint64_t start, hvm_chunk_symbol **syms) {
+  hvm_chunk_symbol *sym;
+  while(*syms != NULL) {
+    sym = *syms;
+    uint64_t dest   = start + sym->index;
+    uint64_t sym_id = hvm_symbolicate(vm->symbols, sym->name);
+    hvm_obj_ref *entry = malloc(sizeof(hvm_obj_ref));
+    entry->type = HVM_INTERNAL;
+    entry->data.u64 = dest;
+    hvm_obj_struct_internal_set(vm->symbol_table, sym_id, entry);
+
+    syms++;
+  }
+}
+void hvm_vm_load_chunk_constants(hvm_vm *vm, uint64_t start, hvm_chunk_constant **consts) {
+  hvm_chunk_constant *cnst;
+  while(*consts != NULL) {
+    cnst = *consts;
+    hvm_obj_ref *obj = hvm_chunk_get_constant_object(vm, cnst);
+    uint32_t const_id = hvm_vm_add_const(vm, obj);
+    memcpy(&vm->program[start + cnst->index], &const_id, sizeof(uint32_t));
+
+    consts++;
+  }
+  printf("\n");
+}
+void hvm_vm_load_chunk_relocations(hvm_vm *vm, uint64_t start, hvm_chunk_relocation **relocs) {
+  hvm_chunk_relocation *reloc;
+  while(*relocs != NULL) {
+    reloc = *relocs;
+    uint64_t index = reloc->index;
+    uint64_t dest;
+    // Get the dest.
+    memcpy(&dest, &vm->program[start + index], sizeof(uint64_t));
+    // Update the dest.
+    dest += start;
+    // Then write the dest back.
+    memcpy(&vm->program[start + index], &dest, sizeof(uint64_t));
+
+    relocs++;
+  }
+}
+
+void hvm_vm_load_chunk(hvm_vm *vm, void *cv) {
+  hvm_chunk *chunk = cv;
+  while((vm->program_size + chunk->size + 16) > vm->program_capacity) {
+    hvm_vm_expand_program(vm);
+  }
+  uint64_t start = vm->program_size;
+  // Copy over the main chunk data.
+  memcpy(&vm->program[start], chunk->data, sizeof(byte) * chunk->size);
+  vm->program_size += chunk->size;
+  // Copy over the stuff from the chunk header.
+  hvm_vm_load_chunk_symbols(vm, start, chunk->symbols);
+  hvm_vm_load_chunk_constants(vm, start, chunk->constants);
 }
 
 #define READ_U32(V) *(uint32_t*)(V)
@@ -44,15 +111,15 @@ hvm_vm *hvm_new_vm() {
 
 void hvm_vm_run(hvm_vm *vm) {
   byte instr;
-  uint32_t const_index, sym_id;
-  uint64_t dest;//, return_addr;
+  uint32_t const_index;
+  uint64_t dest, sym_id;//, return_addr;
   int32_t diff;
   int64_t i64_literal;
   unsigned char reg, areg, breg, creg;
   hvm_obj_ref *a, *b, *c, *arr, *idx, *key, *val, *strct;
   hvm_frame *frame, *parent_frame;
 
-  for(;;) {
+  for(; vm->ip < vm->program_size;) {
     instr = vm->program[vm->ip];
     switch(instr) {
       case HVM_OP_NOOP:
@@ -63,12 +130,12 @@ void hvm_vm_run(hvm_vm *vm) {
         goto end;
       case HVM_OP_TAILCALL: // 1B OP | 8B DEST
         dest = READ_U64(&vm->program[vm->ip + 1]);
-        parent_frame = *vm->top;
+        parent_frame = vm->top;
         frame        = hvm_new_frame();
         frame->return_addr     = parent_frame->return_addr;
         frame->return_register = parent_frame->return_register;
         vm->ip = dest;
-        *(vm->top) = frame;
+        vm->top = (vm->stack[vm->stack_depth] = frame);
         continue;
       case HVM_OP_CALL: // 1B OP | 8B DEST | 1B REG
         dest = READ_U64(&vm->program[vm->ip + 1]);
@@ -77,9 +144,26 @@ void hvm_vm_run(hvm_vm *vm) {
         frame->return_addr     = vm->ip + 10; // Instruction is 10 bytes long.
         frame->return_register = reg;
         vm->ip = dest;
-        vm->top++;
-        *(vm->top) = frame;
+        vm->stack_depth += 1;
+        vm->top = (vm->stack[vm->stack_depth] = frame);
         continue;
+      case HVM_OP_CALLSYMBOLIC:// 1B OP | 1B REG | 1B REG
+        AREG; BREG;
+        key = vm->general_regs[areg];// This is the symbol we need to look up.
+        assert(key->type == HVM_SYMBOL);
+        sym_id = key->data.u64;
+        val    = hvm_obj_struct_internal_get(vm->symbol_table, sym_id);
+        dest   = val->data.u64;
+        assert(val->type == HVM_INTERNAL);
+        fprintf(stderr, "CALLSYMBOLIC(0x%08llX, $%d)\n", dest, breg);
+        frame = hvm_new_frame();
+        frame->return_addr = vm->ip + 3;// Instruction is 3 bytes long
+        frame->return_register = breg;
+        vm->ip = dest;
+        vm->stack_depth += 1;
+        vm->top = (vm->stack[vm->stack_depth] = frame);
+        continue;
+
       case HVM_OP_CALLADDRESS: // 1B OP | 1B REG | 1B REG
         reg  = vm->program[vm->ip + 1];
         val  = vm->general_regs[reg];
@@ -90,16 +174,18 @@ void hvm_vm_run(hvm_vm *vm) {
         frame->return_addr     = vm->ip + 3; // Instruction 3 bytes long.
         frame->return_register = reg;
         vm->ip = dest;
-        vm->top++;
-        *(vm->top) = frame;
+        vm->stack_depth += 1;
+        vm->top = (vm->stack[vm->stack_depth] = frame);
         continue;
       case HVM_OP_RETURN: // 1B OP | 1B REG
         reg = vm->program[vm->ip + 1];
         // Current frame
-        frame = *vm->top;
+        frame = vm->top;
         vm->ip = frame->return_addr;
-        vm->top--;
+        vm->stack_depth -= 1;
+        vm->top = vm->stack[vm->stack_depth];
         vm->general_regs[frame->return_register] = vm->general_regs[reg];
+        fprintf(stderr, "RETURN(0x%08llX) $%d -> $%d\n", frame->return_addr, reg, frame->return_register);
         continue;
       case HVM_OP_JUMP: // 1B OP | 4B DIFF
         diff = READ_I32(&vm->program[vm->ip + 1]);
@@ -133,6 +219,7 @@ void hvm_vm_run(hvm_vm *vm) {
         i64_literal = READ_I64(&vm->program[vm->ip + 2]);
         val         = hvm_new_obj_int();
         val->data.i64 = i64_literal;
+        vm->general_regs[reg] = val;
         vm->ip += 9;
         break;
       
@@ -140,10 +227,11 @@ void hvm_vm_run(hvm_vm *vm) {
       case HVM_OP_SETINTEGER: // 1B OP | 1B REG | 4B CONST
       case HVM_OP_SETFLOAT:
       case HVM_OP_SETSTRUCT:
+      case HVM_OP_SETSYMBOL:
         // TODO: Type-checking
         reg         = vm->program[vm->ip + 1];
         const_index = READ_U32(&vm->program[vm->ip + 2]);
-        fprintf(stderr, "SET: reg(%u) const(%u)\n", reg, const_index);
+        fprintf(stderr, "SET $%u = const(%u)\n", reg, const_index);
         vm->general_regs[reg] = hvm_vm_get_const(vm, const_index);
         vm->ip += 5;
         break;
@@ -153,16 +241,21 @@ void hvm_vm_run(hvm_vm *vm) {
         vm->ip += 1;
         break;
 
+      // case HVM_OP_SETSYMBOL: // 1B OP | 1B REG | 4B CONST
+      //   reg = vm->program[vm->ip + 1];
+      //   const_index = READ_U32(&vm->program[vm->ip + 2]);
+      //   vm->general_regs[reg] = hvm_vm_get_const(vm, const_index);
+
       case HVM_OP_SETLOCAL: // 1B OP | 4B SYM   | 1B REG
         sym_id = READ_U32(&vm->program[vm->ip + 1]);
         reg    = vm->program[vm->ip + 5];
-        hvm_set_local(*vm->top, sym_id, vm->general_regs[reg]);
+        hvm_set_local(vm->top, sym_id, vm->general_regs[reg]);
         vm->ip += 5;
         break;
       case HVM_OP_GETLOCAL: // 1B OP | 1B REG   | 4B SYM
         reg    = vm->program[vm->ip + 1];
         sym_id = READ_U32(&vm->program[vm->ip + 2]);
-        vm->general_regs[reg] = hvm_get_local(*vm->top, sym_id);
+        vm->general_regs[reg] = hvm_get_local(vm->top, sym_id);
         vm->ip += 5;
         break;
 
@@ -183,7 +276,7 @@ void hvm_vm_run(hvm_vm *vm) {
         reg = vm->program[vm->ip + 1];
         hvm_obj_ref* ref = hvm_new_obj_ref();
         ref->type = HVM_STRUCTURE;
-        ref->data.v = (*vm->top)->locals;
+        ref->data.v = vm->top->locals;
         vm->general_regs[reg] = ref;
         vm->ip += 1;
         break;
@@ -196,15 +289,15 @@ void hvm_vm_run(hvm_vm *vm) {
       case HVM_OP_MOD: // 1B OP | 3B REGs
         // A = B + C
         AREG; BREG; CREG;
-        a = vm->general_regs[areg];
         b = vm->general_regs[breg];
+        c = vm->general_regs[creg];
         // TODO: Add float support
-        if(instr == HVM_OP_ADD)      { c = hvm_obj_int_add(a, b); }
-        else if(instr == HVM_OP_SUB) { c = hvm_obj_int_sub(a, b); }
-        else if(instr == HVM_OP_MUL) { c = hvm_obj_int_mul(a, b); }
-        else if(instr == HVM_OP_DIV) { c = hvm_obj_int_div(a, b); }
-        else if(instr == HVM_OP_MOD) { c = hvm_obj_int_mod(a, b); }
-        vm->general_regs[creg] = c;
+        if(instr == HVM_OP_ADD)      { a = hvm_obj_int_add(b, c); }
+        else if(instr == HVM_OP_SUB) { a = hvm_obj_int_sub(b, c); }
+        else if(instr == HVM_OP_MUL) { a = hvm_obj_int_mul(b, c); }
+        else if(instr == HVM_OP_DIV) { a = hvm_obj_int_div(b, c); }
+        else if(instr == HVM_OP_MOD) { a = hvm_obj_int_mod(b, c); }
+        vm->general_regs[areg] = a;
         vm->ip += 3;
         break;
 
@@ -334,6 +427,12 @@ struct hvm_obj_ref* hvm_vm_get_const(hvm_vm *vm, uint32_t id) {
 }
 void hvm_vm_set_const(hvm_vm *vm, uint32_t id, struct hvm_obj_ref* obj) {
   hvm_const_pool_set_const(&vm->const_pool, id, obj);
+}
+uint32_t hvm_vm_add_const(hvm_vm *vm, struct hvm_obj_ref* obj) {
+  uint32_t id = vm->const_pool.next_index;
+  hvm_vm_set_const(vm, id, obj);
+  vm->const_pool.next_index += 1;
+  return id;
 }
 
 void hvm_const_pool_expand(hvm_const_pool* pool, uint32_t id) {

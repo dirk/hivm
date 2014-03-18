@@ -21,7 +21,9 @@ typedef uint64_t hvm_symbol_id;
 
 /// Initial size (in bytes) for program data.
 /// @relates hvm_vm
-#define HVM_PROGRAM_INITIAL_SIZE 16384
+#define HVM_PROGRAM_INITIAL_CAPACITY 16384
+
+#define HVM_PROGRAM_GROW_FUNCTION(V) (V * 2)
 
 /// Maximum stack size (in frames)
 /// @relates hvm_vm
@@ -57,14 +59,17 @@ typedef struct hvm_vm {
   /// Root of call stack
   struct hvm_frame* root;
   /// Top of call stack (current execution frame)
-  struct hvm_frame** top;
+  struct hvm_frame* top;
   /// Call stack
   struct hvm_frame** stack;
+  uint32_t stack_depth;
 
   /// Instruction pointer (indexes bytes in the program)
   uint64_t ip;
   /// Data for instructions
   byte* program;
+  /// Amount of available data for instructions (in bytes)
+  uint64_t program_capacity;
   /// Size of program memory (in bytes)
   uint64_t program_size;
 
@@ -89,6 +94,8 @@ hvm_vm *hvm_new_vm();
 /// @memberof hvm_vm
 void hvm_vm_run(hvm_vm*);
 
+void hvm_vm_load_chunk(hvm_vm *vm, void *cv);
+
 /// Set a constant in the VM constant table.
 /// @memberof hvm_vm
 /// @param    vm
@@ -105,6 +112,7 @@ struct hvm_obj_ref* hvm_vm_get_const(hvm_vm *vm, uint32_t id);
 
 struct hvm_obj_ref* hvm_const_pool_get_const(hvm_const_pool*, uint32_t);
 void hvm_const_pool_set_const(hvm_const_pool*, uint32_t, struct hvm_obj_ref*);
+uint32_t hvm_vm_add_const(hvm_vm *vm, struct hvm_obj_ref* obj);
 
 /// Get a local variable from a stack frame.
 /// @memberof hvm_vm
