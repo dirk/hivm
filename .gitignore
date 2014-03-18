@@ -4,5 +4,5 @@
 doc/*
 include/*
 *.dSYM
-test/test
-test/test_vm
+test/sandbox/test
+test/sandbox/test_vm

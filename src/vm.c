@@ -81,7 +81,6 @@ void hvm_vm_load_chunk_relocations(hvm_vm *vm, uint64_t start, hvm_chunk_relocat
     dest += start;
     // Then write the dest back.
     memcpy(&vm->program[start + index], &dest, sizeof(uint64_t));
-
     relocs++;
   }
 }
@@ -98,6 +97,7 @@ void hvm_vm_load_chunk(hvm_vm *vm, void *cv) {
   // Copy over the stuff from the chunk header.
   hvm_vm_load_chunk_symbols(vm, start, chunk->symbols);
   hvm_vm_load_chunk_constants(vm, start, chunk->constants);
+  hvm_vm_load_chunk_relocations(vm, start, chunk->relocs);
 }
 
 #define READ_U32(V) *(uint32_t*)(V)

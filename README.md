@@ -16,6 +16,4 @@ The Hivm project aims to overcome these and provide a new, better virtual machin
 
 ## License
 
-Copyright 2014 Dirk Gadsden. All Rights Reserved.
-
-This will be relaxed down the road, but for now this is my sandbox and the king of the sandbox sets the rules.
+Licensed under the [Mozilla Public License Version 2.0](http://www.mozilla.org/MPL/2.0/). See [LICENSE](LICENSE) for details.
