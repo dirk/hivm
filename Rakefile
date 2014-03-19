@@ -21,22 +21,25 @@ end
 
 desc "Build"
 task "build" => ["libhivem.a"]
-task "default" => ["build"]
+task "default" => ["build", "build:include"]
+
+
+headers = {
+  "vm" => "hvm",
+  "object" => "hvm_object",
+  "symbol" => "hvm_symbol",
+  "chunk"  => "hvm_chunk",
+  "generator" => "hvm_generator"
+}
+headers.each do |src, dst|
+  file "include/#{dst}.h" => "src/#{src}.h" do |t|
+    sh "cp -p #{t.prerequisites[0]} #{t.name}"
+  end
+end
 
 namespace "build" do
   desc "Build include directory (header files)"
-  task "include" do
-    headers = {
-      "vm" => "hvm",
-      "object" => "hvm_object",
-      "symbol" => "hvm_symbol",
-      "chunk"  => "hvm_chunk",
-      "generator" => "hvm_generator"
-    }
-    headers.each do |src, dst|
-      sh "cp src/#{src}.h include/#{dst}.h"
-    end
-  end
+  task "include" => headers.values.map {|dst| "include/#{dst}.h" }
 end
 
 # desc "Compile"
@@ -65,9 +68,10 @@ end
 
 desc "Clean up objects"
 task "clean" do
-  sh "rm src/*.o"
+  sh "rm -f src/*.o"
+  sh "rm -f include/*.h"
   # sh "rm test/*.o"
-  sh "rm libhivem.a"
+  sh "rm -f libhivem.a"
 end
 
 namespace "clean" do
