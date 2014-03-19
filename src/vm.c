@@ -12,7 +12,13 @@
 
 struct hvm_obj_ref* hvm_const_null = &(hvm_obj_ref){
   .type = HVM_NULL,
-  .data = {0}
+  .data.v = NULL,
+  .flags = HVM_OBJ_FLAG_CONSTANT
+};
+struct hvm_obj_ref* hvm_const_zero = &(hvm_obj_ref){
+  .type = HVM_INTEGER,
+  .data.i64 = 0,
+  .flags = HVM_OBJ_FLAG_CONSTANT
 };
 
 hvm_vm *hvm_new_vm() {
@@ -100,6 +106,55 @@ void hvm_vm_load_chunk(hvm_vm *vm, void *cv) {
   hvm_vm_load_chunk_relocations(vm, start, chunk->relocs);
 }
 
+/*
+REGISTER MAP
+0-127   = General registers (128)
+128     = Zero
+129     = Null
+130-145 = Argument registers (16)
+146-161 = Parameter registers (16)
+162     = Special parameter length register
+*/
+byte hvm_vm_reg_gen(byte i) {
+  assert(i <= 127);
+  return i;
+}
+byte hvm_vm_reg_zero() { return 128; }
+byte hvm_vm_reg_null() { return 129; }
+byte hvm_vm_reg_arg(byte i) {
+  assert(i < HVM_ARGUMENT_REGISTERS);
+  return 130 + i;
+}
+byte hvm_vm_reg_param(byte i) {
+  assert(i < HVM_PARAMETER_REGISTERS);
+  return 146 + i;
+}
+
+__attribute__((always_inline)) void hvm_vm_register_write(hvm_vm *vm, byte reg, hvm_obj_ref* ref) {
+  assert(reg < 146 || reg > 161);// Avoid parameter registers
+  if(reg <= 127) {
+    vm->general_regs[reg] = ref;
+  } else if(reg >= 130 && reg <= 145) {
+    vm->arg_regs[reg - 130] = ref;
+  }
+  // Else noop
+}
+__attribute__((always_inline)) hvm_obj_ref* hvm_vm_register_read(hvm_vm *vm, byte reg) {
+  assert(reg < 130 || reg > 145);// Avoid argument registers
+  assert(reg <= 162);// Valid range of registers
+  if(reg <= 127) {
+    return vm->general_regs[reg];
+  }
+  if(reg >= 146 && reg <= 162) {
+    return vm->param_regs[reg - 146];
+  }
+  if(reg == 128) { return hvm_const_zero; }
+  if(reg == 129) { return hvm_const_null; }
+  // Should never reach here.
+  return NULL;
+}
+
+
 #define READ_U32(V) *(uint32_t*)(V)
 #define READ_U64(V) *(uint64_t*)(V)
 #define READ_I32(V) *(int32_t*)(V)
@@ -149,7 +204,7 @@ void hvm_vm_run(hvm_vm *vm) {
         continue;
       case HVM_OP_CALLSYMBOLIC:// 1B OP | 1B REG | 1B REG
         AREG; BREG;
-        key = vm->general_regs[areg];// This is the symbol we need to look up.
+        key = hvm_vm_register_read(vm, areg);// This is the symbol we need to look up.
         assert(key->type == HVM_SYMBOL);
         sym_id = key->data.u64;
         val    = hvm_obj_struct_internal_get(vm->symbol_table, sym_id);
@@ -166,7 +221,7 @@ void hvm_vm_run(hvm_vm *vm) {
 
       case HVM_OP_CALLADDRESS: // 1B OP | 1B REG | 1B REG
         reg  = vm->program[vm->ip + 1];
-        val  = vm->general_regs[reg];
+        val  = hvm_vm_register_read(vm, reg);
         assert(val->type == HVM_INTEGER);
         dest = (uint64_t)val->data.i64;
         reg  = vm->program[vm->ip + 2]; // Return register now
@@ -184,7 +239,7 @@ void hvm_vm_run(hvm_vm *vm) {
         vm->ip = frame->return_addr;
         vm->stack_depth -= 1;
         vm->top = vm->stack[vm->stack_depth];
-        vm->general_regs[frame->return_register] = vm->general_regs[reg];
+        hvm_vm_register_write(vm, frame->return_register, hvm_vm_register_read(vm, reg));
         fprintf(stderr, "RETURN(0x%08llX) $%d -> $%d\n", frame->return_addr, reg, frame->return_register);
         continue;
       case HVM_OP_JUMP: // 1B OP | 4B DIFF
@@ -203,7 +258,7 @@ void hvm_vm_run(hvm_vm *vm) {
       case HVM_OP_IF: // 1B OP | 1B REG  | 8B DEST
         reg  = vm->program[vm->ip + 1];
         dest = READ_U64(&vm->program[vm->ip + 2]);
-        val  = vm->general_regs[reg];
+        val  = hvm_vm_register_read(vm, reg);
         if(val->type == HVM_NULL || (val->type == HVM_INTEGER && val->data.i64 == 0)) {
           // Falsey, add on the 9 bytes for the instruction parameters and continue onwards.
           vm->ip += 9;
@@ -219,7 +274,7 @@ void hvm_vm_run(hvm_vm *vm) {
         i64_literal = READ_I64(&vm->program[vm->ip + 2]);
         val         = hvm_new_obj_int();
         val->data.i64 = i64_literal;
-        vm->general_regs[reg] = val;
+        hvm_vm_register_write(vm, reg, val);
         vm->ip += 9;
         break;
       
@@ -232,12 +287,12 @@ void hvm_vm_run(hvm_vm *vm) {
         reg         = vm->program[vm->ip + 1];
         const_index = READ_U32(&vm->program[vm->ip + 2]);
         fprintf(stderr, "SET $%u = const(%u)\n", reg, const_index);
-        vm->general_regs[reg] = hvm_vm_get_const(vm, const_index);
+        hvm_vm_register_write(vm, reg, hvm_vm_get_const(vm, const_index));
         vm->ip += 5;
         break;
       case HVM_OP_SETNULL: // 1B OP | 1B REG
         reg = vm->program[vm->ip + 1];
-        vm->general_regs[reg] = hvm_const_null;
+        hvm_vm_register_write(vm, reg, hvm_const_null);
         vm->ip += 1;
         break;
 
@@ -249,26 +304,26 @@ void hvm_vm_run(hvm_vm *vm) {
       case HVM_OP_SETLOCAL: // 1B OP | 4B SYM   | 1B REG
         sym_id = READ_U32(&vm->program[vm->ip + 1]);
         reg    = vm->program[vm->ip + 5];
-        hvm_set_local(vm->top, sym_id, vm->general_regs[reg]);
+        hvm_set_local(vm->top, sym_id, hvm_vm_register_read(vm, reg));
         vm->ip += 5;
         break;
       case HVM_OP_GETLOCAL: // 1B OP | 1B REG   | 4B SYM
         reg    = vm->program[vm->ip + 1];
         sym_id = READ_U32(&vm->program[vm->ip + 2]);
-        vm->general_regs[reg] = hvm_get_local(vm->top, sym_id);
+        hvm_vm_register_write(vm, reg, hvm_get_local(vm->top, sym_id));
         vm->ip += 5;
         break;
 
       case HVM_OP_SETGLOBAL: // 1B OP | 4B SYM   | 1B REG
         sym_id = READ_U32(&vm->program[vm->ip + 1]);
         reg    = vm->program[vm->ip + 5];
-        hvm_set_global(vm, sym_id, vm->general_regs[reg]);
+        hvm_set_global(vm, sym_id, hvm_vm_register_read(vm, reg));
         vm->ip += 5;
         break;
       case HVM_OP_GETGLOBAL: // 1B OP | 1B REG   | 4B SYM
         reg    = vm->program[vm->ip + 1];
         sym_id = READ_U32(&vm->program[vm->ip + 2]);
-        vm->general_regs[reg] = hvm_get_global(vm, sym_id);
+        hvm_vm_register_write(vm, reg, hvm_get_global(vm, sym_id));
         vm->ip += 5;
         break;
 
@@ -277,7 +332,7 @@ void hvm_vm_run(hvm_vm *vm) {
         hvm_obj_ref* ref = hvm_new_obj_ref();
         ref->type = HVM_STRUCTURE;
         ref->data.v = vm->top->locals;
-        vm->general_regs[reg] = ref;
+        hvm_vm_register_write(vm, reg, ref);
         vm->ip += 1;
         break;
 
@@ -289,15 +344,15 @@ void hvm_vm_run(hvm_vm *vm) {
       case HVM_OP_MOD: // 1B OP | 3B REGs
         // A = B + C
         AREG; BREG; CREG;
-        b = vm->general_regs[breg];
-        c = vm->general_regs[creg];
+        b = hvm_vm_register_read(vm, breg);
+        c = hvm_vm_register_read(vm, creg);
         // TODO: Add float support
         if(instr == HVM_OP_ADD)      { a = hvm_obj_int_add(b, c); }
         else if(instr == HVM_OP_SUB) { a = hvm_obj_int_sub(b, c); }
         else if(instr == HVM_OP_MUL) { a = hvm_obj_int_mul(b, c); }
         else if(instr == HVM_OP_DIV) { a = hvm_obj_int_div(b, c); }
         else if(instr == HVM_OP_MOD) { a = hvm_obj_int_mod(b, c); }
-        vm->general_regs[areg] = a;
+        hvm_vm_register_write(vm, areg, a);
         vm->ip += 3;
         break;
 
@@ -305,67 +360,67 @@ void hvm_vm_run(hvm_vm *vm) {
       case HVM_ARRAYPUSH: // 1B OP | 2B REGS
         // A.push(B)
         AREG; BREG;
-        a = vm->general_regs[areg];
-        b = vm->general_regs[breg];
+        a = hvm_vm_register_read(vm, areg);
+        b = hvm_vm_register_read(vm, breg);
         hvm_obj_array_push(a, b);
         vm->ip += 2;
         break;
       case HVM_ARRAYUNSHIFT: // 1B OP | 2B REGS
         // A.unshift(B)
         AREG; BREG;
-        a = vm->general_regs[areg];
-        b = vm->general_regs[breg];
+        a = hvm_vm_register_read(vm, areg);
+        b = hvm_vm_register_read(vm, breg);
         hvm_obj_array_unshift(a, b);
         vm->ip += 2;
         break;
       case HVM_ARRAYSHIFT: // 1B OP | 2B REGS
         // A = B.shift()
         AREG; BREG;
-        b = vm->general_regs[breg];
-        vm->general_regs[areg] = hvm_obj_array_shift(b);
+        b = hvm_vm_register_read(vm, breg);
+        hvm_vm_register_write(vm, areg, hvm_obj_array_shift(b));
         vm->ip += 2;
         break;
       case HVM_ARRAYPOP: // 1B OP | 2B REGS
         // A = B.pop()
         AREG; BREG;
-        b = vm->general_regs[breg];
-        vm->general_regs[areg] = hvm_obj_array_pop(b);
+        b = hvm_vm_register_read(vm, breg);
+        hvm_vm_register_write(vm, areg, hvm_obj_array_pop(b));
         vm->ip += 2;
         break;
       case HVM_ARRAYGET: // 1B OP | 3B REGS
         // arrayget V A I -> V = A[I]
         AREG; BREG; CREG;
-        arr = vm->general_regs[breg];
-        idx = vm->general_regs[creg];
-        vm->general_regs[areg] = hvm_obj_array_get(arr, idx);
+        arr = hvm_vm_register_read(vm, breg);
+        idx = hvm_vm_register_read(vm, creg);
+        hvm_vm_register_write(vm, areg, hvm_obj_array_get(arr, idx));
         vm->ip += 3;
         break;
       case HVM_ARRAYSET: // 1B OP | 3B REGS
         // arrayset A I V -> A[I] = V
         AREG; BREG; CREG;
-        arr = vm->general_regs[areg];
-        idx = vm->general_regs[breg];
-        val = vm->general_regs[creg];
+        arr = hvm_vm_register_read(vm, areg);
+        idx = hvm_vm_register_read(vm, breg);
+        val = hvm_vm_register_read(vm, creg);
         hvm_obj_array_set(arr, idx, val);
         vm->ip += 3;
         break;
       case HVM_ARRAYREMOVE: // 1B OP | 3B REGS
         // arrayremove V A I
         AREG; BREG; CREG;
-        arr = vm->general_regs[breg];
-        idx = vm->general_regs[creg];
-        vm->general_regs[areg] = hvm_obj_array_remove(arr, idx);
+        arr = hvm_vm_register_read(vm, breg);
+        idx = hvm_vm_register_read(vm, creg);
+        hvm_vm_register_write(vm, areg, hvm_obj_array_remove(arr, idx));
         vm->ip += 3;
         break;
       case HVM_ARRAYNEW: // 1B OP | 2B REGS
         // arraynew A L
         AREG; BREG;
-        val = vm->general_regs[breg];
+        val = hvm_vm_register_read(vm, breg);
         hvm_obj_array *arr = hvm_new_obj_array_with_length(val);
         a = hvm_new_obj_ref();
         a->type = HVM_ARRAY;
         a->data.v = arr;
-        vm->general_regs[areg] = a;
+        hvm_vm_register_write(vm, areg, a);
         vm->ip += 2;
         break;
 
@@ -373,26 +428,26 @@ void hvm_vm_run(hvm_vm *vm) {
       case HVM_STRUCTSET:
         // structset S K V
         AREG; BREG; CREG;
-        strct = vm->general_regs[areg];
-        key   = vm->general_regs[breg];
-        val   = vm->general_regs[creg];
+        strct = hvm_vm_register_read(vm, areg);
+        key   = hvm_vm_register_read(vm, breg);
+        val   = hvm_vm_register_read(vm, creg);
         hvm_obj_struct_set(strct, key, val);
         vm->ip += 3;
         break;
       case HVM_STRUCTGET:
         // structget V S K
         AREG; BREG; CREG;
-        strct = vm->general_regs[breg];
-        key   = vm->general_regs[creg];
-        vm->general_regs[areg] = hvm_obj_struct_get(strct, key);
+        strct = hvm_vm_register_read(vm, breg);
+        key   = hvm_vm_register_read(vm, creg);
+        hvm_vm_register_write(vm, areg, hvm_obj_struct_get(strct, key));
         vm->ip += 3;
         break;
       case HVM_STRUCTDELETE:
         // structdelete V S K`
         AREG; BREG; CREG;
-        strct = vm->general_regs[breg];
-        key   = vm->general_regs[creg];
-        vm->general_regs[areg] = hvm_obj_struct_delete(strct, key);
+        strct = hvm_vm_register_read(vm, breg);
+        key   = hvm_vm_register_read(vm, creg);
+        hvm_vm_register_write(vm, areg, hvm_obj_struct_delete(strct, key));
         vm->ip += 3;
         break;
       case HVM_STRUCTNEW:
@@ -402,7 +457,7 @@ void hvm_vm_run(hvm_vm *vm) {
         strct = hvm_new_obj_ref();
         strct->type = HVM_STRUCTURE;
         strct->data.v = s;
-        vm->general_regs[areg] = strct;
+        hvm_vm_register_write(vm, areg, strct);
         vm->ip += 1;
         break;
       case HVM_STRUCTHAS:

@@ -53,6 +53,15 @@ typedef struct hvm_const_pool {
 #define HVM_CONSTANT_POOL_GROWTH_RATE  2
 
 #define HVM_GENERAL_REGISTERS 128
+#define HVM_ARGUMENT_REGISTERS 16
+// One more than arg regs. Last one is $pn special reg.
+#define HVM_PARAMETER_REGISTERS 17
+
+byte hvm_vm_reg_gen(byte i);
+byte hvm_vm_reg_zero();
+byte hvm_vm_reg_null();
+byte hvm_vm_reg_arg(byte i);
+byte hvm_vm_reg_param(byte i);
 
 /// Instance of the VM.
 typedef struct hvm_vm {
@@ -80,6 +89,8 @@ typedef struct hvm_vm {
   struct hvm_obj_struct *symbol_table;
   /// General purpose registers ($r0...$rN)
   struct hvm_obj_ref* general_regs[HVM_GENERAL_REGISTERS];
+  struct hvm_obj_ref* arg_regs[HVM_ARGUMENT_REGISTERS];
+  struct hvm_obj_ref* param_regs[HVM_PARAMETER_REGISTERS];
   // heap
   // object space
   /// VM-wide global variables

@@ -50,7 +50,7 @@ General-purpose registers; local only to the current stack frame and are not sav
 
 Write-only. Used for arguments when calling subroutines. Contain null by default.
 
-### Parameter registers: $pn, $p1, ...
+### Parameter registers: $pn, $p0, $p1, ...
 
 Read-only. Used by subroutines to read arguments. $pn is a special integer register that contains the total number of parameters passed (allows varargs). Like argument registers they are null by default.
 
