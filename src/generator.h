@@ -214,11 +214,13 @@ typedef union hvm_gen_item {
 ///        appropriate bytecode for that chunk.
 typedef struct hvm_gen {
   /// Root block of the generator.
-  hvm_gen_item_block block;
+  hvm_gen_item_block *block;
 } hvm_gen;
 
 hvm_gen *hvm_new_gen();
 hvm_gen_item_label *hvm_new_item_label();
+hvm_gen_item_block *hvm_new_item_block();
+
 
 struct hvm_chunk *hvm_gen_chunk(hvm_gen *gen);
 

@@ -35,16 +35,16 @@ void test_heap() {
 
 void test_generator() {
   hvm_gen *gen = hvm_new_gen();
-  hvm_gen_set_symbol(&gen->block, hvm_vm_reg_gen(1), "_test");
-  hvm_gen_callsymbolic(&gen->block, hvm_vm_reg_gen(1), hvm_vm_reg_gen(2));
-  hvm_gen_die(&gen->block);
-  hvm_gen_sub(&gen->block, "_test");
-  hvm_gen_goto_label(&gen->block, "label");
-  hvm_gen_label(&gen->block, "label");
-  hvm_gen_litinteger(&gen->block, hvm_vm_reg_gen(3), 1);
-  hvm_gen_litinteger(&gen->block, hvm_vm_reg_gen(4), 2);
-  hvm_gen_add(&gen->block, hvm_vm_reg_gen(5), hvm_vm_reg_gen(3), hvm_vm_reg_gen(4));
-  hvm_gen_return(&gen->block, hvm_vm_reg_gen(5));
+  hvm_gen_set_symbol(gen->block, hvm_vm_reg_gen(1), "_test");
+  hvm_gen_callsymbolic(gen->block, hvm_vm_reg_gen(1), hvm_vm_reg_gen(2));
+  hvm_gen_die(gen->block);
+  hvm_gen_sub(gen->block, "_test");
+  hvm_gen_goto_label(gen->block, "label");
+  hvm_gen_label(gen->block, "label");
+  hvm_gen_litinteger(gen->block, hvm_vm_reg_gen(3), 1);
+  hvm_gen_litinteger(gen->block, hvm_vm_reg_gen(4), 2);
+  hvm_gen_add(gen->block, hvm_vm_reg_gen(5), hvm_vm_reg_gen(3), hvm_vm_reg_gen(4));
+  hvm_gen_return(gen->block, hvm_vm_reg_gen(5));
 
   hvm_chunk *chunk = hvm_gen_chunk(gen);
   hvm_chunk_disassemble(chunk);

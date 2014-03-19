@@ -1,5 +1,5 @@
 
-$cflags = "-g -Wall -std=c99 ../../libhivem.a -I../../include -liconv #{`pkg-config --libs glib-2.0`.strip}"
+$cflags = "-g -Wall -std=c99 ../../libhivm.a -I../../include -liconv #{`pkg-config --libs glib-2.0`.strip}"
 
 task 'default' => ['test_vm']
 

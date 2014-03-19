@@ -135,6 +135,9 @@ void hvm_print_data(byte *data, uint64_t size) {
     op = data[i];
     printf("  0x%08llX  ", i);
     switch(op) {
+      case HVM_OP_DIE:// 1B OP
+        printf("die()\n");
+        break;
       case HVM_OP_SETSYMBOL:// 1B OP | 1B REG | 4B CONST
         reg1 = data[i + 1];
         u32  = READ_U32(&data[i + 2]);

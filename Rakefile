@@ -13,6 +13,9 @@ def cflags_for file
   if basename == "object.o" || basename == "generator.o"
     cflags += " #{`pkg-config --cflags glib-2.0`.strip}"
   end
+  if basename == "libhivm.so"
+    cflags += " #{`pkg-config --libs glib-2.0`.strip}"
+  end
   if basename == "generator.o"
     cflags += ' -Wno-unused-parameter'
   end
@@ -20,7 +23,7 @@ def cflags_for file
 end
 
 desc "Build"
-task "build" => ["libhivem.a"]
+task "build" => ["libhivm.a", "libhivm.so"]
 task "default" => ["build", "build:include"]
 
 
@@ -42,14 +45,19 @@ namespace "build" do
   task "include" => headers.values.map {|dst| "include/#{dst}.h" }
 end
 
-# desc "Compile"
-file 'libhivem.a' => [
+objects = [
   # Source
   'src/vm.o', 'src/object.o', 'src/symbol.o', 'src/frame.o', 'src/chunk.o',
   'src/generator.o',
-] do |t|
+]
+
+# desc "Compile"
+file 'libhivm.a' => objects do |t|
   # sh "cc -o #{t.name} #{t.prerequisites.join ' '} #{LDFLAGS} #{CFLAGS}"
   sh "#{$ar} rcs #{t.name} #{t.prerequisites.join ' '}"
+end
+file 'libhivm.so' => objects do |t|
+  sh "#{$cc} #{t.prerequisites.join ' '} #{cflags_for t.name} -shared -o #{t.name}"
 end
 
 
@@ -71,7 +79,7 @@ task "clean" do
   sh "rm -f src/*.o"
   sh "rm -f include/*.h"
   # sh "rm test/*.o"
-  sh "rm -f libhivem.a"
+  sh "rm -f libhivm.*"
 end
 
 namespace "clean" do

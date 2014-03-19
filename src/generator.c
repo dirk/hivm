@@ -19,8 +19,14 @@ char *gen_strclone(char *str) {
 
 hvm_gen *hvm_new_gen() {
   hvm_gen *gen = malloc(sizeof(hvm_gen));
-  gen->block.items = g_array_new(TRUE, TRUE, sizeof(hvm_gen_item*));
+  gen->block = hvm_new_item_block();
   return gen;
+}
+
+hvm_gen_item_block *hvm_new_item_block() {
+  hvm_gen_item_block *block = malloc(sizeof(hvm_gen_item_block));
+  block->items = g_array_new(TRUE, TRUE, sizeof(hvm_gen_item*));
+  return block;
 }
 
 /// Internal data used during the generation of a chunk.
@@ -303,7 +309,7 @@ struct hvm_chunk *hvm_gen_chunk(hvm_gen *gen) {
   gd.constants = g_array_new(TRUE, TRUE, sizeof(hvm_chunk_constant*));
   gd.symbols   = g_array_new(TRUE, TRUE, sizeof(hvm_chunk_symbol*));
 
-  hvm_gen_process_block(chunk, &gd, &gen->block);
+  hvm_gen_process_block(chunk, &gd, gen->block);
 
   uint64_t i;
 
