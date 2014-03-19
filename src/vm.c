@@ -154,6 +154,23 @@ __attribute__((always_inline)) hvm_obj_ref* hvm_vm_register_read(hvm_vm *vm, byt
   return NULL;
 }
 
+__attribute__((always_inline)) void hvm_vm_copy_regs(hvm_vm *vm) {
+  int64_t i;
+  // Reset params
+  for(i = 0; i < HVM_PARAMETER_REGISTERS; i++) { vm->param_regs[i] = NULL; }
+  // Copy args into params
+  i = 0;
+  while(i < HVM_ARGUMENT_REGISTERS && vm->arg_regs[i] != NULL) {
+    // Copy and null the source
+    vm->param_regs[i] = vm->arg_regs[i];
+    vm->arg_regs[i] = NULL;
+  }
+  // Set special $pn.
+  hvm_obj_ref *pn = hvm_new_obj_int();
+  pn->data.i64 = i + 1;
+  vm->param_regs[HVM_PARAMETER_REGISTERS - 1] = pn;
+}
+
 
 #define READ_U32(V) *(uint32_t*)(V)
 #define READ_U64(V) *(uint64_t*)(V)
@@ -189,6 +206,7 @@ void hvm_vm_run(hvm_vm *vm) {
         frame        = hvm_new_frame();
         frame->return_addr     = parent_frame->return_addr;
         frame->return_register = parent_frame->return_register;
+        hvm_vm_copy_regs(vm);
         vm->ip = dest;
         vm->top = (vm->stack[vm->stack_depth] = frame);
         continue;
@@ -198,6 +216,7 @@ void hvm_vm_run(hvm_vm *vm) {
         frame = hvm_new_frame();
         frame->return_addr     = vm->ip + 10; // Instruction is 10 bytes long.
         frame->return_register = reg;
+        hvm_vm_copy_regs(vm);
         vm->ip = dest;
         vm->stack_depth += 1;
         vm->top = (vm->stack[vm->stack_depth] = frame);
@@ -214,6 +233,7 @@ void hvm_vm_run(hvm_vm *vm) {
         frame = hvm_new_frame();
         frame->return_addr = vm->ip + 3;// Instruction is 3 bytes long
         frame->return_register = breg;
+        hvm_vm_copy_regs(vm);
         vm->ip = dest;
         vm->stack_depth += 1;
         vm->top = (vm->stack[vm->stack_depth] = frame);
