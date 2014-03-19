@@ -57,6 +57,9 @@
 `tailcall SUB`
 :  Same as `call` but does not grow the stack. Current subroutine's return will be the return from SUB.
 
+`callprimitive SYM RET`
+:  Invoke the primitive with symbol (ID) in SYM.
+
 `return RET`
 :  Return from the current subroutine to the parent. RET can be a register for returning a value or $null.
 

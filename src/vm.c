@@ -106,6 +106,10 @@ void hvm_vm_load_chunk(hvm_vm *vm, void *cv) {
   hvm_vm_load_chunk_relocations(vm, start, chunk->relocs);
 }
 
+hvm_obj_ref *hvm_vm_call_symbolic(hvm_symbol_id sym_id) {
+  return hvm_const_null;
+}
+
 /*
 REGISTER MAP
 0-127   = General registers (128)
@@ -288,6 +292,15 @@ void hvm_vm_run(hvm_vm *vm) {
           vm->ip = dest;
           continue;
         }
+      case HVM_OP_CALLPRIMITIVE: // 1B OP | 1B REG | 1B REG
+        AREG; BREG;
+        key = hvm_vm_register_read(vm, areg);// This is the symbol we need to look up.
+        assert(key->type == HVM_SYMBOL);
+        sym_id = key->data.u64;
+        val = hvm_vm_call_symbolic(sym_id);
+        hvm_vm_register_write(vm, breg, val);
+        vm->ip += 2;
+        break;
 
       case HVM_OP_LITINTEGER: // 1B OP | 1B REG | 8B LIT
         reg         = vm->program[vm->ip + 1];

@@ -194,6 +194,8 @@ typedef enum {
 
   HVM_OP_LITINTEGER = 40,// 1B OP | 1B REG  | 8B LIT
 
+  HVM_OP_CALLPRIMITIVE = 41,// 1B OP | 1B REG | 1B REG
+
 } hvm_opcodes;
 
 #endif
