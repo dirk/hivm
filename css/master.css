@@ -1,0 +1,36 @@
+* {margin: 0; padding: 0;}
+
+body {font-size: 62.5%; line-height: 1.6; font-family: Georgia, serif;}
+
+#wrap {width: 64em; margin: 0 auto;}
+
+header {margin: 2em 0 4em 0;}
+header h1,
+header h1 a {display: block; width: 135px; height: 39px;}
+header h1 {margin: 0 0 0.25em 0;}
+header h1 a {background: url('../images/logo.png') no-repeat; text-indent: -9999px;}
+
+header nav {float: right; margin: 1em 0 0 0;}
+header nav a {
+  color: #00f; display: inline-block; padding: 0 1em; border-left: 1px solid #ddd;
+  font-family: Helvetica, Arial, sans-serif; font-weight: bold; font-size: 1.2em;
+}
+header nav a:last-child {border-right: 1px solid #ddd;}
+
+header .description {font-size: 1.6em; color: #888; font-style: italic;}
+
+h3 {
+  font-family: Helvetica, Arial, sans-serif; font-size: 2em;
+  border-bottom: 1px solid #ddd; padding: 0 0 0.1em 0; margin: 0 0 0.75em 0;
+}
+
+
+#content {font-size: 1.4em;}
+#content .lead {font-size: 1.4em; margin: 0 0 0.5em 0; line-height: 1.6;}
+#content .sublead {font-size: 1.2em; color: #888; line-height: 1.7;}
+
+footer {
+  font-family: Helvetica, Arial, sans-serif; font-size: 1em;
+  margin: 6em 0 2em 0; padding: 2em 0 0 0; color: #888; border-top: 1px solid #ddd;
+}
+footer a {color: #444;}
