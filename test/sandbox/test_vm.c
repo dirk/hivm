@@ -6,6 +6,7 @@
 #include "hvm_object.h"
 #include "hvm_chunk.h"
 #include "hvm_generator.h"
+#include "hvm_bootstrap.h"
 
 /*
 void test_heap() {
@@ -35,21 +36,30 @@ void test_heap() {
 
 void test_generator() {
   hvm_gen *gen = hvm_new_gen();
-  hvm_gen_set_symbol(gen->block, hvm_vm_reg_gen(1), "_test");
-  hvm_gen_callsymbolic(gen->block, hvm_vm_reg_gen(1), hvm_vm_reg_gen(2));
-  hvm_gen_die(gen->block);
-  hvm_gen_sub(gen->block, "_test");
-  hvm_gen_goto_label(gen->block, "label");
-  hvm_gen_label(gen->block, "label");
-  hvm_gen_litinteger(gen->block, hvm_vm_reg_gen(3), 1);
-  hvm_gen_litinteger(gen->block, hvm_vm_reg_gen(4), 2);
-  hvm_gen_add(gen->block, hvm_vm_reg_gen(5), hvm_vm_reg_gen(3), hvm_vm_reg_gen(4));
-  hvm_gen_return(gen->block, hvm_vm_reg_gen(5));
+  // hvm_gen_set_symbol(gen->block, hvm_vm_reg_gen(1), "_test");
+  // hvm_gen_callsymbolic(gen->block, hvm_vm_reg_gen(1), hvm_vm_reg_gen(2));
+  // hvm_gen_die(gen->block);
+  // hvm_gen_sub(gen->block, "_test");
+  // hvm_gen_goto_label(gen->block, "label");
+  // hvm_gen_label(gen->block, "label");
+  // hvm_gen_litinteger(gen->block, hvm_vm_reg_gen(3), 1);
+  // hvm_gen_litinteger(gen->block, hvm_vm_reg_gen(4), 2);
+  // hvm_gen_add(gen->block, hvm_vm_reg_gen(5), hvm_vm_reg_gen(3), hvm_vm_reg_gen(4));
+  // hvm_gen_return(gen->block, hvm_vm_reg_gen(5));
+  
+  hvm_gen_set_string(gen->block, hvm_vm_reg_arg(0), "Hello world!\n");
+  hvm_gen_set_symbol(gen->block, hvm_vm_reg_gen(0), "print");
+  hvm_gen_callprimitive(gen->block, hvm_vm_reg_gen(0), hvm_vm_reg_null());
+  
+  hvm_gen_set_symbol(gen->block, hvm_vm_reg_gen(0), "exit");
+  hvm_gen_callprimitive(gen->block, hvm_vm_reg_gen(0), hvm_vm_reg_null());
+  // hvm_gen_die(gen->block);
 
   hvm_chunk *chunk = hvm_gen_chunk(gen);
   hvm_chunk_disassemble(chunk);
 
   hvm_vm *vm = hvm_new_vm();
+  hvm_bootstrap_primitives(vm);
 
   printf("LOADING...\n");
   hvm_vm_load_chunk(vm, chunk);
@@ -60,6 +70,7 @@ void test_generator() {
   printf("RUNNING...\n");
   hvm_vm_run(vm);
 
+  return;
   printf("\nAFTER RUNNING:\n");
   hvm_obj_ref *reg = vm->general_regs[hvm_vm_reg_gen(2)];
   printf("$2->type = %d\n", reg->type);

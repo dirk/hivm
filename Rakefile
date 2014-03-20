@@ -14,9 +14,9 @@ def cflags_for file
     cflags += " #{`pkg-config --cflags glib-2.0`.strip}"
   end
   if basename == "libhivm.so"
-    cflags += " #{`pkg-config --libs glib-2.0`.strip}"
+    cflags += " #{`pkg-config --libs glib-2.0`.strip} -fPIC"
   end
-  if basename == "generator.o"
+  if basename == "generator.o" || basename == "bootstrap.o"
     cflags += ' -Wno-unused-parameter'
   end
   return cflags
@@ -32,7 +32,8 @@ headers = {
   "object" => "hvm_object",
   "symbol" => "hvm_symbol",
   "chunk"  => "hvm_chunk",
-  "generator" => "hvm_generator"
+  "generator" => "hvm_generator",
+  "bootstrap" => "hvm_bootstrap"
 }
 headers.each do |src, dst|
   file "include/#{dst}.h" => "src/#{src}.h" do |t|
@@ -48,7 +49,7 @@ end
 objects = [
   # Source
   'src/vm.o', 'src/object.o', 'src/symbol.o', 'src/frame.o', 'src/chunk.o',
-  'src/generator.o',
+  'src/generator.o', 'src/bootstrap.o'
 ]
 
 # desc "Compile"

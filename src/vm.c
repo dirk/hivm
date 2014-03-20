@@ -34,6 +34,7 @@ hvm_vm *hvm_new_vm() {
   vm->globals = hvm_new_obj_struct();
   vm->symbol_table = hvm_new_obj_struct();
   vm->symbols = hvm_new_symbol_store();
+  vm->primitives = hvm_new_obj_struct();
 
   vm->stack = calloc(HVM_STACK_SIZE, sizeof(struct hvm_frame*));
   vm->stack_depth = 0;
@@ -106,8 +107,14 @@ void hvm_vm_load_chunk(hvm_vm *vm, void *cv) {
   hvm_vm_load_chunk_relocations(vm, start, chunk->relocs);
 }
 
-hvm_obj_ref *hvm_vm_call_symbolic(hvm_symbol_id sym_id) {
-  return hvm_const_null;
+hvm_obj_ref *hvm_vm_call_primitive(hvm_vm *vm, hvm_symbol_id sym_id) {
+  hvm_obj_ref* (*prim)(hvm_vm *vm);
+
+  void *pv = hvm_obj_struct_internal_get(vm->primitives, sym_id);
+  assert(pv != NULL);
+  prim = pv;
+  // Invoke the actual primitive
+  return prim(vm);
 }
 
 /*
@@ -297,7 +304,9 @@ void hvm_vm_run(hvm_vm *vm) {
         key = hvm_vm_register_read(vm, areg);// This is the symbol we need to look up.
         assert(key->type == HVM_SYMBOL);
         sym_id = key->data.u64;
-        val = hvm_vm_call_symbolic(sym_id);
+        hvm_vm_copy_regs(vm);
+        fprintf(stderr, "CALLPRIMITIVE(%lld, $%d)\n", sym_id, breg);
+        val = hvm_vm_call_primitive(vm, sym_id);
         hvm_vm_register_write(vm, breg, val);
         vm->ip += 2;
         break;

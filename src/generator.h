@@ -230,6 +230,7 @@ void hvm_gen_jump(hvm_gen_item_block *block, int32_t diff);
 void hvm_gen_goto(hvm_gen_item_block *block, uint64_t dest);
 void hvm_gen_call(hvm_gen_item_block *block, uint64_t dest, byte ret);
 void hvm_gen_callsymbolic(hvm_gen_item_block *block, byte sym, byte ret);
+void hvm_gen_callprimitive(hvm_gen_item_block *block, byte sym, byte ret);
 void hvm_gen_if(hvm_gen_item_block *block, byte val, uint64_t dest);
 void hvm_gen_return(hvm_gen_item_block *block, byte reg);
 

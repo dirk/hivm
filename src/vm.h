@@ -97,6 +97,8 @@ typedef struct hvm_vm {
   struct hvm_obj_struct *globals;
   /// Symbol lookup
   struct hvm_symbol_store *symbols;
+  /// Primitives
+  struct hvm_obj_struct *primitives;
 } hvm_vm;
 
 /// Create a new virtual machine.
