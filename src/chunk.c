@@ -138,30 +138,42 @@ void hvm_print_data(byte *data, uint64_t size) {
       case HVM_OP_DIE:// 1B OP
         printf("die()\n");
         break;
+      case HVM_OP_SETSTRING:// 1B OP | 1B REG  | 4B CONST
+        reg1 = data[i + 1];
+        u32 = READ_U32(&data[i + 2]);
+        i += 5;
+        printf("$%-3d = setstring #%d\n", reg1, u32);
+        break;
       case HVM_OP_SETSYMBOL:// 1B OP | 1B REG | 4B CONST
         reg1 = data[i + 1];
         u32  = READ_U32(&data[i + 2]);
         i += 5;
-        printf("$%-2d = setsymbol #%d\n", reg1, u32);
+        printf("$%-3d = setsymbol #%d\n", reg1, u32);
+        break;
+      case HVM_OP_CALLPRIMITIVE:// 1B OP | 1B REG | 1B REG
+        reg1 = data[i + 1];
+        reg2 = data[i + 2];
+        i += 2;
+        printf("$%-3d = callprimitive($%d)\n", ret, sym);
         break;
       case HVM_OP_CALLSYMBOLIC:
         sym = data[i + 1];
         ret = data[i + 2];
         i += 2;
-        printf("$%-2d = callsymbolic($%d)\n", ret, sym);
+        printf("$%-3d = callsymbolic($%d)\n", ret, sym);
         break;
       case HVM_OP_LITINTEGER: // 1B OP | 1B REG | 8B LIT
         reg1 = data[i + 1];
         i64  = READ_I64(&data[i + 2]);
         i += 9;
-        printf("$%-2d = litinteger(%lld)\n", reg1, i64);
+        printf("$%-3d = litinteger(%lld)\n", reg1, i64);
         break;
       case HVM_OP_ADD: // 1B OP | 1B REG | 1B REG | 1B REG
         reg1 = data[i + 1];
         reg2 = data[i + 2];
         reg3 = data[i + 3];
         i += 3;
-        printf("$%-2d = $%d + $%d\n", reg1, reg2, reg3);
+        printf("$%-3d = $%d + $%d\n", reg1, reg2, reg3);
         break;
       case HVM_OP_GOTO: // 1B OP | 8B DEST
         u64 = READ_U64(&data[i + 1]);
