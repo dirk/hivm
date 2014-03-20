@@ -5,7 +5,7 @@ $cc = ENV['CC'].nil? ? 'clang-3.4' : ENV['CC']
 $ar = 'ar'
 $ld = 'ld'
 # $ldflags = "-lpthread -L. #{include_env 'LDFLAGS'}".strip
-$cflags  = "-g -Wall -Wextra -Wconversion -std=c99 -I. #{include_env 'CFLAGS'}".strip
+$cflags  = "-g -fPIC -Wall -Wextra -Wconversion -std=c99 -I. #{include_env 'CFLAGS'}".strip
 
 def cflags_for file
   basename = File.basename file
@@ -14,7 +14,7 @@ def cflags_for file
     cflags += " #{`pkg-config --cflags glib-2.0`.strip}"
   end
   if basename == "libhivm.so"
-    cflags += " #{`pkg-config --libs glib-2.0`.strip} -fPIC"
+    cflags += " #{`pkg-config --libs glib-2.0`.strip}"
   end
   if basename == "generator.o" || basename == "bootstrap.o"
     cflags += ' -Wno-unused-parameter'
