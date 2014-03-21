@@ -21,7 +21,10 @@ header .description {font-size: 1.6em; color: #888; font-style: italic;}
 
 h3 {
   font-family: Helvetica, Arial, sans-serif; font-size: 2em;
-  border-bottom: 1px solid #ccc; padding: 0 0 0.1em 0; margin: 0 0 0.75em 0;
+  border-bottom: 1px solid #ccc; padding: 0 0 0.1em 0; margin: 0.75em 0 0.75em 0;
+}
+h4 {
+  font-family: Helvetica, Arial, sans-serif; font-size: 1.2em; margin: 1em 0 0.25em 0;
 }
 
 
@@ -32,7 +35,13 @@ h3 {
 #content a {color: #00a;}
 #content span.dir {border-bottom: 1px #ccc dashed; color: #888;}
 
+#content dl {margin: 0 0 2em 0;}
+#content dt {font-size: 1.2em; margin-bottom: 0.25em;}
+#content dd {padding-left: 1em; margin-bottom: 0.5em; color: #444;}
+
 #content .highlight {margin-bottom: 1em; padding: 1em 0.5em 0 0.5em; background: #f0f0f0;}
+#content .toc li {margin-bottom: 0.5em;}
+#content .toc li a {font-size: 1.2em;}
 
 footer {
   font-family: Helvetica, Arial, sans-serif; font-size: 1em;
