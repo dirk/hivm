@@ -412,37 +412,37 @@ void hvm_gen_return(hvm_gen_item_block *block, byte reg) {
   GEN_PUSH_ITEM(op);
 }
 
-void hvm_gen_getlocal(hvm_gen_item_block *block, byte reg, uint32_t sym) {
-  hvm_gen_item_op_b1 *op = malloc(sizeof(hvm_gen_item_op_b1));
-  op->type = HVM_GEN_OPB1;
+void hvm_gen_getlocal(hvm_gen_item_block *block, byte val_reg, byte sym_reg) {
+  hvm_gen_item_op_a2 *op = malloc(sizeof(hvm_gen_item_op_a2));
+  op->type = HVM_GEN_OPA2;
   op->op   = HVM_OP_GETLOCAL;
-  op->reg  = reg;
-  op->sym  = sym;
+  op->reg1 = val_reg;
+  op->reg2 = sym_reg;
   GEN_PUSH_ITEM(op);
 }
-void hvm_gen_setlocal(hvm_gen_item_block *block, uint32_t sym, byte reg) {
-  hvm_gen_item_op_b2 *op = malloc(sizeof(hvm_gen_item_op_b2));
-  op->type = HVM_GEN_OPB2;
+void hvm_gen_setlocal(hvm_gen_item_block *block, byte sym_reg, byte val_reg) {
+  hvm_gen_item_op_a2 *op = malloc(sizeof(hvm_gen_item_op_a2));
+  op->type = HVM_GEN_OPA2;
   op->op   = HVM_OP_SETLOCAL;
-  op->sym  = sym;
-  op->reg  = reg;
+  op->reg1 = sym_reg;
+  op->reg2  = val_reg;
   GEN_PUSH_ITEM(op);
 }
 
-void hvm_gen_getglobal(hvm_gen_item_block *block, byte reg, uint32_t sym) {
-  hvm_gen_item_op_b1 *op = malloc(sizeof(hvm_gen_item_op_b1));
-  op->type = HVM_GEN_OPB1;
+void hvm_gen_getglobal(hvm_gen_item_block *block, byte val_reg, byte sym_reg) {
+  hvm_gen_item_op_a2 *op = malloc(sizeof(hvm_gen_item_op_a2));
+  op->type = HVM_GEN_OPA2;
   op->op   = HVM_OP_GETGLOBAL;
-  op->reg  = reg;
-  op->sym  = sym;
+  op->reg1 = val_reg;
+  op->reg2 = sym_reg;
   GEN_PUSH_ITEM(op);
 }
-void hvm_gen_setglobal(hvm_gen_item_block *block, uint32_t sym, byte reg) {
-  hvm_gen_item_op_b2 *op = malloc(sizeof(hvm_gen_item_op_b2));
-  op->type = HVM_GEN_OPB2;
+void hvm_gen_setglobal(hvm_gen_item_block *block, byte sym_reg, byte val_reg) {
+  hvm_gen_item_op_a2 *op = malloc(sizeof(hvm_gen_item_op_a2));
+  op->type = HVM_GEN_OPA2;
   op->op   = HVM_OP_SETGLOBAL;
-  op->sym  = sym;
-  op->reg  = reg;
+  op->reg1 = sym_reg;
+  op->reg2  = val_reg;
   GEN_PUSH_ITEM(op);
 }
 

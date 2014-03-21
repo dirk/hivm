@@ -343,30 +343,34 @@ void hvm_vm_run(hvm_vm *vm) {
       //   const_index = READ_U32(&vm->program[vm->ip + 2]);
       //   vm->general_regs[reg] = hvm_vm_get_const(vm, const_index);
 
-      case HVM_OP_SETLOCAL: // 1B OP | 4B SYM   | 1B REG
-        sym_id = READ_U32(&vm->program[vm->ip + 1]);
-        reg    = vm->program[vm->ip + 5];
-        hvm_set_local(vm->top, sym_id, hvm_vm_register_read(vm, reg));
-        vm->ip += 5;
+      case HVM_OP_SETLOCAL: // 1B OP | 1B REG   | 1B REG (local(A) = B)
+        AREG; BREG;
+        key = hvm_vm_register_read(vm, areg);
+        assert(key->type == HVM_SYMBOL);
+        hvm_set_local(vm->top, key->data.u64, hvm_vm_register_read(vm, breg));
+        vm->ip += 2;
         break;
-      case HVM_OP_GETLOCAL: // 1B OP | 1B REG   | 4B SYM
-        reg    = vm->program[vm->ip + 1];
-        sym_id = READ_U32(&vm->program[vm->ip + 2]);
-        hvm_vm_register_write(vm, reg, hvm_get_local(vm->top, sym_id));
-        vm->ip += 5;
+      case HVM_OP_GETLOCAL: // 1B OP | 1B REG   | 1B REG (A = local(B))
+        AREG; BREG;
+        key = hvm_vm_register_read(vm, breg);
+        assert(key->type == HVM_SYMBOL);
+        hvm_vm_register_write(vm, areg, hvm_get_local(vm->top, key->data.u64));
+        vm->ip += 2;
         break;
 
-      case HVM_OP_SETGLOBAL: // 1B OP | 4B SYM   | 1B REG
-        sym_id = READ_U32(&vm->program[vm->ip + 1]);
-        reg    = vm->program[vm->ip + 5];
-        hvm_set_global(vm, sym_id, hvm_vm_register_read(vm, reg));
-        vm->ip += 5;
+      case HVM_OP_SETGLOBAL: // 1B OP | 1B REG   | 1B REG
+        AREG; BREG;
+        key = hvm_vm_register_read(vm, areg);
+        assert(key->type == HVM_SYMBOL);
+        hvm_set_global(vm, key->data.u64, hvm_vm_register_read(vm, breg));
+        vm->ip += 2;
         break;
-      case HVM_OP_GETGLOBAL: // 1B OP | 1B REG   | 4B SYM
-        reg    = vm->program[vm->ip + 1];
-        sym_id = READ_U32(&vm->program[vm->ip + 2]);
-        hvm_vm_register_write(vm, reg, hvm_get_global(vm, sym_id));
-        vm->ip += 5;
+      case HVM_OP_GETGLOBAL: // 1B OP | 1B REG   | 1B SYM
+        AREG; BREG;
+        key = hvm_vm_register_read(vm, breg);
+        assert(key->type == HVM_SYMBOL);
+        hvm_vm_register_write(vm, areg, hvm_get_global(vm, key->data.u64));
+        vm->ip += 2;
         break;
 
       case HVM_GETCLOSURE: // 1B OP | 1B REG
