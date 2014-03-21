@@ -1,0 +1,21 @@
+---
+layout: default
+name: Introduction
+---
+<div class="page">
+  <h3>Introduction</h3>
+  <p>Virtual machines are complex, intimidating beasts. Although they do provide a level of abstraction from the physical machine, they are by no means high-level computing environments. An understanding of registers, pointers, and stacks is recommended, and having a good grasp of the fetch-execute principles of stored-program computation (specifically the <a href="http://en.wikipedia.org/wiki/Modified_Harvard_architecture">modified Harvard architecture</a>) is also advised.</p>
+  
+  <h4>The virtual machine</h4>
+  <p>The Hivm machine itself is inspired by <strong>reduced instruction set</strong> computing architectures: it only has about 40 instructions. It operates as a <strong>modified Harvard architecture</strong>: the program and the data exist in separate spaces in memory. There are also no instructions for modifying program memory, however primitive subroutines do exist for doing so. This level of abstraction is intended to simplify privilege control and make it easier to execute code at different capability levels.</p>
+  <p>Hivm is a <strong>register machine</strong>. All instructions read and write to registers (there are 3+1 types of registers available). It is designed to have a large number of registers (128 general registers by default), making the need for complex register allocation hopefully unnecessary (that said, a linear scan register allocator tool is being planned to make complex allocation scenarios relatively painless).</p>
+  <h5>Lifecycle</h5>
+  <p>Interacting with the machine follows a fairly standard model:</p>
+  <ol>
+    <li>Initialize the VM (and normally also bootstrap primitive components, however this step is completely optional)</li>
+    <li>Load the core/bootstrap of your own runtime environment into the machine</li>
+    <li>Begin parsing your source(s) and generating bytecode chunks</li>
+    <li>Load bytecode chunks into the machine</li>
+    <li>Run the machine (as the machine is running additional code can be loaded, however this naturally requires pausing execution so it's best to do all loading as early in execution as possible)</li>
+  </ol>
+</div>

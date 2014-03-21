@@ -26,21 +26,23 @@ h3 {
 h4 {
   font-family: Helvetica, Arial, sans-serif; font-size: 1.2em; margin: 1em 0 0.25em 0;
 }
+h5 {font-family: Helvetica, Arial, sans-serif; font-size: 1em; text-transform: uppercase; margin: 1em 0 0.25em 0;}
 
 
 #content {font-size: 1.4em;}
 #content .lead {font-size: 1.4em; margin: 0 0 0.5em 0; line-height: 1.6;}
-#content .sublead {font-size: 1.2em; color: #888; line-height: 1.7;}
+#content .sublead {font-size: 1.2em; color: #888; line-height: 1.7; margin: 0 0 2em 0;}
 #content p {margin-bottom: 1em;}
 #content a {color: #00a;}
 #content span.dir {border-bottom: 1px #ccc dashed; color: #888;}
+#content li {margin-bottom: 0.5em;}
 
 #content dl {margin: 0 0 2em 0;}
 #content dt {font-size: 1.2em; margin-bottom: 0.25em;}
 #content dd {padding-left: 1em; margin-bottom: 0.5em; color: #444;}
 
 #content .highlight {margin-bottom: 1em; padding: 1em 0.5em 0 0.5em; background: #f0f0f0;}
-#content .toc li {margin-bottom: 0.5em;}
+
 #content .toc li a {font-size: 1.2em;}
 
 footer {
