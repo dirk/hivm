@@ -138,6 +138,12 @@ void hvm_print_data(byte *data, uint64_t size) {
       case HVM_OP_DIE:// 1B OP
         printf("die()\n");
         break;
+      case HVM_OP_MOVE:// 1B OP | 1B REG | 1B REG
+        reg1 = data[i + 1];
+        reg2 = data[i + 2];
+        i += 2;
+        printf("$%-3d = $%d\n", reg1, reg2);
+        break;
       case HVM_OP_SETSTRING:// 1B OP | 1B REG  | 4B CONST
         reg1 = data[i + 1];
         u32 = READ_U32(&data[i + 2]);
@@ -189,7 +195,32 @@ void hvm_print_data(byte *data, uint64_t size) {
         reg1 = data[i + 1];
         reg2 = data[i + 2];
         i += 2;
-        printf("setlocal[$%-3d] = $%d\n", reg1, reg2);
+        printf("setlocal[$%d] = $%d\n", reg1, reg2);
+        break;
+      case HVM_OP_GETLOCAL: // 1B OP | 1B REG | 1B REG
+        reg1 = data[i + 1];
+        reg2 = data[i + 2];
+        i += 2;
+        printf("$%-3d = getlocal[$%d]\n", reg1, reg2);
+        break;
+      case HVM_STRUCTGET: // 1B OP | 3B REGS
+        reg1 = data[i + 1];
+        reg2 = data[i + 2];
+        reg3 = data[i + 3];
+        i += 3;
+        printf("$%-3d = $%d.structget[$%d]\n", reg1, reg2, reg3);
+        break;
+      case HVM_STRUCTSET: // 1B OP | 3B REGS
+        reg1 = data[i + 1];
+        reg2 = data[i + 2];
+        reg3 = data[i + 3];
+        i += 3;
+        printf("$%d.structset[$%d] = $%d\n", reg1, reg2, reg3);
+        break;
+      case HVM_STRUCTNEW: // 1B OP | 1B REG
+        reg1 = data[i + 1];
+        i += 1;
+        printf("$%-3d = structnew\n", reg1);
         break;
       default:
         printf("%02X\n", op);
