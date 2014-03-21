@@ -319,7 +319,13 @@ void hvm_vm_run(hvm_vm *vm) {
         hvm_vm_register_write(vm, reg, val);
         vm->ip += 9;
         break;
-      
+
+      case HVM_OP_MOVE: // 1B OP | 1B REG | 1B REG
+        AREG; BREG;
+        hvm_vm_register_write(vm, areg, hvm_vm_register_read(vm, breg));
+        vm->ip += 2;
+        break;
+
       case HVM_OP_SETSTRING:  // 1 = reg, 2-5 = const
       case HVM_OP_SETINTEGER: // 1B OP | 1B REG | 4B CONST
       case HVM_OP_SETFLOAT:
