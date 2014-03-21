@@ -4,3 +4,4 @@ lsi: false
 pygments: true
 source: .
 destination: ./public
+permalink: pretty
