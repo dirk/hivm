@@ -26,6 +26,7 @@ typedef enum {
   HVM_GEN_OPH,  // 1B OP | 1B REG | 4B CONST
 
   HVM_GEN_OPD1_LABEL,
+  HVM_GEN_OPD2_NAME,
   HVM_GEN_OPH_DATA, // 1B OP | 1B REG | [4B CONST]
 
   HVM_GEN_LABEL,
@@ -90,7 +91,7 @@ typedef struct hvm_gen_item_op_d2 {
   HVM_GEN_ITEM_HEAD;
   byte op;
   uint64_t dest;
-  byte ret;
+  byte reg;
 } hvm_gen_item_op_d2;
 typedef struct hvm_gen_item_op_d3 {
   HVM_GEN_ITEM_HEAD;
@@ -129,6 +130,13 @@ typedef struct hvm_gen_item_op_d1_label {
   char* dest;
 } hvm_gen_item_op_d1_label;
 
+typedef struct hvm_gen_item_op_d2_name {
+  HVM_GEN_ITEM_HEAD;
+  byte op;
+  char* name;
+  byte reg;
+} hvm_gen_item_op_d2_name;
+
 typedef enum {
   HVM_GEN_DATA_STRING,
   HVM_GEN_DATA_INTEGER,
@@ -150,6 +158,8 @@ typedef struct hvm_gen_item_op_h_data {
   /// Literal data
   union hvm_gen_item_data data;
 } hvm_gen_item_op_h_data;
+
+
 
 /*
 typedef enum {
@@ -201,6 +211,7 @@ typedef union hvm_gen_item {
   hvm_gen_item_op_h  op_h;
 
   hvm_gen_item_op_d1_label op_d1_label;
+  hvm_gen_item_op_d2_name  op_d2_name;
   hvm_gen_item_op_h_data   op_h_data;
 
   // hvm_gen_item_macro macro;
@@ -233,6 +244,7 @@ void hvm_gen_callsymbolic(hvm_gen_item_block *block, byte sym, byte ret);
 void hvm_gen_callprimitive(hvm_gen_item_block *block, byte sym, byte ret);
 void hvm_gen_if(hvm_gen_item_block *block, byte val, uint64_t dest);
 void hvm_gen_return(hvm_gen_item_block *block, byte reg);
+void hvm_gen_move(hvm_gen_item_block *block, byte dest, byte src);
 
 void hvm_gen_getlocal(hvm_gen_item_block *block, byte val_reg, byte sym_reg);
 void hvm_gen_setlocal(hvm_gen_item_block *block, byte sym_reg, byte val_reg);
@@ -269,5 +281,7 @@ void hvm_gen_set_string(hvm_gen_item_block *block, byte reg, char *string);
 void hvm_gen_set_symbol(hvm_gen_item_block *block, byte reg, char *string);
 void hvm_gen_set_integer(hvm_gen_item_block *block, byte reg, int64_t integer);
 void hvm_gen_sub(hvm_gen_item_block *block, char *name);
+void hvm_gen_push_block(hvm_gen_item_block *block, hvm_gen_item_block *push);
+void hvm_gen_call_sub(hvm_gen_item_block *block, char *name, byte ret);
 
 #endif

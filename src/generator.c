@@ -25,6 +25,7 @@ hvm_gen *hvm_new_gen() {
 
 hvm_gen_item_block *hvm_new_item_block() {
   hvm_gen_item_block *block = malloc(sizeof(hvm_gen_item_block));
+  block->type  = HVM_GEN_BLOCK;
   block->items = g_array_new(TRUE, TRUE, sizeof(hvm_gen_item*));
   return block;
 }
@@ -115,7 +116,7 @@ WRITE_OP(d2) {
   // 1B OP | 8B DEST | 1B RET
   WRITE(0, &op->op, byte);
   WRITE(1, &op->dest, uint64_t);
-  WRITE(9, &op->ret, byte);
+  WRITE(9, &op->reg, byte);
   RELOCATION(1);
   chunk->size += 10;
 }
@@ -164,7 +165,9 @@ void hvm_gen_process_block(hvm_chunk *chunk, struct hvm_gen_data *data, hvm_gen_
 
   unsigned int len = block->items->len;
   unsigned int i;
+  byte op;
   uint64_t *idxptr;
+  uint64_t dest;
   gboolean exists;
   hvm_obj_ref *ref;
 
@@ -174,8 +177,15 @@ void hvm_gen_process_block(hvm_chunk *chunk, struct hvm_gen_data *data, hvm_gen_
     // Processing each item
     hvm_gen_item *item = g_array_index(block->items, hvm_gen_item*, i);
     switch(item->base.type) {
+      case HVM_GEN_BLOCK:
+        hvm_gen_process_block(chunk, data, (hvm_gen_item_block*)item);
+        break;
       case HVM_GEN_SUB:
         hvm_gen_data_add_symbol(data, item->sub.name, idx);
+        // Also add a label for the subroutine
+        idxptr = malloc(sizeof(uint64_t));
+        *idxptr = idx;
+        g_hash_table_replace(labels, item->sub.name, idxptr);
         break;
       case HVM_GEN_LABEL:
         // FIXME: Duplicate labels will leak.
@@ -183,9 +193,9 @@ void hvm_gen_process_block(hvm_chunk *chunk, struct hvm_gen_data *data, hvm_gen_
         *idxptr = idx;
         g_hash_table_replace(labels, item->label.name, idxptr);
         break;
-      case HVM_GEN_BLOCK:
-        hvm_gen_process_block(chunk, data, &item->block);
-        break;
+      // case HVM_GEN_BLOCK:
+      //   hvm_gen_process_block(chunk, data, &item->block);
+      //   break;
       case HVM_GEN_OPA1:
         write_op_a1(chunk, data, &item->op_a1);
         break;
@@ -222,8 +232,8 @@ void hvm_gen_process_block(hvm_chunk *chunk, struct hvm_gen_data *data, hvm_gen_
 
       case HVM_GEN_OPD1_LABEL:
         exists = g_hash_table_lookup_extended(labels, item->op_d1_label.dest, NULL, NULL);
-        byte op = HVM_OP_GOTO;
-        uint64_t dest = 0;
+        op = HVM_OP_GOTO;
+        dest = 0;
         if(exists) {
           idxptr = g_hash_table_lookup(labels, item->op_d1_label.dest);
           dest = *idxptr;
@@ -238,6 +248,27 @@ void hvm_gen_process_block(hvm_chunk *chunk, struct hvm_gen_data *data, hvm_gen_
         RELOCATION(1);
         chunk->size += 9;
         break;
+      case HVM_GEN_OPD2_NAME:
+        exists = g_hash_table_lookup_extended(labels, item->op_d2_name.name, NULL, NULL);
+        op = HVM_OP_CALL;
+        dest = 0;
+        if(exists) {
+          idxptr = g_hash_table_lookup(labels, item->op_d2_name.name);
+          dest = *idxptr;
+        } else {
+          struct label_use *use = malloc(sizeof(struct label_use));
+          use->name = item->op_d1_label.dest;
+          use->idx  = chunk->size + 1;// Add one for the byte for the op.
+          label_uses = g_list_prepend(label_uses, use);
+        }
+        byte reg = item->op_d2_name.reg;
+        WRITE(0, &op, byte);
+        WRITE(1, &dest, uint64_t);
+        WRITE(9, &reg, byte);
+        RELOCATION(1);
+        chunk->size += 10;
+        break;
+        
       case HVM_GEN_OPH_DATA:
         ref = hvm_new_obj_ref();
         hvm_chunk_constant *cnst = malloc(sizeof(hvm_chunk_constant));
@@ -372,15 +403,15 @@ void hvm_gen_goto(hvm_gen_item_block *block, uint64_t dest) {
 void hvm_gen_call(hvm_gen_item_block *block, uint64_t dest, byte ret) {
   hvm_gen_item_op_d2 *call = malloc(sizeof(hvm_gen_item_op_d2));
   call->type = HVM_GEN_OPD2;
-  call->op = HVM_OP_GOTO;
+  call->op = HVM_OP_CALL;
   call->dest = dest;
-  call->ret  = ret;
+  call->reg  = ret;
   GEN_PUSH_ITEM(call);
 }
 void hvm_gen_if(hvm_gen_item_block *block, byte val, uint64_t dest) {
   hvm_gen_item_op_d3 *i = malloc(sizeof(hvm_gen_item_op_d3));
   i->type = HVM_GEN_OPD2;
-  i->op = HVM_OP_GOTO;
+  i->op = HVM_OP_IF;
   i->val  = val;
   i->dest = dest;
   GEN_PUSH_ITEM(i);
@@ -409,6 +440,15 @@ void hvm_gen_return(hvm_gen_item_block *block, byte reg) {
   op->type = HVM_GEN_OPA1;
   op->op   = HVM_OP_RETURN;
   op->reg1 = reg;
+  GEN_PUSH_ITEM(op);
+}
+// 1B OP | 1B REG | 1B REG
+void hvm_gen_move(hvm_gen_item_block *block, byte dest, byte src) {
+  hvm_gen_item_op_a2 *op = malloc(sizeof(hvm_gen_item_op_a2));
+  op->type = HVM_GEN_OPA2;
+  op->op   = HVM_OP_MOVE;
+  op->reg1 = dest;
+  op->reg2 = src;
   GEN_PUSH_ITEM(op);
 }
 
@@ -571,7 +611,7 @@ void hvm_gen_structset(hvm_gen_item_block *block, byte strct, byte key, byte val
 // 1B OP | 1B REG
 void hvm_gen_structnew(hvm_gen_item_block *block, byte reg) {
   hvm_gen_item_op_a1 *op = malloc(sizeof(hvm_gen_item_op_a1));
-  op->type = HVM_GEN_OPA2;
+  op->type = HVM_GEN_OPA1;
   op->op   = HVM_STRUCTNEW;
   op->reg1 = reg;
   GEN_PUSH_ITEM(op);
@@ -649,5 +689,17 @@ void hvm_gen_sub(hvm_gen_item_block *block, char *name) {
   sub->type = HVM_GEN_SUB;
   sub->name = gen_strclone(name);
   GEN_PUSH_ITEM(sub);
+}
+void hvm_gen_call_sub(hvm_gen_item_block *block, char *name, byte ret) {
+  hvm_gen_item_op_d2_name *call = malloc(sizeof(hvm_gen_item_op_d2_name));
+  call->type = HVM_GEN_OPD2_NAME;
+  call->op = HVM_OP_CALL;
+  call->name = name;
+  call->reg  = ret;
+  GEN_PUSH_ITEM(call);
+}
+
+void hvm_gen_push_block(hvm_gen_item_block *block, hvm_gen_item_block *push) {
+  GEN_PUSH_ITEM(push);
 }
 
