@@ -191,6 +191,12 @@ void hvm_print_data(byte *data, uint64_t size) {
         i += 1;
         printf("return($%d)\n", reg1);
         break;
+      case HVM_OP_SETGLOBAL: // 1B OP | 1B REG | 1B REG
+        reg1 = data[i + 1];
+        reg2 = data[i + 2];
+        i += 2;
+        printf("setglobal[$%d] = $%d\n", reg1, reg2);
+        break;
       case HVM_OP_SETLOCAL: // 1B OP | 1B REG | 1B REG
         reg1 = data[i + 1];
         reg2 = data[i + 2];

@@ -1,6 +1,6 @@
-# Instruction Set
+### Instruction set
 
-## Array instructions
+#### Array instructions
 
 `arraypush A B`
 :  Push B onto the end of array A.
@@ -26,7 +26,7 @@
 `arraynew A L`
 :  Create a new array in A with length of non-negative integer L ($zero is allowed).
 
-## Structure operations
+#### Structure operations
 
 `structset S K V`
 :  Set key symbol (non-negative integer) K in struct S to value V.
@@ -43,7 +43,7 @@
 `structnew S`
 :  Create a new struct in register S.
 
-## Control flow & subroutines
+#### Control flow & subroutines
 
 `call SUB RET`
 :  Invoke the subroutine at SUB. RET can be a register for return or $null for no return or ignoring return.
@@ -72,7 +72,7 @@
 `if COND DEST`
 :  Jump to DEST if COND is truthy (not null and not a zero integer).
 
-## Exceptions
+#### Exceptions
 
 `catch DEST EXC`
 :  Register an exception handler for the current stack frame at destination DEST. If the handler is invoked then the exception will be placed in register EXC (can be $null).
@@ -86,7 +86,7 @@
 `rethrow EXC`
 :  Reraise an exception (will preserve the stack trace from the exception structure's point of origin instead of wherever the current handler is).
 
-## Constant assignment
+#### Constant assignment
 
 NOTE: May want to make a `setconstant` instruction available.
 
@@ -108,12 +108,12 @@ NOTE: May want to make a `setconstant` instruction available.
 `setnull A`
 :  Set register A to null.
 
-## Literal assignment
+#### Literal assignment
 
 `litinteger A I`
 :  Set A to literal integer I.
 
-## Miscellaneous
+#### Miscellaneous
 
 `noop`
 :  Do nothing for a wee bit of time.
@@ -124,7 +124,10 @@ NOTE: May want to make a `setconstant` instruction available.
 `symbolicate SYM STR`
 :  Look up the symbol ID for the string in STR and update SYM with that value.
 
-## Local/global variables
+`move A B`
+:  A = B
+
+#### Local/global variables
 
 `setlocal N V`
 :  Sets a local by symbol name N with value V.
@@ -141,14 +144,14 @@ NOTE: May want to make a `setconstant` instruction available.
 `findlexical V N`
 :  **Slow stack search operation.** Climb the stack searching for a local by symbol name N; if found store in V.
 
-### Closures
+##### Closures
 
 `getclosure A`
 :   Get the current scope as a closure-structure.  
     **Warning**: These will probably be not-very-performant since it will (in
     the unoptimized case) probably end up compacting and copying the stack.
 
-## Math
+#### Math
 
 `add A B C`
 :  A = B + C
@@ -165,7 +168,7 @@ NOTE: May want to make a `setconstant` instruction available.
 `mod A B C`
 :  A = B % C
 
-## Bitwise
+#### Bitwise
 
 `and A B C`
 :  A = B & C
