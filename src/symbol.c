@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <assert.h>
@@ -36,6 +37,7 @@ hvm_symbol_store_entry *hvm_symbol_store_add(hvm_symbol_store *st, char *value) 
   }
   st->symbols[id] = entry;
   st->next_id += 1;
+  // fprintf(stderr, "symbol_add: %llu = %s\n", entry->id, entry->value);
   return entry;
 }
 
@@ -51,4 +53,16 @@ hvm_symbol_id hvm_symbolicate(hvm_symbol_store *st, char *value) {
   }
   entry = hvm_symbol_store_add(st, value);
   return entry->id;
+}
+
+char *hvm_desymbolicate(hvm_symbol_store *st, hvm_symbol_id id) {
+  hvm_symbol_store_entry *entry;
+  hvm_symbol_id i;
+  for(i = 1; i < st->next_id; i++) {
+    entry = st->symbols[i];
+    if(id == entry->id) {
+      return entry->value;
+    }
+  }
+  return NULL;
 }

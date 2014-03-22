@@ -98,6 +98,7 @@ void hvm_obj_struct_internal_set(hvm_obj_struct*, hvm_symbol_id, hvm_obj_ref*);
 void hvm_obj_struct_set(hvm_obj_ref*, hvm_obj_ref*, hvm_obj_ref*);
 hvm_obj_ref* hvm_obj_struct_get(hvm_obj_ref*, hvm_obj_ref*);
 hvm_obj_ref* hvm_obj_struct_delete(hvm_obj_ref*, hvm_obj_ref*);
+void hvm_obj_print_structure(hvm_vm *vm, hvm_obj_struct *strct);
 
 hvm_obj_ref *hvm_new_obj_ref();
 void hvm_obj_ref_set_string(hvm_obj_ref*, hvm_obj_string*);

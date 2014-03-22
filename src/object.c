@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <assert.h>
 
 #include <glib.h>
@@ -226,20 +227,62 @@ void hvm_obj_struct_internal_set(hvm_obj_struct *strct, hvm_symbol_id id, hvm_ob
   strct->heap_length += 1;
 }
 hvm_obj_ref *hvm_obj_struct_internal_get(hvm_obj_struct *strct, hvm_symbol_id id) {
+  /*
   // Start at the top
   unsigned int idx = 0;
   hvm_symbol_id i;
   while(idx < strct->heap_length) {
     i = strct->heap[idx]->id;
+    fprintf(stderr, "idx: %u, i: %llu, id: %llu\n", idx, i, id);
     if(i == id) {
       return strct->heap[idx]->obj;
-    } else if(i > id) {
-      idx = 2 * idx;// Left child
+    } else if(i < id) {
+      idx = (2 * idx) + 1;// Left child
     } else {
-      idx = (2 * idx) + 1;// Right child
+      idx = (2 * idx) + 2;// Right child
+    }
+  }
+  */
+  if(strct->heap_length == 0) { return NULL; }
+
+  // Using binary search
+  unsigned int min, max, mid;
+  hvm_symbol_id i;
+
+  min = 0;
+  max = strct->heap_length - 1;
+  while(min < max) {
+    // Calculate midpoint of current range
+    mid = min + ((max - min) / 2);
+    // Sanity check
+    assert(mid < max);
+    // Branching to halves
+    i = strct->heap[mid]->id;
+    if(i < id) {
+      // If the middle is less than the target take the right half.
+      min = mid + 1;
+    } else {
+      max = mid;
+    }
+  }
+  if(max == min) {
+    i = strct->heap[min]->id;
+    if(i == id) {
+      return strct->heap[min]->obj;
     }
   }
   return NULL;
+}
+
+void hvm_obj_print_structure(hvm_vm *vm, hvm_obj_struct *strct) {
+  hvm_obj_struct_heap_pair *pair;
+  unsigned int idx = 0;
+  fprintf(stderr, "struct(%p):\n", strct);
+  while(idx < strct->heap_length) {
+    pair = strct->heap[idx];
+    fprintf(stderr, "  %llu = %p (sym: %s)\n", pair->id, pair->obj, hvm_desymbolicate(vm->symbols, pair->id));
+    idx++;
+  }
 }
 
 hvm_obj_ref *hvm_new_obj_ref() {

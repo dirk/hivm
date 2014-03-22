@@ -34,4 +34,6 @@ hvm_symbol_store *hvm_new_symbol_store();
 /// @returns  Symbol ID for the string
 hvm_symbol_id hvm_symbolicate(hvm_symbol_store*, char*);
 
+char *hvm_desymbolicate(hvm_symbol_store *st, hvm_symbol_id id);
+
 #endif
