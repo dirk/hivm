@@ -110,6 +110,7 @@ void hvm_vm_load_chunk(hvm_vm *vm, void *cv) {
 hvm_obj_ref *hvm_vm_call_primitive(hvm_vm *vm, hvm_symbol_id sym_id) {
   hvm_obj_ref* (*prim)(hvm_vm *vm);
 
+  // hvm_obj_print_structure(vm, vm->primitives);
   void *pv = hvm_obj_struct_internal_get(vm->primitives, sym_id);
   assert(pv != NULL);
   prim = pv;
@@ -206,10 +207,10 @@ void hvm_vm_run(hvm_vm *vm) {
     instr = vm->program[vm->ip];
     switch(instr) {
       case HVM_OP_NOOP:
-        fprintf(stderr, "NOOP\n");
+        // fprintf(stderr, "NOOP\n");
         break;
       case HVM_OP_DIE:
-        fprintf(stderr, "DIE\n");
+        // fprintf(stderr, "DIE\n");
         goto end;
       case HVM_OP_TAILCALL: // 1B OP | 8B DEST
         dest = READ_U64(&vm->program[vm->ip + 1]);
@@ -237,10 +238,14 @@ void hvm_vm_run(hvm_vm *vm) {
         key = hvm_vm_register_read(vm, areg);// This is the symbol we need to look up.
         assert(key->type == HVM_SYMBOL);
         sym_id = key->data.u64;
+        // fprintf(stderr, "0x%08llX  ", vm->ip);
+        // fprintf(stderr, "sym: %llu -> %s\n", sym_id, hvm_desymbolicate(vm->symbols, sym_id));
+        // hvm_obj_print_structure(vm, vm->symbol_table);
         val    = hvm_obj_struct_internal_get(vm->symbol_table, sym_id);
+        // fprintf(stderr, "val: %p\n", val);
         dest   = val->data.u64;
         assert(val->type == HVM_INTERNAL);
-        fprintf(stderr, "CALLSYMBOLIC(0x%08llX, $%d)\n", dest, breg);
+        // fprintf(stderr, "CALLSYMBOLIC(0x%08llX, $%d)\n", dest, breg);
         frame = hvm_new_frame();
         frame->return_addr = vm->ip + 3;// Instruction is 3 bytes long
         frame->return_register = breg;
@@ -271,7 +276,7 @@ void hvm_vm_run(hvm_vm *vm) {
         vm->stack_depth -= 1;
         vm->top = vm->stack[vm->stack_depth];
         hvm_vm_register_write(vm, frame->return_register, hvm_vm_register_read(vm, reg));
-        fprintf(stderr, "RETURN(0x%08llX) $%d -> $%d\n", frame->return_addr, reg, frame->return_register);
+        // fprintf(stderr, "RETURN(0x%08llX) $%d -> $%d\n", frame->return_addr, reg, frame->return_register);
         continue;
       case HVM_OP_JUMP: // 1B OP | 4B DIFF
         diff = READ_I32(&vm->program[vm->ip + 1]);
@@ -305,7 +310,7 @@ void hvm_vm_run(hvm_vm *vm) {
         assert(key->type == HVM_SYMBOL);
         sym_id = key->data.u64;
         hvm_vm_copy_regs(vm);
-        fprintf(stderr, "CALLPRIMITIVE(%lld, $%d)\n", sym_id, breg);
+        // fprintf(stderr, "CALLPRIMITIVE(%lld, $%d)\n", sym_id, breg);
         val = hvm_vm_call_primitive(vm, sym_id);
         hvm_vm_register_write(vm, breg, val);
         vm->ip += 2;
@@ -334,7 +339,8 @@ void hvm_vm_run(hvm_vm *vm) {
         // TODO: Type-checking
         reg         = vm->program[vm->ip + 1];
         const_index = READ_U32(&vm->program[vm->ip + 2]);
-        fprintf(stderr, "SET $%u = const(%u)\n", reg, const_index);
+        // fprintf(stderr, "0x%08llX  ", vm->ip);
+        // fprintf(stderr, "SET $%u = const(%u)\n", reg, const_index);
         hvm_vm_register_write(vm, reg, hvm_vm_get_const(vm, const_index));
         vm->ip += 5;
         break;
@@ -484,6 +490,9 @@ void hvm_vm_run(hvm_vm *vm) {
         key   = hvm_vm_register_read(vm, breg);
         val   = hvm_vm_register_read(vm, creg);
         hvm_obj_struct_set(strct, key, val);
+        // fprintf(stderr, "0x%08llX  ", vm->ip);
+        // fprintf(stderr, "STRUCTSET $%u = $%u[$%u(%llu)]\n", areg, breg, creg, key->data.u64);
+        // hvm_obj_print_structure(vm, strct->data.v);
         vm->ip += 3;
         break;
       case HVM_STRUCTGET:
@@ -491,7 +500,14 @@ void hvm_vm_run(hvm_vm *vm) {
         AREG; BREG; CREG;
         strct = hvm_vm_register_read(vm, breg);
         key   = hvm_vm_register_read(vm, creg);
-        hvm_vm_register_write(vm, areg, hvm_obj_struct_get(strct, key));
+        assert(strct->type == HVM_STRUCTURE);
+        assert(key->type == HVM_SYMBOL);
+        // fprintf(stderr, "0x%08llX  ", vm->ip);
+        // fprintf(stderr, "STRUCTGET $%u = $%u[$%u(%llu)]\n", areg, breg, creg, key->data.u64);
+        // hvm_obj_print_structure(vm, strct->data.v);
+        val = hvm_obj_struct_get(strct, key);
+        assert(val != NULL);
+        hvm_vm_register_write(vm, areg, val);
         vm->ip += 3;
         break;
       case HVM_STRUCTDELETE:

@@ -75,7 +75,7 @@ void test_generator() {
   hvm_gen_set_symbol(gen->block, sym, "_js_new_object");
   hvm_gen_callsymbolic(gen->block, sym, func); // Func will be object struct
   // Now set the internal symbol
-  hvm_gen_set_symbol(gen->block, sym, "_Js_symbol");
+  hvm_gen_set_symbol(gen->block, sym, "_js_symbol");
   hvm_gen_structset(gen->block, func, sym, arg_sym);
   hvm_gen_return(gen->block, func);
 
