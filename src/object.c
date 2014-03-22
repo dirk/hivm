@@ -218,7 +218,7 @@ void hvm_obj_struct_internal_set(hvm_obj_struct *strct, hvm_symbol_id id, hvm_ob
   // Start at the bottom
   unsigned int idx = strct->heap_length;
   // Swap with parent if it's less than its parent
-  while(idx > 0 && strct->heap[idx / 2]->id < id) {
+  while(idx > 0 && id < strct->heap[idx / 2]->id) {
     strct->heap[idx] = strct->heap[idx / 2];
     idx = idx / 2;
   }
@@ -233,7 +233,7 @@ hvm_obj_ref *hvm_obj_struct_internal_get(hvm_obj_struct *strct, hvm_symbol_id id
     i = strct->heap[idx]->id;
     if(i == id) {
       return strct->heap[idx]->obj;
-    } else if(i < id) {
+    } else if(i > id) {
       idx = 2 * idx;// Left child
     } else {
       idx = (2 * idx) + 1;// Right child

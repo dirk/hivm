@@ -268,7 +268,7 @@ void hvm_gen_process_block(hvm_chunk *chunk, struct hvm_gen_data *data, hvm_gen_
         RELOCATION(1);
         chunk->size += 10;
         break;
-        
+
       case HVM_GEN_OPH_DATA:
         ref = hvm_new_obj_ref();
         hvm_chunk_constant *cnst = malloc(sizeof(hvm_chunk_constant));
