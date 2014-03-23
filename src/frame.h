@@ -25,6 +25,7 @@ typedef struct hvm_location {
 
 /// @memberof hvm_frame
 hvm_frame *hvm_new_frame();
+void hvm_frame_initialize(hvm_frame *frame);
 
 hvm_location *hvm_new_location();
 

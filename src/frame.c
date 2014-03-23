@@ -7,11 +7,14 @@
 
 hvm_frame *hvm_new_frame() {
   hvm_frame *frame = malloc(sizeof(hvm_frame));
+  hvm_frame_initialize(frame);
+  return frame;
+}
+void hvm_frame_initialize(hvm_frame *frame) {
   frame->current_addr = 0;
   frame->return_addr = 0;
   frame->return_register = 0;
   frame->locals = hvm_new_obj_struct();
-  return frame;
 }
 
 hvm_location *hvm_new_location() {

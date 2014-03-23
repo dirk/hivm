@@ -44,11 +44,11 @@ hvm_vm *hvm_new_vm() {
   vm->symbols = hvm_new_symbol_store();
   vm->primitives = hvm_new_obj_struct();
 
-  vm->stack = calloc(HVM_STACK_SIZE, sizeof(struct hvm_frame*));
+  vm->stack = calloc(HVM_STACK_SIZE, sizeof(struct hvm_frame));
   vm->stack_depth = 0;
-  vm->root = hvm_new_frame();
-  vm->stack[0] = vm->root;
-  vm->top = vm->stack[0];
+  hvm_frame_initialize(&vm->stack[0]);
+  vm->root = &vm->stack[0];
+  vm->top = &vm->stack[0];
 
   vm->exception = NULL;
   vm->debug_entries_capacity = HVM_DEBUG_ENTRIES_INITIAL_CAPACITY;
@@ -281,24 +281,29 @@ void hvm_vm_run(hvm_vm *vm) {
         goto end;
       case HVM_OP_TAILCALL: // 1B OP | 8B DEST
         dest = READ_U64(&vm->program[vm->ip + 1]);
+        // Copy important bits from parent.
         parent_frame = vm->top;
-        frame        = hvm_new_frame();
-        frame->return_addr     = parent_frame->return_addr;
-        frame->return_register = parent_frame->return_register;
+        uint64_t parent_ret_addr = parent_frame->return_addr;
+        byte     parent_ret_reg  = parent_frame->return_register;
+        // Overwrite current frame (ie. parent).
+        frame = &vm->stack[vm->stack_depth];
+        hvm_frame_initialize(frame);
+        frame->return_addr     = parent_ret_addr;
+        frame->return_register = parent_ret_reg;
         hvm_vm_copy_regs(vm);
         vm->ip = dest;
-        vm->top = (vm->stack[vm->stack_depth] = frame);
         continue;
       case HVM_OP_CALL: // 1B OP | 8B DEST | 1B REG
         dest = READ_U64(&vm->program[vm->ip + 1]);
         reg  = vm->program[vm->ip + 9];
-        frame = hvm_new_frame();
+        vm->stack_depth += 1;
+        frame = &vm->stack[vm->stack_depth];
+        hvm_frame_initialize(frame);
         frame->return_addr     = vm->ip + 10; // Instruction is 10 bytes long.
         frame->return_register = reg;
         hvm_vm_copy_regs(vm);
         vm->ip = dest;
-        vm->stack_depth += 1;
-        vm->top = (vm->stack[vm->stack_depth] = frame);
+        vm->top = frame;
         continue;
       case HVM_OP_CALLSYMBOLIC:// 1B OP | 1B REG | 1B REG
         AREG; BREG;
@@ -313,13 +318,14 @@ void hvm_vm_run(hvm_vm *vm) {
         dest   = val->data.u64;
         assert(val->type == HVM_INTERNAL);
         // fprintf(stderr, "CALLSYMBOLIC(0x%08llX, $%d)\n", dest, breg);
-        frame = hvm_new_frame();
+        vm->stack_depth += 1;
+        frame = &vm->stack[vm->stack_depth];
+        hvm_frame_initialize(frame);
         frame->return_addr = vm->ip + 3;// Instruction is 3 bytes long
         frame->return_register = breg;
         hvm_vm_copy_regs(vm);
         vm->ip = dest;
-        vm->stack_depth += 1;
-        vm->top = (vm->stack[vm->stack_depth] = frame);
+        vm->top = frame;
         continue;
 
       case HVM_OP_CALLADDRESS: // 1B OP | 1B REG | 1B REG
@@ -328,12 +334,14 @@ void hvm_vm_run(hvm_vm *vm) {
         assert(val->type == HVM_INTEGER);
         dest = (uint64_t)val->data.i64;
         reg  = vm->program[vm->ip + 2]; // Return register now
-        frame = hvm_new_frame();
+        vm->stack_depth += 1;
+        frame = &vm->stack[vm->stack_depth];
+        hvm_frame_initialize(frame);
         frame->return_addr     = vm->ip + 3; // Instruction 3 bytes long.
         frame->return_register = reg;
         vm->ip = dest;
-        vm->stack_depth += 1;
-        vm->top = (vm->stack[vm->stack_depth] = frame);
+        vm->ip = dest;
+        vm->top = frame;
         continue;
       case HVM_OP_RETURN: // 1B OP | 1B REG
         reg = vm->program[vm->ip + 1];
@@ -341,7 +349,7 @@ void hvm_vm_run(hvm_vm *vm) {
         frame = vm->top;
         vm->ip = frame->return_addr;
         vm->stack_depth -= 1;
-        vm->top = vm->stack[vm->stack_depth];
+        vm->top = &vm->stack[vm->stack_depth];
         hvm_vm_register_write(vm, frame->return_register, hvm_vm_register_read(vm, reg));
         // fprintf(stderr, "RETURN(0x%08llX) $%d -> $%d\n", frame->return_addr, reg, frame->return_register);
         continue;

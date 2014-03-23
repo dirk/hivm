@@ -37,7 +37,7 @@ hvm_chunk_debug_entry *hvm_vm_find_debug_entry(hvm_vm *vm, uint64_t ip) {
 void hvm_exception_build_backtrace(hvm_exception *exc, hvm_vm *vm) {
   uint32_t i = vm->stack_depth;
   while(1) {
-    hvm_frame* frame = vm->stack[i];
+    hvm_frame* frame = &vm->stack[i];
     uint64_t ip = frame->current_addr;
 
     hvm_chunk_debug_entry *de = hvm_vm_find_debug_entry(vm, ip);
