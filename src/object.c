@@ -123,11 +123,10 @@ hvm_obj_ref *hvm_new_obj_int() {
   return ref;
 }
 
+#define INT_TYPE_CHECK if(a->type != HVM_INTEGER || b->type != HVM_INTEGER) { return NULL; }
+
 hvm_obj_ref *hvm_obj_int_add(hvm_obj_ref *a, hvm_obj_ref *b) {
-  // Type-checks
-  assert(a->type == HVM_INTEGER);
-  assert(b->type == HVM_INTEGER);
-  
+  INT_TYPE_CHECK;
   hvm_obj_ref *c = hvm_new_obj_ref();
   int64_t av, bv, cv;
   av = a->data.i64;
@@ -138,10 +137,7 @@ hvm_obj_ref *hvm_obj_int_add(hvm_obj_ref *a, hvm_obj_ref *b) {
   return c;
 }
 hvm_obj_ref *hvm_obj_int_sub(hvm_obj_ref *a, hvm_obj_ref *b) {
-  // Type-checks
-  assert(a->type == HVM_INTEGER);
-  assert(b->type == HVM_INTEGER);
-  
+  INT_TYPE_CHECK;
   hvm_obj_ref *c = hvm_new_obj_ref();
   int64_t av, bv, cv;
   av = a->data.i64;
@@ -152,10 +148,7 @@ hvm_obj_ref *hvm_obj_int_sub(hvm_obj_ref *a, hvm_obj_ref *b) {
   return c;
 }
 hvm_obj_ref *hvm_obj_int_mul(hvm_obj_ref *a, hvm_obj_ref *b) {
-  // Type-checks
-  assert(a->type == HVM_INTEGER);
-  assert(b->type == HVM_INTEGER);
-  
+  INT_TYPE_CHECK;
   hvm_obj_ref *c = hvm_new_obj_ref();
   int64_t av, bv, cv;
   av = a->data.i64;
@@ -166,10 +159,7 @@ hvm_obj_ref *hvm_obj_int_mul(hvm_obj_ref *a, hvm_obj_ref *b) {
   return c;
 }
 hvm_obj_ref *hvm_obj_int_div(hvm_obj_ref *a, hvm_obj_ref *b) {
-  // Type-checks
-  assert(a->type == HVM_INTEGER);
-  assert(b->type == HVM_INTEGER);
-  
+  INT_TYPE_CHECK;
   hvm_obj_ref *c = hvm_new_obj_ref();
   int64_t av, bv, cv;
   av = a->data.i64;
@@ -180,10 +170,7 @@ hvm_obj_ref *hvm_obj_int_div(hvm_obj_ref *a, hvm_obj_ref *b) {
   return c;
 }
 hvm_obj_ref *hvm_obj_int_mod(hvm_obj_ref *a, hvm_obj_ref *b) {
-  // Type-checks
-  assert(a->type == HVM_INTEGER);
-  assert(b->type == HVM_INTEGER);
-  
+  INT_TYPE_CHECK;
   hvm_obj_ref *c = hvm_new_obj_ref();
   int64_t av, bv, cv;
   av = a->data.i64;

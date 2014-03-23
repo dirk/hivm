@@ -486,6 +486,20 @@ void hvm_vm_run(hvm_vm *vm) {
         else if(instr == HVM_OP_MUL) { a = hvm_obj_int_mul(b, c); }
         else if(instr == HVM_OP_DIV) { a = hvm_obj_int_div(b, c); }
         else if(instr == HVM_OP_MOD) { a = hvm_obj_int_mod(b, c); }
+        if(a == NULL) {
+          // Bad type
+          hvm_exception  *exc = hvm_new_exception();
+          char *msg = "Operands must be integers";
+          hvm_obj_ref *obj = hvm_new_obj_ref_string_data(hvm_util_strclone(msg));
+          exc->message = obj;
+
+          hvm_location *loc = hvm_new_location();
+          loc->name = hvm_util_strclone("hvm_obj_int_op");
+          hvm_exception_push_location(exc, loc);
+
+          vm->exception = exc;
+          goto handle_exception;
+        }
         hvm_vm_register_write(vm, areg, a);
         vm->ip += 3;
         break;
