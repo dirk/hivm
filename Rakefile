@@ -10,7 +10,7 @@ $cflags  = "-g -fPIC -Wall -Wextra -Wconversion -std=c99 -I. #{include_env 'CFLA
 def cflags_for file
   basename = File.basename file
   cflags = $cflags
-  if basename == "object.o" || basename == "generator.o"
+  if basename == "object.o" || basename == "generator.o" || basename == "exception.o"
     cflags += " #{`pkg-config --cflags glib-2.0`.strip}"
   end
   if basename == "libhivm.so"
@@ -33,7 +33,8 @@ headers = {
   "symbol" => "hvm_symbol",
   "chunk"  => "hvm_chunk",
   "generator" => "hvm_generator",
-  "bootstrap" => "hvm_bootstrap"
+  "bootstrap" => "hvm_bootstrap",
+  "exception" => "hvm_exception.h"
 }
 headers.each do |src, dst|
   file "include/#{dst}.h" => "src/#{src}.h" do |t|
@@ -49,7 +50,7 @@ end
 objects = [
   # Source
   'src/vm.o', 'src/object.o', 'src/symbol.o', 'src/frame.o', 'src/chunk.o',
-  'src/generator.o', 'src/bootstrap.o'
+  'src/generator.o', 'src/bootstrap.o', 'src/exception.o'
 ]
 
 # desc "Compile"

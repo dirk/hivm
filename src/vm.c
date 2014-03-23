@@ -7,6 +7,7 @@
 #include "symbol.h"
 #include "object.h"
 #include "frame.h"
+#include "exception.h"
 #include "chunk.h"
 // #include "generator.h"
 
@@ -20,6 +21,13 @@ struct hvm_obj_ref* hvm_const_zero = &(hvm_obj_ref){
   .data.i64 = 0,
   .flags = HVM_OBJ_FLAG_CONSTANT
 };
+
+char *hvm_util_strclone(char *str) {
+  size_t len = strlen(str);
+  char  *clone = malloc(sizeof(char) * (size_t)(len + 1));
+  strcpy(clone, str);
+  return clone;
+}
 
 hvm_vm *hvm_new_vm() {
   hvm_vm *vm = malloc(sizeof(hvm_vm));
@@ -41,6 +49,8 @@ hvm_vm *hvm_new_vm() {
   vm->root = hvm_new_frame();
   vm->stack[0] = vm->root;
   vm->top = vm->stack[0];
+
+  vm->exception = NULL;
 
   return vm;
 }
@@ -74,7 +84,6 @@ void hvm_vm_load_chunk_constants(hvm_vm *vm, uint64_t start, hvm_chunk_constant 
 
     consts++;
   }
-  printf("\n");
 }
 void hvm_vm_load_chunk_relocations(hvm_vm *vm, uint64_t start, hvm_chunk_relocation **relocs) {
   hvm_chunk_relocation *reloc;
@@ -112,7 +121,20 @@ hvm_obj_ref *hvm_vm_call_primitive(hvm_vm *vm, hvm_symbol_id sym_id) {
 
   // hvm_obj_print_structure(vm, vm->primitives);
   void *pv = hvm_obj_struct_internal_get(vm->primitives, sym_id);
-  assert(pv != NULL);
+  if(pv == NULL) {
+    // Primitive not found
+    hvm_exception  *exc = hvm_new_exception();
+    hvm_obj_ref    *obj = hvm_new_obj_ref();
+    hvm_obj_string *str = hvm_new_obj_string();
+    char buff[256];// TODO: Fix buffer overflow!
+    strcat(buff, "Primitive not found: ");
+    strcat(buff, hvm_desymbolicate(vm->symbols, sym_id));
+    str->data = hvm_util_strclone(buff);
+    hvm_obj_ref_set_string(obj, str);
+    exc->message = obj;
+    vm->exception = exc;
+    return NULL;
+  }
   prim = pv;
   // Invoke the actual primitive
   return prim(vm);
@@ -193,6 +215,8 @@ __attribute__((always_inline)) void hvm_vm_copy_regs(hvm_vm *vm) {
 #define BREG breg = vm->program[vm->ip + 2];
 #define CREG creg = vm->program[vm->ip + 3];
 
+#define CHECK_EXCEPTION if(vm->exception != NULL) { goto handle_exception; }
+
 void hvm_vm_run(hvm_vm *vm) {
   byte instr;
   uint32_t const_index;
@@ -202,6 +226,7 @@ void hvm_vm_run(hvm_vm *vm) {
   unsigned char reg, areg, breg, creg;
   hvm_obj_ref *a, *b, *c, *arr, *idx, *key, *val, *strct;
   hvm_frame *frame, *parent_frame;
+  hvm_exception *exc;
 
   for(; vm->ip < vm->program_size;) {
     instr = vm->program[vm->ip];
@@ -312,6 +337,7 @@ void hvm_vm_run(hvm_vm *vm) {
         hvm_vm_copy_regs(vm);
         // fprintf(stderr, "CALLPRIMITIVE(%lld, $%d)\n", sym_id, breg);
         val = hvm_vm_call_primitive(vm, sym_id);
+        CHECK_EXCEPTION;
         hvm_vm_register_write(vm, breg, val);
         vm->ip += 2;
         break;
@@ -543,6 +569,14 @@ void hvm_vm_run(hvm_vm *vm) {
 end:
   return;
   //pass
+handle_exception:
+  exc = vm->exception;
+  assert(exc != NULL);
+  val = exc->message;
+  hvm_obj_string *str = val->data.v;
+  fprintf(stderr, "Exception: %s\n", str->data);
+  return;
+
 }
 
 struct hvm_obj_ref* hvm_vm_get_const(hvm_vm *vm, uint32_t id) {

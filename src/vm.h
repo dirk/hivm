@@ -74,6 +74,9 @@ typedef struct hvm_vm {
   /// Index of the current stack frame (total frames = stack_depth + 1)
   uint32_t stack_depth;
 
+  // Current exception (NULL for no exception)
+  struct hvm_exception *exception;
+
   /// Instruction pointer (indexes bytes in the program)
   uint64_t ip;
   /// Data for instructions
@@ -91,8 +94,7 @@ typedef struct hvm_vm {
   struct hvm_obj_ref* general_regs[HVM_GENERAL_REGISTERS];
   struct hvm_obj_ref* arg_regs[HVM_ARGUMENT_REGISTERS];
   struct hvm_obj_ref* param_regs[HVM_PARAMETER_REGISTERS];
-  // heap
-  // object space
+
   /// VM-wide global variables
   struct hvm_obj_struct *globals;
   /// Symbol lookup
