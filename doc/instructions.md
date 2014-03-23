@@ -85,11 +85,18 @@ name: Instruction set
 `throw EXC`
 :  Raise an exception.
 
+`clearexception`
+:  Clear the current exception and continue execution.
+
 `continue`
-:  Can be called from an exception handler to attempt to continue from an exception. (Warning: Dangerous!)
+:  **Note**: Currently not implemented and likely to be removed.
+   Can be called from an exception handler to attempt to continue from an exception. (Warning: Dangerous!)
 
 `rethrow EXC`
 :  Reraise an exception (will preserve the stack trace from the exception structure's point of origin instead of wherever the current handler is).
+
+`setexception EXC`
+:  Set the current exception into register EXC.
 
 #### Constant assignment
 
@@ -128,6 +135,9 @@ NOTE: May want to make a `setconstant` instruction available.
 
 `symbolicate SYM STR`
 :  Look up the symbol ID for the string in STR and update SYM with that value.
+
+`move A B`
+:  A = B
 
 #### Local/global variables
 
