@@ -20,7 +20,11 @@ char *gen_strclone(char *str) {
 hvm_gen *hvm_new_gen() {
   hvm_gen *gen = malloc(sizeof(hvm_gen));
   gen->block = hvm_new_item_block();
+  gen->file = NULL;
   return gen;
+}
+void hvm_gen_set_file(hvm_gen *gen, char *file) {
+  gen->file = file;
 }
 
 hvm_gen_item_block *hvm_new_item_block() {
@@ -32,13 +36,34 @@ hvm_gen_item_block *hvm_new_item_block() {
 
 /// Internal data used during the generation of a chunk.
 struct hvm_gen_data {
+  /// Parent generator
+  hvm_gen *gen;
   /// Array of positions (hvm_chunk_relocation)
   GArray *relocs;
   /// Array of constants (hvm_chunk_constant)
   GArray *constants;
   /// Array of subroutine symbols (hvm_chunk_symbol)
   GArray *symbols;
+
+  // Used for setting chunk debug entries.
+  GArray *debug_entries;
+  char *current_name;
+  char *current_file;
 };
+void hvm_gen_data_add_debug_entry(struct hvm_gen_data *gd, uint64_t start, uint64_t end, uint64_t line, char *name) {
+  hvm_chunk_debug_entry *de = malloc(sizeof(hvm_chunk_debug_entry));
+  de->start = start;
+  de->end   = end;
+  de->line  = line;
+  de->name  = name;
+  if(name == NULL && gd->debug_entries->len > 0) {
+    uint64_t i = gd->debug_entries->len - 1;
+    hvm_chunk_debug_entry *prev = g_array_index(gd->debug_entries, hvm_chunk_debug_entry*, i);
+    de->name = prev->name;
+  }
+  de->file  = gd->gen->file;
+  g_array_append_val(gd->debug_entries, de);
+}
 void hvm_gen_data_add_symbol(struct hvm_gen_data *gd, char *sym, uint64_t idx) {
   /*
   GList *positions = g_hash_table_lookup(gd->symbols, sym);
@@ -170,6 +195,9 @@ void hvm_gen_process_block(hvm_chunk *chunk, struct hvm_gen_data *data, hvm_gen_
   uint64_t dest;
   gboolean exists;
   hvm_obj_ref *ref;
+  hvm_gen_item_debug_entry *current_entry = NULL;
+  uint64_t start, end, line;
+  char *name;
 
   for(i = 0; i < len; i++) {
     hvm_chunk_expand_if_necessary(chunk);
@@ -177,6 +205,17 @@ void hvm_gen_process_block(hvm_chunk *chunk, struct hvm_gen_data *data, hvm_gen_
     // Processing each item
     hvm_gen_item *item = g_array_index(block->items, hvm_gen_item*, i);
     switch(item->base.type) {
+      case HVM_GEN_DEBUG_ENTRY:
+        if(current_entry != NULL) {
+          start = current_entry->ip;
+          end   = idx - 1;
+          line  = current_entry->line;
+          name  = current_entry->name;
+          hvm_gen_data_add_debug_entry(data, start, end, line, name);
+        }
+        current_entry = &item->debug_entry;
+        current_entry->ip = idx;
+        break;
       case HVM_GEN_BLOCK:
         hvm_gen_process_block(chunk, data, (hvm_gen_item_block*)item);
         break;
@@ -327,6 +366,15 @@ void hvm_gen_process_block(hvm_chunk *chunk, struct hvm_gen_data *data, hvm_gen_
     u = g_list_next(u);
   }
   g_list_free(label_uses);
+  
+  // Close out the final entry
+  if(current_entry != NULL) {
+    start = current_entry->ip;
+    end   = chunk->size - 1;
+    line  = current_entry->line;
+    name  = current_entry->name;
+    hvm_gen_data_add_debug_entry(data, start, end, line, name);
+  }
 }
 
 struct hvm_chunk *hvm_gen_chunk(hvm_gen *gen) {
@@ -336,9 +384,11 @@ struct hvm_chunk *hvm_gen_chunk(hvm_gen *gen) {
   chunk->capacity = start_size;
 
   struct hvm_gen_data gd;
+  gd.gen       = gen;
   gd.relocs    = g_array_new(TRUE, TRUE, sizeof(uint64_t));
   gd.constants = g_array_new(TRUE, TRUE, sizeof(hvm_chunk_constant*));
   gd.symbols   = g_array_new(TRUE, TRUE, sizeof(hvm_chunk_symbol*));
+  gd.debug_entries = g_array_new(TRUE, TRUE, sizeof(hvm_chunk_debug_entry*));
 
   hvm_gen_process_block(chunk, &gd, gen->block);
 
@@ -363,15 +413,29 @@ struct hvm_chunk *hvm_gen_chunk(hvm_gen *gen) {
     syms[i] = g_array_index(gd.symbols, hvm_chunk_symbol*, i);
   }
   syms[gd.symbols->len] = NULL;
+  
+  hvm_chunk_debug_entry **entries = malloc(sizeof(hvm_chunk_debug_entry*) * (gd.debug_entries->len + 1));
+  for(i = 0; i < gd.debug_entries->len; i++) {
+    hvm_chunk_debug_entry* de = g_array_index(gd.debug_entries, hvm_chunk_debug_entry*, i);
+    // fprintf(stderr, "entry:\n");
+    // fprintf(stderr, "  start: %llu\n", de->start);
+    // fprintf(stderr, "  end: %llu\n", de->end);
+    // fprintf(stderr, "  line: %llu\n", de->line);
+    // fprintf(stderr, "  name: %s\n", de->name);
+    // fprintf(stderr, "  file: %s\n", de->file);
+    entries[i] = de;
+  }
+  entries[gd.debug_entries->len] = NULL;
 
   chunk->relocs    = relocs;
   chunk->constants = consts;
   chunk->symbols   = syms;
+  chunk->debug_entries = entries;
 
   return chunk;
 }
 
-#define GEN_PUSH_ITEM(V) g_array_append_val(block->items, V); 
+#define GEN_PUSH_ITEM(V) g_array_append_val(block->items, V);
 
 void hvm_gen_noop(hvm_gen_item_block *block) {
   hvm_gen_item_op_f *noop = malloc(sizeof(hvm_gen_item_op_f));
@@ -703,3 +767,17 @@ void hvm_gen_push_block(hvm_gen_item_block *block, hvm_gen_item_block *push) {
   GEN_PUSH_ITEM(push);
 }
 
+void hvm_gen_set_debug_line(hvm_gen_item_block *block, uint64_t line) {
+  hvm_gen_item_debug_entry *entry = malloc(sizeof(hvm_gen_item_debug_entry));
+  entry->type = HVM_GEN_DEBUG_ENTRY;
+  entry->line = line;
+  entry->name = NULL;
+  GEN_PUSH_ITEM(entry);
+}
+void hvm_gen_set_debug_entry(hvm_gen_item_block *block, uint64_t line, char *name) {
+  hvm_gen_item_debug_entry *entry = malloc(sizeof(hvm_gen_item_debug_entry));
+  entry->type = HVM_GEN_DEBUG_ENTRY;
+  entry->line = line;
+  entry->name = name;
+  GEN_PUSH_ITEM(entry);
+}

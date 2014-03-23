@@ -25,6 +25,14 @@ typedef struct hvm_chunk_symbol {
   char     *name;
 } hvm_chunk_symbol;
 
+typedef struct hvm_chunk_debug_entry {
+  uint64_t start;
+  uint64_t end;
+  uint64_t line;
+  char     *name;
+  char     *file;
+} hvm_chunk_debug_entry;
+
 /// @brief Chunk of instruction code and data (constants, etc.).
 typedef struct hvm_chunk {
   // This is mostly inspired by the ELF format. There are three main sections
@@ -46,7 +54,10 @@ typedef struct hvm_chunk {
   // SYMBOLS
   // Defines symbols (ie. subroutines) and their locations to be inserted into
   // the VM's symbol table.
-  hvm_chunk_symbol **symbols;
+  hvm_chunk_symbol **symbols;// NULL-terminated
+  
+  // DEBUG ENTRIES
+  hvm_chunk_debug_entry **debug_entries;// NULL-terminated
 
   // DATA
   /// Raw instructions.

@@ -81,6 +81,7 @@ void test_generator() {
 
   // Log function
   hvm_gen_sub(gen->block, "console.log");
+  hvm_gen_set_debug_entry(gen->block, 0, "console.log");
   string_reg = hvm_vm_reg_param(0);
   sym_reg    = hvm_vm_reg_gen(0);
   // Copy string parameter into the argument
@@ -91,6 +92,7 @@ void test_generator() {
 
   // Building the console object
   hvm_gen_label(gen->block, "defs");
+  hvm_gen_set_debug_entry(gen->block, 0, "(main)");
   // Creating the function
   func = hvm_vm_reg_gen(0);
   sym  = hvm_vm_reg_gen(1);

@@ -31,7 +31,8 @@ typedef enum {
 
   HVM_GEN_LABEL,
   HVM_GEN_SUB,
-  HVM_GEN_BLOCK
+  HVM_GEN_BLOCK,
+  HVM_GEN_DEBUG_ENTRY
 } hvm_gen_item_type;
 
 #define HVM_GEN_ITEM_HEAD hvm_gen_item_type type;
@@ -159,7 +160,12 @@ typedef struct hvm_gen_item_op_h_data {
   union hvm_gen_item_data data;
 } hvm_gen_item_op_h_data;
 
-
+typedef struct hvm_gen_item_debug_entry {
+  HVM_GEN_ITEM_HEAD;
+  uint64_t ip;
+  uint64_t line;
+  char     *name;
+} hvm_gen_item_debug_entry;
 
 /*
 typedef enum {
@@ -218,6 +224,7 @@ typedef union hvm_gen_item {
   hvm_gen_item_label label;
   hvm_gen_item_sub   sub;
   hvm_gen_item_block block;
+  hvm_gen_item_debug_entry debug_entry;
 ///@endcond
 } hvm_gen_item;
 
@@ -226,9 +233,11 @@ typedef union hvm_gen_item {
 typedef struct hvm_gen {
   /// Root block of the generator.
   hvm_gen_item_block *block;
+  char *file;
 } hvm_gen;
 
 hvm_gen *hvm_new_gen();
+void hvm_gen_set_file(hvm_gen *gen, char *file);
 hvm_gen_item_label *hvm_new_item_label();
 hvm_gen_item_block *hvm_new_item_block();
 
@@ -283,5 +292,7 @@ void hvm_gen_set_integer(hvm_gen_item_block *block, byte reg, int64_t integer);
 void hvm_gen_sub(hvm_gen_item_block *block, char *name);
 void hvm_gen_push_block(hvm_gen_item_block *block, hvm_gen_item_block *push);
 void hvm_gen_call_sub(hvm_gen_item_block *block, char *name, byte ret);
+
+void hvm_gen_set_debug_entry(hvm_gen_item_block *block, uint64_t line, char *name);
 
 #endif

@@ -51,6 +51,9 @@ hvm_vm *hvm_new_vm() {
   vm->top = vm->stack[0];
 
   vm->exception = NULL;
+  vm->debug_entries_capacity = HVM_DEBUG_ENTRIES_INITIAL_CAPACITY;
+  vm->debug_entries = malloc(sizeof(hvm_chunk_debug_entry*) * vm->debug_entries_capacity);
+  vm->debug_entries_size = 0;
 
   return vm;
 }
@@ -58,6 +61,36 @@ hvm_vm *hvm_new_vm() {
 void hvm_vm_expand_program(hvm_vm *vm) {
   vm->program_capacity = HVM_PROGRAM_GROW_FUNCTION(vm->program_capacity);
   vm->program = realloc(vm->program, sizeof(byte) * vm->program_capacity);
+}
+
+void hvm_vm_load_chunk_debug_entries(hvm_vm *vm, uint64_t start, hvm_chunk_debug_entry **entries) {
+  hvm_chunk_debug_entry *de;
+  while(*entries != NULL) {
+    de = *entries;
+    // Grow if necessary
+    if(vm->debug_entries_size >= (vm->debug_entries_capacity - 1)) {
+      vm->debug_entries_capacity = HVM_DEBUG_ENTRIES_GROW_FUNCTION(vm->debug_entries_capacity);
+      vm->debug_entries = realloc(vm->debug_entries, sizeof(hvm_chunk_debug_entry) * vm->debug_entries_capacity);
+    }
+    // Copy entry
+    uint64_t size = vm->debug_entries_size;
+    memcpy(&vm->debug_entries[size], de, sizeof(hvm_chunk_debug_entry));
+    vm->debug_entries[size].start += start;
+    vm->debug_entries[size].end   += start;
+
+    vm->debug_entries_size++;
+    entries++;
+  }
+
+  // for(uint64_t i = 0; i < vm->debug_entries_size; i++) {
+  //   de = &vm->debug_entries[i];
+  //   fprintf(stderr, "entry:\n");
+  //   fprintf(stderr, "  start: %llu\n", de->start);
+  //   fprintf(stderr, "  end: %llu\n", de->end);
+  //   fprintf(stderr, "  line: %llu\n", de->line);
+  //   fprintf(stderr, "  name: %s\n", de->name);
+  //   fprintf(stderr, "  file: %s\n", de->file);
+  // }
 }
 
 void hvm_vm_load_chunk_symbols(hvm_vm *vm, uint64_t start, hvm_chunk_symbol **syms) {
@@ -114,6 +147,7 @@ void hvm_vm_load_chunk(hvm_vm *vm, void *cv) {
   hvm_vm_load_chunk_symbols(vm, start, chunk->symbols);
   hvm_vm_load_chunk_constants(vm, start, chunk->constants);
   hvm_vm_load_chunk_relocations(vm, start, chunk->relocs);
+  hvm_vm_load_chunk_debug_entries(vm, start, chunk->debug_entries);
 }
 
 hvm_obj_ref *hvm_vm_call_primitive(hvm_vm *vm, hvm_symbol_id sym_id) {
@@ -124,14 +158,18 @@ hvm_obj_ref *hvm_vm_call_primitive(hvm_vm *vm, hvm_symbol_id sym_id) {
   if(pv == NULL) {
     // Primitive not found
     hvm_exception  *exc = hvm_new_exception();
-    hvm_obj_ref    *obj = hvm_new_obj_ref();
-    hvm_obj_string *str = hvm_new_obj_string();
-    char buff[256];// TODO: Fix buffer overflow!
+    char buff[256];// TODO: Danger, Will Robinson, buffer overflow!
+    buff[0] = '\0';
     strcat(buff, "Primitive not found: ");
+    // NOTE: Possible error that desymbolicate() could fail.
     strcat(buff, hvm_desymbolicate(vm->symbols, sym_id));
-    str->data = hvm_util_strclone(buff);
-    hvm_obj_ref_set_string(obj, str);
+    hvm_obj_ref *obj = hvm_new_obj_ref_string_data(hvm_util_strclone(buff));
     exc->message = obj;
+
+    hvm_location *loc = hvm_new_location();
+    loc->name = hvm_util_strclone("hvm_vm_call_primitive");
+    hvm_exception_push_location(exc, loc);
+
     vm->exception = exc;
     return NULL;
   }
@@ -229,6 +267,10 @@ void hvm_vm_run(hvm_vm *vm) {
   hvm_exception *exc;
 
   for(; vm->ip < vm->program_size;) {
+    // fprintf(stderr, "top: %p, ip: %llu\n", vm->top, vm->ip);
+    // Update the current frame address
+    vm->top->current_addr = vm->ip;
+    // Fetch the instruction
     instr = vm->program[vm->ip];
     switch(instr) {
       case HVM_OP_NOOP:
@@ -572,9 +614,8 @@ end:
 handle_exception:
   exc = vm->exception;
   assert(exc != NULL);
-  val = exc->message;
-  hvm_obj_string *str = val->data.v;
-  fprintf(stderr, "Exception: %s\n", str->data);
+  hvm_exception_build_backtrace(exc, vm);
+  hvm_exception_print(exc);
   return;
 
 }

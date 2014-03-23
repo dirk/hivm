@@ -4,6 +4,8 @@
 
 /// Stack frame.
 typedef struct hvm_frame {
+  /// Current address in this frame.
+  uint64_t       current_addr;
   /// Address to return to (set by caller).
   uint64_t       return_addr;
   /// Register to be written to when returning (set by caller).
@@ -12,7 +14,18 @@ typedef struct hvm_frame {
   hvm_obj_struct *locals;
 } hvm_frame;
 
+typedef struct hvm_location {
+  /// Frame this location belongs to.
+  hvm_frame *frame;
+
+  char *name;
+  char *file;
+  unsigned int line;
+} hvm_location;
+
 /// @memberof hvm_frame
 hvm_frame *hvm_new_frame();
+
+hvm_location *hvm_new_location();
 
 #endif

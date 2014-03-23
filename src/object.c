@@ -296,3 +296,11 @@ void hvm_obj_ref_set_string(hvm_obj_ref *ref, hvm_obj_string *str) {
   ref->type = HVM_STRING;
   ref->data.v = str;
 }
+
+hvm_obj_ref *hvm_new_obj_ref_string_data(char *data) {
+  hvm_obj_ref    *obj = hvm_new_obj_ref();
+  hvm_obj_string *str = hvm_new_obj_string();
+  str->data = data;
+  hvm_obj_ref_set_string(obj, str);
+  return obj;
+}

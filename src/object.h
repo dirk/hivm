@@ -118,7 +118,8 @@ hvm_obj_ref* hvm_obj_array_get(hvm_obj_ref*, hvm_obj_ref*);
 void hvm_obj_array_set(hvm_obj_ref*, hvm_obj_ref*, hvm_obj_ref*);
 hvm_obj_ref* hvm_obj_array_remove(hvm_obj_ref*, hvm_obj_ref*);
 
-
+// UTILITIES ------------------------------------------------------------------
+hvm_obj_ref *hvm_new_obj_ref_string_data(char *data);
 
 // PRIMITIVE
 // Composed of just metadata and primitive value.

@@ -23,6 +23,9 @@ typedef uint64_t hvm_symbol_id;
 /// @relates hvm_vm
 #define HVM_PROGRAM_INITIAL_CAPACITY 16384
 
+#define HVM_DEBUG_ENTRIES_INITIAL_CAPACITY 1024
+#define HVM_DEBUG_ENTRIES_GROW_FUNCTION(V) (V * 2)
+
 #define HVM_PROGRAM_GROW_FUNCTION(V) (V * 2)
 
 /// Maximum stack size (in frames)
@@ -76,6 +79,10 @@ typedef struct hvm_vm {
 
   // Current exception (NULL for no exception)
   struct hvm_exception *exception;
+  // Debug entries
+  struct hvm_chunk_debug_entry *debug_entries;
+  uint64_t debug_entries_capacity;
+  uint64_t debug_entries_size;
 
   /// Instruction pointer (indexes bytes in the program)
   uint64_t ip;
