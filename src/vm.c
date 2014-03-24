@@ -588,12 +588,26 @@ void hvm_vm_run(hvm_vm *vm) {
       case HVM_STRUCTGET:
         // structget V S K
         AREG; BREG; CREG;
-        strct = hvm_vm_register_read(vm, breg);
-        key   = hvm_vm_register_read(vm, creg);
-        assert(strct->type == HVM_STRUCTURE);
-        assert(key->type == HVM_SYMBOL);
         // fprintf(stderr, "0x%08llX  ", vm->ip);
         // fprintf(stderr, "STRUCTGET $%u = $%u[$%u(%llu)]\n", areg, breg, creg, key->data.u64);
+        strct = hvm_vm_register_read(vm, breg);
+        key   = hvm_vm_register_read(vm, creg);
+        if(strct->type != HVM_STRUCTURE) {
+          // Bad type
+          hvm_exception  *exc = hvm_new_exception();
+          char *msg = "Attempting to get member of non-structure";
+          hvm_obj_ref *obj = hvm_new_obj_ref_string_data(hvm_util_strclone(msg));
+          exc->message = obj;
+
+          hvm_location *loc = hvm_new_location();
+          loc->name = hvm_util_strclone("hvm_structget");
+          hvm_exception_push_location(exc, loc);
+
+          vm->exception = exc;
+          goto handle_exception;
+        }
+        assert(strct->type == HVM_STRUCTURE);
+        assert(key->type == HVM_SYMBOL);
         // hvm_obj_print_structure(vm, strct->data.v);
         val = hvm_obj_struct_get(strct, key);
         assert(val != NULL);

@@ -229,7 +229,7 @@ void hvm_print_data(byte *data, uint64_t size) {
         printf("$%-3d = structnew\n", reg1);
         break;
       default:
-        printf("%02X\n", op);
+        printf("%02X (%d)\n", op, op);
     }
     i++;
   }
