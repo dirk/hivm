@@ -124,13 +124,27 @@ void hvm_vm_load_chunk_relocations(hvm_vm *vm, uint64_t start, hvm_chunk_relocat
     reloc = *relocs;
     uint64_t index = reloc->index;
     uint64_t dest;
+    int64_t  i64_dest;
+
+    if((start + index) >= 2) {
+      uint64_t op_index = (start + index) - 2;
+      byte op = vm->program[op_index];
+      if(op == HVM_OP_LITINTEGER) { goto i64_reloc; }
+    }
     // Get the dest.
     memcpy(&dest, &vm->program[start + index], sizeof(uint64_t));
     // Update the dest.
     dest += start;
     // Then write the dest back.
     memcpy(&vm->program[start + index], &dest, sizeof(uint64_t));
+    goto tail;
+  i64_reloc:
+    memcpy(&i64_dest, &vm->program[start + index], sizeof(int64_t));
+    i64_dest += (int64_t)start;
+    memcpy(&vm->program[start + index], &i64_dest, sizeof(int64_t));
+  tail:
     relocs++;
+    continue;
   }
 }
 
@@ -260,7 +274,7 @@ void hvm_vm_run(hvm_vm *vm) {
   uint32_t const_index;
   uint64_t dest, sym_id;//, return_addr;
   int32_t diff;
-  int64_t i64_literal;
+  int64_t i64;
   unsigned char reg, areg, breg, creg;
   hvm_obj_ref *a, *b, *c, *arr, *idx, *key, *val, *strct;
   hvm_frame *frame, *parent_frame;
@@ -366,6 +380,15 @@ void hvm_vm_run(hvm_vm *vm) {
         dest = READ_U64(&vm->program[vm->ip + 1]);
         vm->ip = dest;
         continue;
+      case HVM_OP_GOTOADDRESS: // 1B OP | 1B REGDEST
+        reg = vm->program[vm->ip + 1];
+        val  = hvm_vm_register_read(vm, reg);
+        assert(val->type == HVM_INTEGER);
+        i64  = val->data.i64;
+        dest = (uint64_t)i64;
+        vm->ip = dest;
+        // fprintf(stderr, "GOTOADDRESS(0x%08llX)\n", dest);
+        continue;
       case HVM_OP_IF: // 1B OP | 1B REG  | 8B DEST
         reg  = vm->program[vm->ip + 1];
         dest = READ_U64(&vm->program[vm->ip + 2]);
@@ -393,10 +416,10 @@ void hvm_vm_run(hvm_vm *vm) {
         break;
 
       case HVM_OP_LITINTEGER: // 1B OP | 1B REG | 8B LIT
-        reg         = vm->program[vm->ip + 1];
-        i64_literal = READ_I64(&vm->program[vm->ip + 2]);
-        val         = hvm_new_obj_int();
-        val->data.i64 = i64_literal;
+        reg = vm->program[vm->ip + 1];
+        i64 = READ_I64(&vm->program[vm->ip + 2]);
+        val = hvm_new_obj_int();
+        val->data.i64 = i64;
         hvm_vm_register_write(vm, reg, val);
         vm->ip += 9;
         break;

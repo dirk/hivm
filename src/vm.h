@@ -208,6 +208,7 @@ typedef enum {
   HVM_OP_CALLPRIMITIVE = 41,// 1B OP | 1B REG | 1B REG
 
   HVM_OP_MOVE = 42,// 1B OP | 1B REG | 1B REG
+  HVM_OP_GOTOADDRESS = 43,// 1B OP | 1B REG
 
 } hvm_opcodes;
 

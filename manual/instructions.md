@@ -69,6 +69,9 @@
 `goto DEST`
 :  Go to DEST (non-negative integer).
 
+`gotoaddress DEST`
+:  Go to address in register DEST.
+
 `if COND DEST`
 :  Jump to DEST if COND is truthy (not null and not a zero integer).
 

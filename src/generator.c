@@ -193,6 +193,7 @@ void hvm_gen_process_block(hvm_chunk *chunk, struct hvm_gen_data *data, hvm_gen_
   byte op;
   uint64_t *idxptr;
   uint64_t dest;
+  int64_t i64;
   gboolean exists;
   hvm_obj_ref *ref;
   hvm_gen_item_debug_entry *current_entry = NULL;
@@ -308,7 +309,28 @@ void hvm_gen_process_block(hvm_chunk *chunk, struct hvm_gen_data *data, hvm_gen_
         chunk->size += 10;
         break;
 
+      case HVM_GEN_OPG_LABEL:
+        exists = g_hash_table_lookup_extended(labels, item->op_g_label.label, NULL, NULL);
+        i64 = 0;
+        if(exists) {
+          idxptr = g_hash_table_lookup(labels, item->op_g_label.label);
+          idx = *idxptr;
+          i64 += (int64_t)idx;
+        } else {
+          struct label_use *use = malloc(sizeof(struct label_use));
+          use->name = item->op_g_label.label;
+          use->idx  = chunk->size + 2;// Bytes of op and reg
+          label_uses = g_list_prepend(label_uses, use);
+        }
+        WRITE(0, &item->op_g_label.op, byte);
+        WRITE(1, &item->op_g_label.reg, byte);
+        WRITE(2, &i64, int64_t);
+        RELOCATION(2);
+        chunk->size += 10;
+        break;
+
       case HVM_GEN_OPH_DATA:
+        // Regular data
         ref = hvm_new_obj_ref();
         hvm_chunk_constant *cnst = malloc(sizeof(hvm_chunk_constant));
         sub = 0;
@@ -463,6 +485,13 @@ void hvm_gen_goto(hvm_gen_item_block *block, uint64_t dest) {
   gt->op = HVM_OP_GOTO;
   gt->dest = dest;
   GEN_PUSH_ITEM(gt);
+}
+void hvm_gen_gotoaddress(hvm_gen_item_block *block, byte reg) {
+  hvm_gen_item_op_a1 *op = malloc(sizeof(hvm_gen_item_op_a1));
+  op->type = HVM_GEN_OPA1;
+  op->op = HVM_OP_GOTOADDRESS;
+  op->reg1 = reg;
+  GEN_PUSH_ITEM(op);
 }
 void hvm_gen_call(hvm_gen_item_block *block, uint64_t dest, byte ret) {
   hvm_gen_item_op_d2 *call = malloc(sizeof(hvm_gen_item_op_d2));
@@ -745,6 +774,16 @@ void hvm_gen_set_integer(hvm_gen_item_block *block, byte reg, int64_t integer) {
   data->reg = reg;
   data->data_type = HVM_GEN_DATA_INTEGER;
   data->data.i64 = integer;
+  GEN_PUSH_ITEM(data);
+}
+
+// 1B OP | 1B REG | 8B LITERAL
+void hvm_gen_litinteger_label(hvm_gen_item_block *block, byte reg, char *label) {
+  hvm_gen_item_op_g_label *data = malloc(sizeof(hvm_gen_item_op_g_label));
+  data->type = HVM_GEN_OPG_LABEL;
+  data->op = HVM_OP_LITINTEGER;
+  data->reg = reg;
+  data->label = gen_strclone(label);
   GEN_PUSH_ITEM(data);
 }
 

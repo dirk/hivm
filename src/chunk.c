@@ -157,8 +157,8 @@ void hvm_print_data(byte *data, uint64_t size) {
         printf("$%-3d = setsymbol #%d\n", reg1, u32);
         break;
       case HVM_OP_CALLPRIMITIVE:// 1B OP | 1B REG | 1B REG
-        reg1 = data[i + 1];
-        reg2 = data[i + 2];
+        sym = data[i + 1];
+        ret = data[i + 2];
         i += 2;
         printf("$%-3d = callprimitive($%d)\n", ret, sym);
         break;
@@ -227,6 +227,11 @@ void hvm_print_data(byte *data, uint64_t size) {
         reg1 = data[i + 1];
         i += 1;
         printf("$%-3d = structnew\n", reg1);
+        break;
+      case HVM_OP_GOTOADDRESS: // 1B OP | 1B DEST REG
+        reg1 = data[i + 1];
+        printf("goto($%d)\n", reg1);
+        i += 1;
         break;
       default:
         printf("%02X (%d)\n", op, op);
