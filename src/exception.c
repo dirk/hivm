@@ -34,13 +34,31 @@ hvm_chunk_debug_entry *hvm_vm_find_debug_entry(hvm_vm *vm, uint64_t ip) {
   return NULL;
 }
 
+#define FLAG_IS_SET(VAL, FLAG) (VAL & FLAG) == FLAG
+
 void hvm_exception_build_backtrace(hvm_exception *exc, hvm_vm *vm) {
+  hvm_chunk_debug_entry *de;
+
+  // for(uint64_t i = 0; i < vm->debug_entries_size; i++) {
+  //   de = &vm->debug_entries[i];
+  //   fprintf(stderr, "entry:\n");
+  //   fprintf(stderr, "  start: %llu\n", de->start);
+  //   fprintf(stderr, "  end: %llu\n", de->end);
+  //   fprintf(stderr, "  line: %llu\n", de->line);
+  //   fprintf(stderr, "  name: %s\n", de->name);
+  //   fprintf(stderr, "  file: %s\n", de->file);
+  //   fprintf(stderr, "  flags: %x\n", de->flags);
+  // }
+
   uint32_t i = vm->stack_depth;
   while(1) {
     hvm_frame* frame = &vm->stack[i];
     uint64_t ip = frame->current_addr;
 
-    hvm_chunk_debug_entry *de = hvm_vm_find_debug_entry(vm, ip);
+    de = hvm_vm_find_debug_entry(vm, ip);
+    if(de != NULL && FLAG_IS_SET(de->flags, HVM_DEBUG_FLAG_HIDE_BACKTRACE)) {
+      goto tail;
+    }
     hvm_location *loc = malloc(sizeof(hvm_location));
     loc->frame = frame;
     if(de != NULL) {
@@ -53,7 +71,7 @@ void hvm_exception_build_backtrace(hvm_exception *exc, hvm_vm *vm) {
       loc->line = 0;
     }
     hvm_exception_push_location(exc, loc);
-
+  tail:
     // Preventing integer overflow wrap-around.
     if(i == 0) { break; }
     i--;

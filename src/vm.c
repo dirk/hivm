@@ -29,6 +29,9 @@ char *hvm_util_strclone(char *str) {
   return clone;
 }
 
+// 1000 0000 = 0x80
+unsigned char HVM_DEBUG_FLAG_HIDE_BACKTRACE = 0x80;
+
 hvm_vm *hvm_new_vm() {
   hvm_vm *vm = malloc(sizeof(hvm_vm));
   vm->ip = 0;
@@ -81,16 +84,6 @@ void hvm_vm_load_chunk_debug_entries(hvm_vm *vm, uint64_t start, hvm_chunk_debug
     vm->debug_entries_size++;
     entries++;
   }
-
-  // for(uint64_t i = 0; i < vm->debug_entries_size; i++) {
-  //   de = &vm->debug_entries[i];
-  //   fprintf(stderr, "entry:\n");
-  //   fprintf(stderr, "  start: %llu\n", de->start);
-  //   fprintf(stderr, "  end: %llu\n", de->end);
-  //   fprintf(stderr, "  line: %llu\n", de->line);
-  //   fprintf(stderr, "  name: %s\n", de->name);
-  //   fprintf(stderr, "  file: %s\n", de->file);
-  // }
 }
 
 void hvm_vm_load_chunk_symbols(hvm_vm *vm, uint64_t start, hvm_chunk_symbol **syms) {

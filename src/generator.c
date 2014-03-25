@@ -50,17 +50,18 @@ struct hvm_gen_data {
   char *current_name;
   char *current_file;
 };
-void hvm_gen_data_add_debug_entry(struct hvm_gen_data *gd, uint64_t start, uint64_t end, uint64_t line, char *name) {
+void hvm_gen_data_add_debug_entry(struct hvm_gen_data *gd, uint64_t start, uint64_t end, uint64_t line, char *name, unsigned char flags) {
   hvm_chunk_debug_entry *de = malloc(sizeof(hvm_chunk_debug_entry));
   de->start = start;
   de->end   = end;
   de->line  = line;
   de->name  = name;
-  if(name == NULL && gd->debug_entries->len > 0) {
-    uint64_t i = gd->debug_entries->len - 1;
-    hvm_chunk_debug_entry *prev = g_array_index(gd->debug_entries, hvm_chunk_debug_entry*, i);
-    de->name = prev->name;
-  }
+  de->flags = flags;
+  // if(name == NULL && gd->debug_entries->len > 0) {
+  //   uint64_t i = gd->debug_entries->len - 1;
+  //   hvm_chunk_debug_entry *prev = g_array_index(gd->debug_entries, hvm_chunk_debug_entry*, i);
+  //   de->name = prev->name;
+  // }
   de->file  = gd->gen->file;
   g_array_append_val(gd->debug_entries, de);
 }
@@ -199,6 +200,7 @@ void hvm_gen_process_block(hvm_chunk *chunk, struct hvm_gen_data *data, hvm_gen_
   hvm_gen_item_debug_entry *current_entry = NULL;
   uint64_t start, end, line;
   char *name;
+  unsigned char flags;
 
   for(i = 0; i < len; i++) {
     hvm_chunk_expand_if_necessary(chunk);
@@ -212,7 +214,8 @@ void hvm_gen_process_block(hvm_chunk *chunk, struct hvm_gen_data *data, hvm_gen_
           end   = idx - 1;
           line  = current_entry->line;
           name  = current_entry->name;
-          hvm_gen_data_add_debug_entry(data, start, end, line, name);
+          flags = current_entry->flags;
+          hvm_gen_data_add_debug_entry(data, start, end, line, name, flags);
         }
         current_entry = &item->debug_entry;
         current_entry->ip = idx;
@@ -395,7 +398,8 @@ void hvm_gen_process_block(hvm_chunk *chunk, struct hvm_gen_data *data, hvm_gen_
     end   = chunk->size - 1;
     line  = current_entry->line;
     name  = current_entry->name;
-    hvm_gen_data_add_debug_entry(data, start, end, line, name);
+    flags = current_entry->flags;
+    hvm_gen_data_add_debug_entry(data, start, end, line, name, flags);
   }
 }
 
@@ -807,10 +811,24 @@ void hvm_gen_push_block(hvm_gen_item_block *block, hvm_gen_item_block *push) {
 }
 
 void hvm_gen_set_debug_line(hvm_gen_item_block *block, uint64_t line) {
+  hvm_gen_item_debug_entry *prev = NULL;
+  for(int i = (int)(block->items->len - 1); i >= 0; i--) {
+    hvm_gen_item *item = g_array_index(block->items, hvm_gen_item*, i);
+    if(item->base.type == HVM_GEN_DEBUG_ENTRY) {
+      prev = &item->debug_entry;
+      break;
+    }
+  }
   hvm_gen_item_debug_entry *entry = malloc(sizeof(hvm_gen_item_debug_entry));
   entry->type = HVM_GEN_DEBUG_ENTRY;
   entry->line = line;
-  entry->name = NULL;
+  if(prev != NULL) {
+    entry->name  = prev->name;
+    entry->flags = prev->flags;
+  } else {
+    entry->name = NULL;
+    entry->flags = 0x0;
+  }
   GEN_PUSH_ITEM(entry);
 }
 void hvm_gen_set_debug_entry(hvm_gen_item_block *block, uint64_t line, char *name) {
@@ -818,5 +836,19 @@ void hvm_gen_set_debug_entry(hvm_gen_item_block *block, uint64_t line, char *nam
   entry->type = HVM_GEN_DEBUG_ENTRY;
   entry->line = line;
   entry->name = name;
+  entry->flags = 0x0;
   GEN_PUSH_ITEM(entry);
+}
+void hvm_gen_set_debug_flags(hvm_gen_item_block *block, unsigned char flags) {
+  hvm_gen_item_debug_entry *entry = NULL;
+  int i;
+  for(i = (int)(block->items->len - 1); i >= 0; i--) {
+    hvm_gen_item *item = g_array_index(block->items, hvm_gen_item*, i);
+    if(item->base.type == HVM_GEN_DEBUG_ENTRY) {
+      entry = &item->debug_entry;
+      break;
+    }
+  }
+  assert(entry != NULL);
+  entry->flags = flags;
 }

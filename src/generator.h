@@ -170,9 +170,10 @@ typedef struct hvm_gen_item_op_h_data {
 
 typedef struct hvm_gen_item_debug_entry {
   HVM_GEN_ITEM_HEAD;
-  uint64_t ip;
-  uint64_t line;
-  char     *name;
+  uint64_t      ip;
+  uint64_t      line;
+  char          *name;
+  unsigned char flags;
 } hvm_gen_item_debug_entry;
 
 /*

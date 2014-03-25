@@ -26,11 +26,12 @@ typedef struct hvm_chunk_symbol {
 } hvm_chunk_symbol;
 
 typedef struct hvm_chunk_debug_entry {
-  uint64_t start;
-  uint64_t end;
-  uint64_t line;
-  char     *name;
-  char     *file;
+  uint64_t      start;
+  uint64_t      end;
+  uint64_t      line;
+  char          *name;
+  char          *file;
+  unsigned char flags;
 } hvm_chunk_debug_entry;
 
 /// @brief Chunk of instruction code and data (constants, etc.).

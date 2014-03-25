@@ -55,6 +55,8 @@ typedef struct hvm_const_pool {
 /// @relates hvm_constant_pool
 #define HVM_CONSTANT_POOL_GROWTH_RATE  2
 
+extern unsigned char HVM_DEBUG_FLAG_HIDE_BACKTRACE;
+
 #define HVM_GENERAL_REGISTERS 128
 #define HVM_ARGUMENT_REGISTERS 16
 // One more than arg regs. Last one is $pn special reg.
