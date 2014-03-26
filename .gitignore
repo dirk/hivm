@@ -2,6 +2,7 @@
 *.o
 *.a
 *.so
+src/chunk.pb-c.*
 doc/*
 include/*
 *.dSYM

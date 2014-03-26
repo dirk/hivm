@@ -14,7 +14,7 @@ def cflags_for file
     cflags += " #{`pkg-config --cflags glib-2.0`.strip}"
   end
   if basename == "libhivm.so"
-    cflags += " #{`pkg-config --libs glib-2.0`.strip}"
+    cflags += " -lprotobuf-c #{`pkg-config --libs glib-2.0`.strip}"
   end
   if basename == "generator.o" || basename == "bootstrap.o"
     cflags += ' -Wno-unused-parameter'
@@ -50,7 +50,9 @@ end
 objects = [
   # Source
   'src/vm.o', 'src/object.o', 'src/symbol.o', 'src/frame.o', 'src/chunk.o',
-  'src/generator.o', 'src/bootstrap.o', 'src/exception.o'
+  'src/generator.o', 'src/bootstrap.o', 'src/exception.o',
+  # Generated source
+  'src/chunk.pb-c.o'
 ]
 
 # desc "Compile"
@@ -62,6 +64,9 @@ file 'libhivm.so' => objects do |t|
   sh "#{$cc} #{t.prerequisites.join ' '} #{cflags_for t.name} -shared -o #{t.name}"
 end
 
+file "src/chunk.pb-c.c" => ["src/chunk.proto"] do |t|
+  sh "protoc-c --c_out=. #{t.prerequisites.first}"
+end
 
 rule '.o' => ['.c'] do |t|
   sh "#{$cc} #{t.source} -c #{cflags_for t.name} -o #{t.name}"
@@ -79,6 +84,7 @@ end
 desc "Clean up objects"
 task "clean" do
   sh "rm -f src/*.o"
+  sh "rm -f src/chunk.pb-c.*"
   sh "rm -f include/*.h"
   # sh "rm test/*.o"
   sh "rm -f libhivm.*"
