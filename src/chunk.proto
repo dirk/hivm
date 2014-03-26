@@ -1,0 +1,35 @@
+message Chunk {
+  message Relocation {
+    required uint64 index = 1;
+  }
+  message Constant {
+    required uint64 index  = 1;
+    optional string symval = 2;
+    optional string strval = 3;
+    optional int64  intval = 4;
+  }
+  message Symbol {
+    required uint64 index  = 1;
+    required string name   = 2;
+  }
+  message DebugEntry {
+    required uint64 start  = 1;
+    required uint64 end    = 2;
+    required uint64 line   = 3;
+    required string name   = 4;
+    required string file   = 5;
+    required uint32 flags  = 6;
+  }
+
+  // Header
+  required int32 chunk_revision     = 1;
+  required int32 vm_version_major   = 2;
+  required int32 vm_version_minor   = 3;
+  // Data
+  repeated Relocation relocs        = 4;
+  repeated Constant   constants     = 5;
+  repeated Symbol     symbols       = 6;
+  repeated DebugEntry debug_entries = 7;
+  required bytes      data          = 8;
+  required uint64     size          = 9;
+}
