@@ -104,6 +104,9 @@ typedef struct hvm_vm {
   struct hvm_obj_ref* arg_regs[HVM_ARGUMENT_REGISTERS];
   struct hvm_obj_ref* param_regs[HVM_PARAMETER_REGISTERS];
 
+  /// Object space for the garbage collector
+  struct hvm_gc1_obj_space *obj_space;
+
   /// VM-wide global variables
   struct hvm_obj_struct *globals;
   /// Symbol lookup

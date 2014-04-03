@@ -10,6 +10,7 @@
 #include "exception.h"
 #include "chunk.h"
 // #include "generator.h"
+#include "gc1.h"
 
 struct hvm_obj_ref* hvm_const_null = &(hvm_obj_ref){
   .type = HVM_NULL,
@@ -38,14 +39,17 @@ hvm_vm *hvm_new_vm() {
   vm->program_capacity = HVM_PROGRAM_INITIAL_CAPACITY;
   vm->program_size = 0;
   vm->program = calloc(sizeof(byte), vm->program_capacity);
+  vm->symbol_table = hvm_new_obj_struct();
+  // Constants
   vm->const_pool.next_index = 0;
   vm->const_pool.size = HVM_CONSTANT_POOL_INITIAL_SIZE;
   vm->const_pool.entries = malloc(sizeof(struct hvm_object_ref*) * 
     vm->const_pool.size);
-  vm->globals = hvm_new_obj_struct();
-  vm->symbol_table = hvm_new_obj_struct();
-  vm->symbols = hvm_new_symbol_store();
-  vm->primitives = hvm_new_obj_struct();
+  // Variables
+  vm->globals      = hvm_new_obj_struct();
+  vm->symbols      = hvm_new_symbol_store();
+  vm->primitives   = hvm_new_obj_struct();
+  vm->obj_space    = hvm_new_obj_space();
 
   vm->stack = calloc(HVM_STACK_SIZE, sizeof(struct hvm_frame));
   vm->stack_depth = 0;

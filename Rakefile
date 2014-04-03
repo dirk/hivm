@@ -26,7 +26,6 @@ desc "Build"
 task "build" => ["libhivm.a", "libhivm.so"]
 task "default" => ["build", "build:include"]
 
-
 headers = {
   "vm" => "hvm",
   "object" => "hvm_object",
@@ -50,7 +49,7 @@ end
 objects = [
   # Source
   'src/vm.o', 'src/object.o', 'src/symbol.o', 'src/frame.o', 'src/chunk.o',
-  'src/generator.o', 'src/bootstrap.o', 'src/exception.o',
+  'src/generator.o', 'src/bootstrap.o', 'src/exception.o', 'src/gc1.o',
   # Generated source
   'src/chunk.pb-c.o'
 ]
