@@ -59,7 +59,7 @@ void test_generator() {
   // hvm_gen_die(gen->block);
   */
   
-  /*
+  
   byte obj, func, sym, arg_sym, string_reg, sym_reg, console;
   
   hvm_gen_goto_label(gen->block, "defs");
@@ -111,13 +111,15 @@ void test_generator() {
   hvm_gen_set_symbol(gen->block, sym, "console");
   hvm_gen_setlocal(gen->block, sym, console);
   hvm_gen_setglobal(gen->block, sym, console);
-  */
-  
+
+  hvm_gen_die(gen->block);
+
   /*
   hvm_gen_set_integer(gen->block, 0, 1);
   hvm_gen_set_string(gen->block, 1, "test");
   hvm_gen_add(gen->block, 2, 0, 1);
   */
+  /*
   hvm_gen_goto_label(gen->block, "tail");
   hvm_gen_label(gen->block, "head");
   hvm_gen_set_symbol(gen->block, hvm_vm_reg_gen(0), "print");
@@ -130,6 +132,7 @@ void test_generator() {
   hvm_gen_litinteger_label(gen->block, 1, "head");
   hvm_gen_gotoaddress(gen->block, 1);
   hvm_gen_die(gen->block);
+  */
 
   hvm_chunk *chunk = hvm_gen_chunk(gen);
   hvm_chunk_disassemble(chunk);

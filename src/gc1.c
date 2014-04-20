@@ -7,6 +7,9 @@
 #include "object.h"
 #include "gc1.h"
 
+#define FLAGTRUE(v, f)  (v & f) == f
+#define FLAGFALSE(v, f) (v & f) == 0
+
 hvm_gc1_obj_space *hvm_new_obj_space() {
   hvm_gc1_obj_space *space = malloc(sizeof(hvm_gc1_obj_space));
   space->heap.size    = HVM_GC1_INITIAL_HEAP_SIZE;
@@ -21,7 +24,15 @@ void hvm_obj_space_grow(hvm_gc1_obj_space *space) {
 }
 
 void hvm_obj_space_add_obj_ref(hvm_gc1_obj_space *space, hvm_obj_ref *obj) {
+  if(FLAGTRUE(obj->flags, HVM_OBJ_FLAG_GCED)) {
+    return;// Already in the GC system
+  } else {
+    obj->flags |= HVM_OBJ_FLAG_GCED;
+  }
+  // TODO: Get the next ID intelligently (ie. be able to decrease the length).
   unsigned int next_id = space->heap.length;
+  space->heap.length += 1;
+  // Check if we still have space
   if(next_id >= space->heap.size) {
     hvm_obj_space_grow(space);
   }

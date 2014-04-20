@@ -180,7 +180,7 @@ hvm_obj_ref *hvm_obj_int_mod(hvm_obj_ref *a, hvm_obj_ref *b) {
   return c;
 }
 
-
+// STRUCTS --------------------------------------------------------------------
 
 hvm_obj_struct *hvm_new_obj_struct() {
   hvm_obj_struct *strct = malloc(sizeof(hvm_obj_struct));

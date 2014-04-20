@@ -417,6 +417,7 @@ void hvm_vm_run(hvm_vm *vm) {
         i64 = READ_I64(&vm->program[vm->ip + 2]);
         val = hvm_new_obj_int();
         val->data.i64 = i64;
+        hvm_obj_space_add_obj_ref(vm->obj_space, val);
         hvm_vm_register_write(vm, reg, val);
         vm->ip += 9;
         break;
@@ -486,6 +487,7 @@ void hvm_vm_run(hvm_vm *vm) {
         hvm_obj_ref* ref = hvm_new_obj_ref();
         ref->type = HVM_STRUCTURE;
         ref->data.v = vm->top->locals;
+        hvm_obj_space_add_obj_ref(vm->obj_space, ref);
         hvm_vm_register_write(vm, reg, ref);
         vm->ip += 1;
         break;
@@ -520,6 +522,8 @@ void hvm_vm_run(hvm_vm *vm) {
           vm->exception = exc;
           goto handle_exception;
         }
+        // Ensure the resulting integer is tracked in the GC
+        hvm_obj_space_add_obj_ref(vm->obj_space, a);
         hvm_vm_register_write(vm, areg, a);
         vm->ip += 3;
         break;
@@ -588,6 +592,7 @@ void hvm_vm_run(hvm_vm *vm) {
         a = hvm_new_obj_ref();
         a->type = HVM_ARRAY;
         a->data.v = arr;
+        hvm_obj_space_add_obj_ref(vm->obj_space, a);
         hvm_vm_register_write(vm, areg, a);
         vm->ip += 2;
         break;
@@ -649,6 +654,7 @@ void hvm_vm_run(hvm_vm *vm) {
         strct = hvm_new_obj_ref();
         strct->type = HVM_STRUCTURE;
         strct->data.v = s;
+        hvm_obj_space_add_obj_ref(vm->obj_space, strct);
         hvm_vm_register_write(vm, areg, strct);
         vm->ip += 1;
         break;

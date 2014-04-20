@@ -33,6 +33,8 @@ union hvm_obj_ref_data {
 /// Exempts an object from garbage collection (and should eventually
 /// auto-promote to ancient generation).
 #define HVM_OBJ_FLAG_CONSTANT 0x2
+/// Flags an object as being tracked by the garbage collector.
+#define HVM_OBJ_FLAG_GCED 0x4
 
 /// Base reference to an object.
 typedef struct hvm_obj_ref {
