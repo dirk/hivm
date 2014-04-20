@@ -24,6 +24,9 @@ void hvm_obj_space_grow(hvm_gc1_obj_space *space) {
 }
 
 void hvm_obj_space_add_obj_ref(hvm_gc1_obj_space *space, hvm_obj_ref *obj) {
+  if(FLAGTRUE(obj->flags, HVM_OBJ_FLAG_CONSTANT)) {
+    return;// Don't track constants
+  }
   if(FLAGTRUE(obj->flags, HVM_OBJ_FLAG_GCED)) {
     return;// Already in the GC system
   } else {

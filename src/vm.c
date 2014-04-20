@@ -529,7 +529,7 @@ void hvm_vm_run(hvm_vm *vm) {
         break;
 
       // ARRAYS ---------------------------------------------------------------
-      case HVM_ARRAYPUSH: // 1B OP | 2B REGS
+      case HVM_OP_ARRAYPUSH: // 1B OP | 2B REGS
         // A.push(B)
         AREG; BREG;
         a = hvm_vm_register_read(vm, areg);
@@ -537,7 +537,7 @@ void hvm_vm_run(hvm_vm *vm) {
         hvm_obj_array_push(a, b);
         vm->ip += 2;
         break;
-      case HVM_ARRAYUNSHIFT: // 1B OP | 2B REGS
+      case HVM_OP_ARRAYUNSHIFT: // 1B OP | 2B REGS
         // A.unshift(B)
         AREG; BREG;
         a = hvm_vm_register_read(vm, areg);
@@ -545,21 +545,21 @@ void hvm_vm_run(hvm_vm *vm) {
         hvm_obj_array_unshift(a, b);
         vm->ip += 2;
         break;
-      case HVM_ARRAYSHIFT: // 1B OP | 2B REGS
+      case HVM_OP_ARRAYSHIFT: // 1B OP | 2B REGS
         // A = B.shift()
         AREG; BREG;
         b = hvm_vm_register_read(vm, breg);
         hvm_vm_register_write(vm, areg, hvm_obj_array_shift(b));
         vm->ip += 2;
         break;
-      case HVM_ARRAYPOP: // 1B OP | 2B REGS
+      case HVM_OP_ARRAYPOP: // 1B OP | 2B REGS
         // A = B.pop()
         AREG; BREG;
         b = hvm_vm_register_read(vm, breg);
         hvm_vm_register_write(vm, areg, hvm_obj_array_pop(b));
         vm->ip += 2;
         break;
-      case HVM_ARRAYGET: // 1B OP | 3B REGS
+      case HVM_OP_ARRAYGET: // 1B OP | 3B REGS
         // arrayget V A I -> V = A[I]
         AREG; BREG; CREG;
         arr = hvm_vm_register_read(vm, breg);
@@ -567,7 +567,7 @@ void hvm_vm_run(hvm_vm *vm) {
         hvm_vm_register_write(vm, areg, hvm_obj_array_get(arr, idx));
         vm->ip += 3;
         break;
-      case HVM_ARRAYSET: // 1B OP | 3B REGS
+      case HVM_OP_ARRAYSET: // 1B OP | 3B REGS
         // arrayset A I V -> A[I] = V
         AREG; BREG; CREG;
         arr = hvm_vm_register_read(vm, areg);
@@ -576,7 +576,7 @@ void hvm_vm_run(hvm_vm *vm) {
         hvm_obj_array_set(arr, idx, val);
         vm->ip += 3;
         break;
-      case HVM_ARRAYREMOVE: // 1B OP | 3B REGS
+      case HVM_OP_ARRAYREMOVE: // 1B OP | 3B REGS
         // arrayremove V A I
         AREG; BREG; CREG;
         arr = hvm_vm_register_read(vm, breg);
@@ -584,7 +584,7 @@ void hvm_vm_run(hvm_vm *vm) {
         hvm_vm_register_write(vm, areg, hvm_obj_array_remove(arr, idx));
         vm->ip += 3;
         break;
-      case HVM_ARRAYNEW: // 1B OP | 2B REGS
+      case HVM_OP_ARRAYNEW: // 1B OP | 2B REGS
         // arraynew A L
         AREG; BREG;
         val = hvm_vm_register_read(vm, breg);
@@ -598,7 +598,7 @@ void hvm_vm_run(hvm_vm *vm) {
         break;
 
       // STRUCTS --------------------------------------------------------------
-      case HVM_STRUCTSET:
+      case HVM_OP_STRUCTSET:
         // structset S K V
         AREG; BREG; CREG;
         strct = hvm_vm_register_read(vm, areg);
@@ -610,7 +610,7 @@ void hvm_vm_run(hvm_vm *vm) {
         // hvm_obj_print_structure(vm, strct->data.v);
         vm->ip += 3;
         break;
-      case HVM_STRUCTGET:
+      case HVM_OP_STRUCTGET:
         // structget V S K
         AREG; BREG; CREG;
         // fprintf(stderr, "0x%08llX  ", vm->ip);
@@ -639,7 +639,7 @@ void hvm_vm_run(hvm_vm *vm) {
         hvm_vm_register_write(vm, areg, val);
         vm->ip += 3;
         break;
-      case HVM_STRUCTDELETE:
+      case HVM_OP_STRUCTDELETE:
         // structdelete V S K`
         AREG; BREG; CREG;
         strct = hvm_vm_register_read(vm, breg);
@@ -647,7 +647,7 @@ void hvm_vm_run(hvm_vm *vm) {
         hvm_vm_register_write(vm, areg, hvm_obj_struct_delete(strct, key));
         vm->ip += 3;
         break;
-      case HVM_STRUCTNEW:
+      case HVM_OP_STRUCTNEW:
         // structnew S`
         AREG;
         hvm_obj_struct *s = hvm_new_obj_struct();
@@ -658,7 +658,7 @@ void hvm_vm_run(hvm_vm *vm) {
         hvm_vm_register_write(vm, areg, strct);
         vm->ip += 1;
         break;
-      case HVM_STRUCTHAS:
+      case HVM_OP_STRUCTHAS:
         // structhas B S K
         fprintf(stderr, "STRUCTHAS not implemented yet!\n");
         goto end;

@@ -209,21 +209,21 @@ void hvm_print_data(byte *data, uint64_t size) {
         i += 2;
         printf("$%-3d = getlocal[$%d]\n", reg1, reg2);
         break;
-      case HVM_STRUCTGET: // 1B OP | 3B REGS
+      case HVM_OP_STRUCTGET: // 1B OP | 3B REGS
         reg1 = data[i + 1];
         reg2 = data[i + 2];
         reg3 = data[i + 3];
         i += 3;
         printf("$%-3d = $%d.structget[$%d]\n", reg1, reg2, reg3);
         break;
-      case HVM_STRUCTSET: // 1B OP | 3B REGS
+      case HVM_OP_STRUCTSET: // 1B OP | 3B REGS
         reg1 = data[i + 1];
         reg2 = data[i + 2];
         reg3 = data[i + 3];
         i += 3;
         printf("$%d.structset[$%d] = $%d\n", reg1, reg2, reg3);
         break;
-      case HVM_STRUCTNEW: // 1B OP | 1B REG
+      case HVM_OP_STRUCTNEW: // 1B OP | 1B REG
         reg1 = data[i + 1];
         i += 1;
         printf("$%-3d = structnew\n", reg1);
