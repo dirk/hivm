@@ -156,6 +156,8 @@ struct hvm_obj_ref* hvm_get_global(hvm_vm*, hvm_symbol_id);
 /// @memberof hvm_vm
 void hvm_set_global(hvm_vm*, hvm_symbol_id, struct hvm_obj_ref*);
 
+char *hvm_util_strclone(char *str);
+
 /// Opcodes
 typedef enum {
   HVM_OP_NOOP = 0,        // 1B OP
@@ -189,6 +191,8 @@ typedef enum {
   HVM_OP_DIV = 24,          // 1B OP | 3B REGs
   HVM_OP_MOD = 25,          // 1B OP | 3B REGs
   HVM_OP_POW = 26,          // 1B OP | 3B REGs
+
+  HVM_OP_LT = 44,           // 1B OP | 3B REGs
 
   // TODO: Bitwise instructions
   // TODO: Exception instructions

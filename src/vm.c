@@ -189,6 +189,18 @@ hvm_obj_ref *hvm_vm_call_primitive(hvm_vm *vm, hvm_symbol_id sym_id) {
   return prim(vm);
 }
 
+hvm_exception *hvm_new_operand_not_integer_exception() {
+  hvm_exception *exc = hvm_new_exception();
+  char *msg = "Operands must be integers";
+  hvm_obj_ref *obj = hvm_new_obj_ref_string_data(hvm_util_strclone(msg));
+  exc->message = obj;
+
+  hvm_location *loc = hvm_new_location();
+  loc->name = hvm_util_strclone("hvm_obj_int_op");
+  hvm_exception_push_location(exc, loc);
+  return exc;
+}
+
 /*
 REGISTER MAP
 0-127   = General registers (128)
@@ -510,19 +522,28 @@ void hvm_vm_run(hvm_vm *vm) {
         else if(instr == HVM_OP_MOD) { a = hvm_obj_int_mod(b, c); }
         if(a == NULL) {
           // Bad type
-          hvm_exception  *exc = hvm_new_exception();
-          char *msg = "Operands must be integers";
-          hvm_obj_ref *obj = hvm_new_obj_ref_string_data(hvm_util_strclone(msg));
-          exc->message = obj;
-
-          hvm_location *loc = hvm_new_location();
-          loc->name = hvm_util_strclone("hvm_obj_int_op");
-          hvm_exception_push_location(exc, loc);
-
+          hvm_exception *exc = hvm_new_operand_not_integer_exception();
           vm->exception = exc;
           goto handle_exception;
         }
         // Ensure the resulting integer is tracked in the GC
+        hvm_obj_space_add_obj_ref(vm->obj_space, a);
+        hvm_vm_register_write(vm, areg, a);
+        vm->ip += 3;
+        break;
+
+      // MATHEMTICAL COMPARISON -----------------------------------------------
+      case HVM_OP_LT: // 1B OP | 3B REGs
+        // A = B < C
+        AREG; BREG; CREG;
+        b = hvm_vm_register_read(vm, breg);
+        c = hvm_vm_register_read(vm, creg);
+        a = hvm_obj_int_lt(b, c);
+        if(a == NULL) {
+          hvm_exception *exc = hvm_new_operand_not_integer_exception();
+          vm->exception = exc;
+          goto handle_exception;
+        }
         hvm_obj_space_add_obj_ref(vm->obj_space, a);
         hvm_vm_register_write(vm, areg, a);
         vm->ip += 3;

@@ -294,6 +294,7 @@ void hvm_gen_structnew(hvm_gen_item_block *block, byte reg);
 void hvm_gen_setstring(hvm_gen_item_block *block, byte reg, uint32_t cnst);
 
 void hvm_gen_add(hvm_gen_item_block *block, byte a, byte b, byte c);
+void hvm_gen_lt(hvm_gen_item_block *block, byte a, byte b, byte c);
 
 // META-GENERATORS
 void hvm_gen_label(hvm_gen_item_block *block, char *name);
