@@ -1,0 +1,14 @@
+
+$cflags = "-g -Wall -std=c99 ../../libhivm.a -I../../include -liconv #{`pkg-config --libs glib-2.0`.strip}"
+
+task 'default' => ['test']
+
+desc "Build VM tester"
+file 'test' => ['test.c'] do |t|
+  sh "cc test.c #{$cflags} -o #{t.name}"
+end
+
+desc 'Clean'
+task 'clean' do
+  sh "rm test_vm"
+end
