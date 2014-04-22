@@ -179,14 +179,36 @@ hvm_obj_ref *hvm_obj_int_mod(hvm_obj_ref *a, hvm_obj_ref *b) {
   c->data.i64 = cv;
   return c;
 }
+#define INT_COMPARISON_OP_HEAD hvm_obj_ref *c = hvm_new_obj_ref(); \
+                               c->type = HVM_INTEGER; \
+                               int64_t av, bv, cv; \
+                               av = a->data.i64; \
+                               bv = b->data.i64;
 hvm_obj_ref *hvm_obj_int_lt(hvm_obj_ref *a, hvm_obj_ref *b) {
   INT_TYPE_CHECK;
-  hvm_obj_ref *c = hvm_new_obj_ref();
-  int64_t av, bv, cv;
-  av = a->data.i64;
-  bv = b->data.i64;
+  INT_COMPARISON_OP_HEAD;
   cv = av < bv;
-  c->type = HVM_INTEGER;
+  c->data.i64 = cv;
+  return c;
+}
+hvm_obj_ref *hvm_obj_int_gt(hvm_obj_ref *a, hvm_obj_ref *b) {
+  INT_TYPE_CHECK;
+  INT_COMPARISON_OP_HEAD;
+  cv = av > bv;
+  c->data.i64 = cv;
+  return c;
+}
+hvm_obj_ref *hvm_obj_int_lte(hvm_obj_ref *a, hvm_obj_ref *b) {
+  INT_TYPE_CHECK;
+  INT_COMPARISON_OP_HEAD;
+  cv = av <= bv;
+  c->data.i64 = cv;
+  return c;
+}
+hvm_obj_ref *hvm_obj_int_gte(hvm_obj_ref *a, hvm_obj_ref *b) {
+  INT_TYPE_CHECK;
+  INT_COMPARISON_OP_HEAD;
+  cv = av >= bv;
   c->data.i64 = cv;
   return c;
 }

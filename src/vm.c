@@ -532,13 +532,19 @@ void hvm_vm_run(hvm_vm *vm) {
         vm->ip += 3;
         break;
 
-      // MATHEMTICAL COMPARISON -----------------------------------------------
-      case HVM_OP_LT: // 1B OP | 3B REGs
+      // MATHEMATICAL COMPARISON ----------------------------------------------
+      case HVM_OP_LT:
+      case HVM_OP_GT:
+      case HVM_OP_LTE:
+      case HVM_OP_GTE: // 1B OP | 3B REGs
         // A = B < C
         AREG; BREG; CREG;
         b = hvm_vm_register_read(vm, breg);
         c = hvm_vm_register_read(vm, creg);
-        a = hvm_obj_int_lt(b, c);
+        if(instr == HVM_OP_LT)       { a = hvm_obj_int_lt(b, c); }
+        else if(instr == HVM_OP_GT)  { a = hvm_obj_int_gt(b, c); }
+        else if(instr == HVM_OP_LTE) { a = hvm_obj_int_lte(b, c); }
+        else if(instr == HVM_OP_GTE) { a = hvm_obj_int_gte(b, c); }
         if(a == NULL) {
           hvm_exception *exc = hvm_new_operand_not_integer_exception();
           vm->exception = exc;

@@ -112,6 +112,10 @@ hvm_obj_ref *hvm_obj_int_mul(hvm_obj_ref*, hvm_obj_ref*);
 hvm_obj_ref *hvm_obj_int_div(hvm_obj_ref*, hvm_obj_ref*);
 hvm_obj_ref *hvm_obj_int_mod(hvm_obj_ref*, hvm_obj_ref*);
 hvm_obj_ref *hvm_obj_int_lt (hvm_obj_ref*, hvm_obj_ref*);
+hvm_obj_ref *hvm_obj_int_gt (hvm_obj_ref*, hvm_obj_ref*);
+hvm_obj_ref *hvm_obj_int_lte(hvm_obj_ref*, hvm_obj_ref*);
+hvm_obj_ref *hvm_obj_int_gte(hvm_obj_ref*, hvm_obj_ref*);
+
 
 void hvm_obj_array_push(hvm_obj_ref*, hvm_obj_ref*);
 void hvm_obj_array_unshift(hvm_obj_ref*, hvm_obj_ref*);

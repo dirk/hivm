@@ -743,6 +743,33 @@ void hvm_gen_lt(hvm_gen_item_block *block, byte a, byte b, byte c) {
   op->reg3 = c;
   GEN_PUSH_ITEM(op);
 }
+void hvm_gen_gt(hvm_gen_item_block *block, byte a, byte b, byte c) {
+  hvm_gen_item_op_a3 *op = malloc(sizeof(hvm_gen_item_op_a3));
+  op->type = HVM_GEN_OPA3;
+  op->op   = HVM_OP_GT;
+  op->reg1 = a;
+  op->reg2 = b;
+  op->reg3 = c;
+  GEN_PUSH_ITEM(op);
+}
+void hvm_gen_lte(hvm_gen_item_block *block, byte a, byte b, byte c) {
+  hvm_gen_item_op_a3 *op = malloc(sizeof(hvm_gen_item_op_a3));
+  op->type = HVM_GEN_OPA3;
+  op->op   = HVM_OP_LTE;
+  op->reg1 = a;
+  op->reg2 = b;
+  op->reg3 = c;
+  GEN_PUSH_ITEM(op);
+}
+void hvm_gen_gte(hvm_gen_item_block *block, byte a, byte b, byte c) {
+  hvm_gen_item_op_a3 *op = malloc(sizeof(hvm_gen_item_op_a3));
+  op->type = HVM_GEN_OPA3;
+  op->op   = HVM_OP_GTE;
+  op->reg1 = a;
+  op->reg2 = b;
+  op->reg3 = c;
+  GEN_PUSH_ITEM(op);
+}
 
 
 // META-GENERATORS

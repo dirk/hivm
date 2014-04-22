@@ -192,7 +192,10 @@ typedef enum {
   HVM_OP_MOD = 25,          // 1B OP | 3B REGs
   HVM_OP_POW = 26,          // 1B OP | 3B REGs
 
-  HVM_OP_LT = 44,           // 1B OP | 3B REGs
+  HVM_OP_LT  = 44,          // 1B OP | 3B REGs
+  HVM_OP_GT  = 45,          // 1B OP | 3B REGs
+  HVM_OP_LTE = 46,          // 1B OP | 3B REGs
+  HVM_OP_GTE = 47,          // 1B OP | 3B REGs
 
   // TODO: Bitwise instructions
   // TODO: Exception instructions
