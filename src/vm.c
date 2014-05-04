@@ -167,6 +167,7 @@ hvm_obj_ref *hvm_vm_call_primitive(hvm_vm *vm, hvm_symbol_id sym_id) {
   // hvm_obj_print_structure(vm, vm->primitives);
   void *pv = hvm_obj_struct_internal_get(vm->primitives, sym_id);
   if(pv == NULL) {
+    // TODO: Refactor exception creation
     // Primitive not found
     hvm_exception  *exc = hvm_new_exception();
     char buff[256];// TODO: Danger, Will Robinson, buffer overflow!
@@ -475,7 +476,12 @@ void hvm_vm_run(hvm_vm *vm) {
         AREG; BREG;
         key = hvm_vm_register_read(vm, breg);
         assert(key->type == HVM_SYMBOL);
-        hvm_vm_register_write(vm, areg, hvm_get_local(vm->top, key->data.u64));
+        val = hvm_get_local(vm->top, key->data.u64);
+        if(val == NULL) {
+          // Local not found
+          val = hvm_const_null;
+        }
+        hvm_vm_register_write(vm, areg, val);
         vm->ip += 2;
         break;
 
