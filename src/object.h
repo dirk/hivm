@@ -127,6 +127,7 @@ hvm_obj_ref* hvm_obj_array_remove(hvm_obj_ref*, hvm_obj_ref*);
 
 // UTILITIES ------------------------------------------------------------------
 hvm_obj_ref *hvm_new_obj_ref_string_data(char *data);
+char *hvm_human_name_for_obj_type(hvm_obj_ref* obj);
 
 // PRIMITIVE
 // Composed of just metadata and primitive value.

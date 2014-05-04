@@ -323,3 +323,34 @@ hvm_obj_ref *hvm_new_obj_ref_string_data(char *data) {
   hvm_obj_ref_set_string(obj, str);
   return obj;
 }
+
+// UTILITIES
+
+char *hvm_human_name_for_obj_type(hvm_obj_ref* obj) {
+  static char *string  = "string",
+              *unknown = "unknown",
+              *symbol  = "symbol",
+              *integer = "integer",
+              *null = "null",
+              *structure = "structure",
+              *array = "array",
+              *flot = "float";
+  switch(obj->type) {
+    case HVM_STRING:
+      return string;
+    case HVM_SYMBOL:
+      return symbol;
+    case HVM_INTEGER:
+      return integer;
+    case HVM_NULL:
+      return null;
+    case HVM_STRUCTURE:
+      return structure;
+    case HVM_ARRAY:
+      return array;
+    case HVM_FLOAT:
+      return flot;
+    default:
+      return unknown;
+  }
+}
