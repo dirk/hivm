@@ -312,7 +312,9 @@ void hvm_gen_process_block(hvm_chunk *chunk, struct hvm_gen_data *data, hvm_gen_
         chunk->size += 10;
         break;
 
+      // op_g_labels and op_d2_labels are identical in structure and usage.
       case HVM_GEN_OPG_LABEL:
+      case HVM_GEN_OPD2_LABEL:
         exists = g_hash_table_lookup_extended(labels, item->op_g_label.label, NULL, NULL);
         i64 = 0;
         if(exists) {
@@ -822,6 +824,15 @@ void hvm_gen_litinteger_label(hvm_gen_item_block *block, byte reg, char *label) 
   hvm_gen_item_op_g_label *data = malloc(sizeof(hvm_gen_item_op_g_label));
   data->type = HVM_GEN_OPG_LABEL;
   data->op = HVM_OP_LITINTEGER;
+  data->reg = reg;
+  data->label = gen_strclone(label);
+  GEN_PUSH_ITEM(data);
+}
+
+void hvm_gen_if_label(hvm_gen_item_block *block, byte reg, char *label) {
+  hvm_gen_item_op_d2_label *data = malloc(sizeof(hvm_gen_item_op_d2_label));
+  data->type = HVM_GEN_OPD2_LABEL;
+  data->op = HVM_OP_IF;
   data->reg = reg;
   data->label = gen_strclone(label);
   GEN_PUSH_ITEM(data);

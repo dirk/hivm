@@ -27,8 +27,9 @@ typedef enum {
 
   HVM_GEN_OPD1_LABEL,
   HVM_GEN_OPD2_NAME,
-  HVM_GEN_OPH_DATA, // 1B OP | 1B REG | [4B CONST]
-  HVM_GEN_OPG_LABEL, // 1B OP | 1B REG | 8B DEST (i64)
+  HVM_GEN_OPD2_LABEL, // 1B OP | 1B REG | [8B DEST]
+  HVM_GEN_OPH_DATA,   // 1B OP | 1B REG | [4B CONST]
+  HVM_GEN_OPG_LABEL,  // 1B OP | 1B REG | 8B DEST (i64)
 
   HVM_GEN_LABEL,
   HVM_GEN_SUB,
@@ -139,6 +140,13 @@ typedef struct hvm_gen_item_op_d2_name {
   byte reg;
 } hvm_gen_item_op_d2_name;
 
+typedef struct hvm_gen_item_op_d2_label {
+  HVM_GEN_ITEM_HEAD;
+  byte op;
+  byte reg;
+  char *label;
+} hvm_gen_item_op_d2_label;
+
 typedef struct hvm_gen_item_op_g_label {
   HVM_GEN_ITEM_HEAD;
   byte op;
@@ -227,6 +235,7 @@ typedef union hvm_gen_item {
 
   hvm_gen_item_op_d1_label op_d1_label;
   hvm_gen_item_op_d2_name  op_d2_name;
+  hvm_gen_item_op_d2_label op_d2_label;
   hvm_gen_item_op_g_label  op_g_label;
   hvm_gen_item_op_h_data   op_h_data;
   
@@ -309,6 +318,7 @@ void hvm_gen_set_integer(hvm_gen_item_block *block, byte reg, int64_t integer);
 void hvm_gen_sub(hvm_gen_item_block *block, char *name);
 void hvm_gen_push_block(hvm_gen_item_block *block, hvm_gen_item_block *push);
 void hvm_gen_call_sub(hvm_gen_item_block *block, char *name, byte ret);
+void hvm_gen_if_label(hvm_gen_item_block *block, byte reg, char *label);
 
 void hvm_gen_litinteger_label(hvm_gen_item_block *block, byte reg, char *label);
 

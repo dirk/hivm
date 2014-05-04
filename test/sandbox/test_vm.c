@@ -34,6 +34,28 @@ void test_heap() {
 }
 */
 
+void test_loop(hvm_gen *gen) {
+  char i = hvm_vm_reg_gen(1), n = hvm_vm_reg_gen(2), incr = hvm_vm_reg_gen(3), z = hvm_vm_reg_gen(0);
+
+  hvm_gen_litinteger(gen->block, i, 1);
+  hvm_gen_litinteger(gen->block, n, 10);
+  hvm_gen_litinteger(gen->block, incr, 1);// Incrementing by one
+  hvm_gen_label(gen->block, "loop");
+  hvm_gen_lt(gen->block, z, n, i); // 0 = i < n
+  hvm_gen_if_label(gen->block, z, "end");
+  hvm_gen_move(gen->block, hvm_vm_reg_arg(0), i);
+  hvm_gen_set_symbol(gen->block, z, "int_to_string");
+  hvm_gen_callprimitive(gen->block, z, z);
+  hvm_gen_move(gen->block, hvm_vm_reg_arg(0), z);
+  hvm_gen_set_symbol(gen->block, z, "print");
+  hvm_gen_callprimitive(gen->block, z, hvm_vm_reg_null());
+  hvm_gen_set_string(gen->block, hvm_vm_reg_arg(0), "\n");
+  hvm_gen_callprimitive(gen->block, z, hvm_vm_reg_null());
+  hvm_gen_add(gen->block, i, i, incr);
+  hvm_gen_goto_label(gen->block, "loop");
+  hvm_gen_label(gen->block, "end");
+  hvm_gen_die(gen->block);
+}
 
 void test_generator() {
   hvm_gen *gen = hvm_new_gen();
@@ -58,8 +80,11 @@ void test_generator() {
   hvm_gen_callprimitive(gen->block, hvm_vm_reg_gen(0), hvm_vm_reg_null());
   // hvm_gen_die(gen->block);
   */
-  
-  
+
+  test_loop(gen);
+
+  /*
+  // Hijinks-like code
   byte obj, func, sym, arg_sym, string_reg, sym_reg, console;
   
   hvm_gen_goto_label(gen->block, "defs");
@@ -113,12 +138,14 @@ void test_generator() {
   hvm_gen_setglobal(gen->block, sym, console);
 
   hvm_gen_die(gen->block);
+  */
 
   /*
   hvm_gen_set_integer(gen->block, 0, 1);
   hvm_gen_set_string(gen->block, 1, "test");
   hvm_gen_add(gen->block, 2, 0, 1);
   */
+
   /*
   hvm_gen_goto_label(gen->block, "tail");
   hvm_gen_label(gen->block, "head");
