@@ -479,7 +479,17 @@ void hvm_vm_run(hvm_vm *vm) {
         val = hvm_get_local(vm->top, key->data.u64);
         if(val == NULL) {
           // Local not found
-          val = hvm_const_null;
+          hvm_exception *exc = hvm_new_exception();
+          char buff[256];// TODO: Danger, Will Robinson, buffer overflow!
+          buff[0] = '\0';
+          strcat(buff, "Undefined local: ");
+          strcat(buff, hvm_desymbolicate(vm->symbols, key->data.u64));
+          hvm_obj_ref *obj = hvm_new_obj_ref_string_data(hvm_util_strclone(buff));
+          exc->message = obj;
+
+          vm->exception = exc;
+          goto handle_exception;
+          // val = hvm_const_null;
         }
         hvm_vm_register_write(vm, areg, val);
         vm->ip += 2;
@@ -652,7 +662,7 @@ void hvm_vm_run(hvm_vm *vm) {
         key   = hvm_vm_register_read(vm, creg);
         if(strct->type != HVM_STRUCTURE) {
           // Bad type
-          hvm_exception  *exc = hvm_new_exception();
+          hvm_exception *exc = hvm_new_exception();
           char *msg = "Attempting to get member of non-structure";
           hvm_obj_ref *obj = hvm_new_obj_ref_string_data(hvm_util_strclone(msg));
           exc->message = obj;
