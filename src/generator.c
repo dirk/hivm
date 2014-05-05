@@ -293,7 +293,7 @@ void hvm_gen_process_block(hvm_chunk *chunk, struct hvm_gen_data *data, hvm_gen_
         break;
       case HVM_GEN_OPD2_NAME:
         exists = g_hash_table_lookup_extended(labels, item->op_d2_name.name, NULL, NULL);
-        op = HVM_OP_CALL;
+        op = item->op_d2_name.op;
         dest = 0;
         if(exists) {
           idxptr = g_hash_table_lookup(labels, item->op_d2_name.name);
