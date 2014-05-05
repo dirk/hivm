@@ -72,6 +72,7 @@ void test_exception_catch(hvm_gen *gen) {
   hvm_gen_set_symbol(gen->block, z, "print_exception");
   hvm_gen_move(gen->block, hvm_vm_reg_arg(0), e);
   hvm_gen_callprimitive(gen->block, z, hvm_vm_reg_null());
+  hvm_gen_clearcatch(gen->block);
   hvm_gen_die(gen->block);
 }
 

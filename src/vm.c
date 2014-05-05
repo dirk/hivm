@@ -360,6 +360,11 @@ execute:
         frame->catch_register = reg;
         vm->ip += 9;
         break;
+      case HVM_OP_CLEARCATCH: // 1B OP
+        frame = &vm->stack[vm->stack_depth];
+        frame->catch_addr     = HVM_FRAME_EMPTY_CATCH;
+        frame->catch_register = hvm_vm_reg_null();
+        break;
 
       case HVM_OP_CALLADDRESS: // 1B OP | 1B REG | 1B REG
         reg  = vm->program[vm->ip + 1];

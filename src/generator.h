@@ -275,6 +275,7 @@ void hvm_gen_callprimitive(hvm_gen_item_block *block, byte sym, byte ret);
 void hvm_gen_if(hvm_gen_item_block *block, byte val, uint64_t dest);
 void hvm_gen_return(hvm_gen_item_block *block, byte reg);
 void hvm_gen_move(hvm_gen_item_block *block, byte dest, byte src);
+void hvm_gen_clearcatch(hvm_gen_item_block *block);
 
 void hvm_gen_getlocal(hvm_gen_item_block *block, byte val_reg, byte sym_reg);
 void hvm_gen_setlocal(hvm_gen_item_block *block, byte sym_reg, byte val_reg);
