@@ -290,6 +290,7 @@ void hvm_vm_run(hvm_vm *vm) {
   hvm_frame *frame, *parent_frame;
   hvm_exception *exc;
 
+execute:
   for(; vm->ip < vm->program_size;) {
     // fprintf(stderr, "top: %p, ip: %llu\n", vm->top, vm->ip);
     // Update the current frame address
@@ -720,9 +721,17 @@ handle_exception:
   exc = vm->exception;
   assert(exc != NULL);
   hvm_exception_build_backtrace(exc, vm);
-  hvm_exception_print(exc);
-  return;
-
+  // TODO: Climb stack properly
+  if(vm->top->catch_addr != HVM_FRAME_EMPTY_CATCH) {
+    vm->ip = vm->top->catch_addr;
+    // TODO: Write exception object to frame->catch_register
+    // Resume execution at the exception handling address
+    goto execute;
+  } else {
+    // No exception handler found
+    hvm_exception_print(exc);
+    return;
+  }
 }
 
 struct hvm_obj_ref* hvm_vm_get_const(hvm_vm *vm, uint32_t id) {

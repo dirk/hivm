@@ -80,6 +80,9 @@
 `catch DEST EXC`
 :  Register an exception handler for the current stack frame at destination DEST. If the handler is invoked then the exception will be placed in register EXC (can be $null).
 
+`clearcatch`
+:  Clear the current stack frame's exception handler.
+
 `throw EXC`
 :  Raise an exception.
 

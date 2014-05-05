@@ -18,7 +18,7 @@ typedef enum {
   HVM_GEN_OPB2, // 1B OP | 4B SYM | 1B REG
   HVM_GEN_OPC,
   HVM_GEN_OPD1, // 1B OP | 8B DEST
-  HVM_GEN_OPD2, // 1B OP | 8B DEST | 1B RET
+  HVM_GEN_OPD2, // 1B OP | 8B DEST | 1B REG
   HVM_GEN_OPD3, // 1B OP | 1B VAL  | 8B DEST
   HVM_GEN_OPE,  // 1B OP | 4B DIFF
   HVM_GEN_OPF,  // 1B OP
@@ -319,6 +319,7 @@ void hvm_gen_sub(hvm_gen_item_block *block, char *name);
 void hvm_gen_push_block(hvm_gen_item_block *block, hvm_gen_item_block *push);
 void hvm_gen_call_sub(hvm_gen_item_block *block, char *name, byte ret);
 void hvm_gen_if_label(hvm_gen_item_block *block, byte reg, char *label);
+void hvm_gen_catch_label(hvm_gen_item_block *block, char *label, byte reg);
 
 void hvm_gen_litinteger_label(hvm_gen_item_block *block, byte reg, char *label);
 

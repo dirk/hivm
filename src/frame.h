@@ -2,6 +2,9 @@
 #define HVM_FRAME_H
 /// @file frame.h
 
+/// Default value for the exception catch destination for a frame.
+#define HVM_FRAME_EMPTY_CATCH 0xFFFFFFFFFFFFFFFF
+
 /// Stack frame.
 typedef struct hvm_frame {
   /// Current address in this frame.
@@ -10,6 +13,10 @@ typedef struct hvm_frame {
   uint64_t       return_addr;
   /// Register to be written to when returning (set by caller).
   unsigned char  return_register;
+  /// Exception catch destination
+  uint64_t       catch_addr;
+  /// Register for exception to be written to
+  unsigned char  catch_register;
   /// Local variables of the frame.
   hvm_obj_struct *locals;
 } hvm_frame;

@@ -477,6 +477,12 @@ void hvm_gen_die(hvm_gen_item_block *block) {
   die->op   = HVM_OP_DIE;
   GEN_PUSH_ITEM(die);
 }
+void hvm_gen_clearcatch(hvm_gen_item_block *block) {
+  hvm_gen_item_op_f *op = malloc(sizeof(hvm_gen_item_op_f));
+  op->type = HVM_GEN_OPF;
+  op->op   = HVM_OP_CLEARCATCH;
+  GEN_PUSH_ITEM(op);
+}
 
 void hvm_gen_jump(hvm_gen_item_block *block, int32_t diff) {
   hvm_gen_item_op_e *jmp = malloc(sizeof(hvm_gen_item_op_e));
@@ -851,6 +857,15 @@ void hvm_gen_call_sub(hvm_gen_item_block *block, char *name, byte ret) {
   call->name = name;
   call->reg  = ret;
   GEN_PUSH_ITEM(call);
+}
+
+void hvm_gen_catch_label(hvm_gen_item_block *block, char *label, byte reg) {
+  hvm_gen_item_op_d2_name *catch = malloc(sizeof(hvm_gen_item_op_d2_name));
+  catch->type = HVM_GEN_OPD2_NAME;
+  catch->op = HVM_OP_CATCH;
+  catch->name = label;
+  catch->reg  = reg;
+  GEN_PUSH_ITEM(catch);
 }
 
 void hvm_gen_push_block(hvm_gen_item_block *block, hvm_gen_item_block *push) {
