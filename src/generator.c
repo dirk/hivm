@@ -483,6 +483,12 @@ void hvm_gen_clearcatch(hvm_gen_item_block *block) {
   op->op   = HVM_OP_CLEARCATCH;
   GEN_PUSH_ITEM(op);
 }
+void hvm_gen_clearexception(hvm_gen_item_block *block) {
+  hvm_gen_item_op_f *op = malloc(sizeof(hvm_gen_item_op_f));
+  op->type = HVM_GEN_OPF;
+  op->op   = HVM_OP_CLEAREXCEPTION;
+  GEN_PUSH_ITEM(op);
+}
 
 void hvm_gen_jump(hvm_gen_item_block *block, int32_t diff) {
   hvm_gen_item_op_e *jmp = malloc(sizeof(hvm_gen_item_op_e));

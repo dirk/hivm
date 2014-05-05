@@ -365,6 +365,9 @@ execute:
         frame->catch_addr     = HVM_FRAME_EMPTY_CATCH;
         frame->catch_register = hvm_vm_reg_null();
         break;
+      case HVM_OP_CLEAREXCEPTION: // 1B OP
+        vm->exception = NULL;
+        break;
 
       case HVM_OP_CALLADDRESS: // 1B OP | 1B REG | 1B REG
         reg  = vm->program[vm->ip + 1];
