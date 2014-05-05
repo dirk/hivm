@@ -156,6 +156,8 @@ struct hvm_obj_ref* hvm_get_global(hvm_vm*, hvm_symbol_id);
 /// @memberof hvm_vm
 void hvm_set_global(hvm_vm*, hvm_symbol_id, struct hvm_obj_ref*);
 
+struct hvm_obj_ref* hvm_vm_build_closure(hvm_vm *vm);
+
 char *hvm_util_strclone(char *str);
 
 /// Opcodes
@@ -182,9 +184,9 @@ typedef enum {
   HVM_OP_SETLOCAL = 17,  // 1B OP | 1B REG  | 1B REG
   HVM_OP_GETGLOBAL = 18, // 1B OP | 1B REG  | 1B REG
   HVM_OP_SETGLOBAL = 19, // 1B OP | 1B REG  | 1B REG
-  
-  HVM_GETCLOSURE = 20,   // 1B OP | 1B REG
-  
+
+  HVM_OP_GETCLOSURE = 20,   // 1B OP | 1B REG
+
   HVM_OP_ADD = 21,          // 1B OP | 3B REGs
   HVM_OP_SUB = 22,          // 1B OP | 3B REGs
   HVM_OP_MUL = 23,          // 1B OP | 3B REGs

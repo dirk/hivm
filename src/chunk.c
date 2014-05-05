@@ -216,6 +216,11 @@ void hvm_print_data(byte *data, uint64_t size) {
         printf("goto($%d)\n", reg1);
         i += 1;
         break;
+      case HVM_OP_GETCLOSURE: // 1B OP | 1B REG
+        reg1 = data[i + 1];
+        printf("$%-3d = getclosure\n", reg1);
+        i += 1;
+        break;
       default:
         printf("%02X (%d)\n", op, op);
     }

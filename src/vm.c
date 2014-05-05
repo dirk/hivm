@@ -202,6 +202,28 @@ hvm_exception *hvm_new_operand_not_integer_exception() {
   return exc;
 }
 
+hvm_obj_ref* hvm_vm_build_closure(hvm_vm *vm) {
+  hvm_obj_ref *ref = hvm_new_obj_ref();
+  ref->type = HVM_STRUCTURE;
+  // Create the closure struct and write the whole stack into it (bottom-up)
+  hvm_obj_struct *closure_struct = hvm_new_obj_struct();
+  uint32_t i = 0;
+  while(i <= vm->stack_depth) {
+    hvm_frame *frame = &vm->stack[i];
+    hvm_obj_struct *locals = frame->locals;
+    unsigned int idx;
+    for(idx = 0; idx < locals->heap_length; idx++) {
+      // Copy entry in the scope's structure heap into the closure
+      hvm_obj_struct_heap_pair *pair = locals->heap[idx];
+      hvm_obj_struct_internal_set(closure_struct, pair->id, pair->obj);
+    }
+    // Move up the stack
+    i++;
+  }
+  ref->data.v = closure_struct;
+  return ref;
+}
+
 /*
 REGISTER MAP
 0-127   = General registers (128)
@@ -538,11 +560,12 @@ execute:
         vm->ip += 2;
         break;
 
-      case HVM_GETCLOSURE: // 1B OP | 1B REG
+      case HVM_OP_GETCLOSURE: // 1B OP | 1B REG
         reg = vm->program[vm->ip + 1];
-        hvm_obj_ref* ref = hvm_new_obj_ref();
-        ref->type = HVM_STRUCTURE;
-        ref->data.v = vm->top->locals;
+        // hvm_obj_ref* ref = hvm_new_obj_ref();
+        // ref->type = HVM_STRUCTURE;
+        // ref->data.v = vm->top->locals;
+        hvm_obj_ref *ref = hvm_vm_build_closure(vm);
         hvm_obj_space_add_obj_ref(vm->obj_space, ref);
         hvm_vm_register_write(vm, reg, ref);
         vm->ip += 1;

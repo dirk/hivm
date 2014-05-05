@@ -608,7 +608,7 @@ void hvm_gen_setglobal(hvm_gen_item_block *block, byte sym_reg, byte val_reg) {
 void hvm_gen_getclosure(hvm_gen_item_block *block, byte reg) {
   hvm_gen_item_op_a1 *op = malloc(sizeof(hvm_gen_item_op_a1));
   op->type = HVM_GEN_OPA1;
-  op->op   = HVM_GETCLOSURE;
+  op->op   = HVM_OP_GETCLOSURE;
   op->reg1 = reg;
   GEN_PUSH_ITEM(op);
 }

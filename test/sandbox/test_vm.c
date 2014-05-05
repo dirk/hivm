@@ -77,6 +77,15 @@ void test_exception_catch(hvm_gen *gen) {
   hvm_gen_die(gen->block);
 }
 
+void test_closure(hvm_gen *gen) {
+  char sym = hvm_vm_reg_gen(0), a = hvm_vm_reg_gen(1);
+  hvm_gen_litinteger(gen->block, a, 1);
+  hvm_gen_set_symbol(gen->block, sym, "a");
+  hvm_gen_setlocal(gen->block, sym, a);
+  hvm_gen_getclosure(gen->block, a);
+  hvm_gen_die(gen->block);
+}
+
 void test_generator() {
   hvm_gen *gen = hvm_new_gen();
   // hvm_gen_set_symbol(gen->block, hvm_vm_reg_gen(1), "_test");
@@ -102,7 +111,8 @@ void test_generator() {
   */
 
   // test_loop(gen);
-  test_exception_catch(gen);
+  // test_exception_catch(gen);
+  test_closure(gen);
 
   /*
   // Hijinks-like code
