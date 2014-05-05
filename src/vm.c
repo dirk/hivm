@@ -368,7 +368,15 @@ execute:
       case HVM_OP_CLEAREXCEPTION: // 1B OP
         vm->exception = NULL;
         break;
-
+      case HVM_OP_SETEXCEPTION: // 1B OP | 1B REG
+        reg = vm->program[vm->ip + 1];
+        // TODO: Throw new exception if no current exception.
+        assert(vm->exception != NULL);
+        val = hvm_obj_for_exception(vm, vm->exception);
+        hvm_vm_register_write(vm, reg, val);
+        vm->ip += 1;
+        break;
+        
       case HVM_OP_CALLADDRESS: // 1B OP | 1B REG | 1B REG
         reg  = vm->program[vm->ip + 1];
         val  = hvm_vm_register_read(vm, reg);
@@ -745,8 +753,8 @@ handle_exception:
   while(1) {
     frame = &vm->stack[depth];
     if(frame->catch_addr != HVM_FRAME_EMPTY_CATCH) {
-      strct = hvm_obj_for_exception(vm, exc);
-      hvm_vm_register_write(vm, frame->catch_register, strct);
+      val = hvm_obj_for_exception(vm, exc);
+      hvm_vm_register_write(vm, frame->catch_register, val);
       // Resume execution at the exception handling address
       vm->ip = frame->catch_addr;
       // Clear the exception handler from the frame

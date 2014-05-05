@@ -199,9 +199,10 @@ typedef enum {
 
   // TODO: Bitwise instructions
   // TODO: Exception instructions
-  HVM_OP_CATCH = 50,        // 1B OP | 8B DEST | 1B REG
-  HVM_OP_CLEARCATCH = 51,   // 1B OP
+  HVM_OP_CATCH = 50,         // 1B OP | 8B DEST | 1B REG
+  HVM_OP_CLEARCATCH = 51,    // 1B OP
   HVM_OP_CLEAREXCEPTION = 52,// 1B OP
+  HVM_OP_SETEXCEPTION = 53,  // 1B OP | 1B REG
 
   HVM_OP_ARRAYPUSH = 27,    // 1B OP | 2B REGS
   HVM_OP_ARRAYSHIFT = 28,   // 1B OP | 2B REGS
