@@ -33,11 +33,11 @@ hvm_obj_ref *hvm_prim_exit(hvm_vm *vm) {
 }
 
 hvm_obj_ref *hvm_prim_print_exception(hvm_vm *vm) {
-  hvm_obj_ref *excstruct = vm->param_regs[0];
-  assert(excstruct != NULL);
-  assert(excstruct->type == HVM_STRUCTURE);
-  hvm_obj_ref *excref;
-  excref = hvm_obj_struct_internal_get(excstruct->data.v, hvm_symbolicate(vm->symbols, "hvm_exception"));
+  // hvm_obj_ref *excstruct = vm->param_regs[0];
+  // assert(excstruct != NULL);
+  // assert(excstruct->type == HVM_STRUCTURE);
+  // excref = hvm_obj_struct_internal_get(excstruct->data.v, hvm_symbolicate(vm->symbols, "hvm_exception"));
+  hvm_obj_ref *excref = vm->param_regs[0];
   assert(excref != NULL);
   assert(excref->type == HVM_INTERNAL);
   hvm_exception *exc = excref->data.v;

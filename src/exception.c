@@ -97,12 +97,14 @@ void hvm_exception_print(hvm_exception *exc) {
 }
 
 hvm_obj_ref *hvm_obj_for_exception(hvm_vm *vm, hvm_exception *exc) {
-  hvm_obj_struct *s = hvm_new_obj_struct();
   // Create the reference to the internal exception
   hvm_obj_ref *excref = hvm_new_obj_ref();
   excref->type = HVM_INTERNAL;
   excref->data.v = exc;
   hvm_obj_space_add_obj_ref(vm->obj_space, excref);
+  return excref;
+  /*
+  hvm_obj_struct *s = hvm_new_obj_struct();
   hvm_obj_struct_internal_set(s, hvm_symbolicate(vm->symbols, "hvm_exception"), excref);
   // Create the object to return
   hvm_obj_ref *obj;
@@ -111,4 +113,5 @@ hvm_obj_ref *hvm_obj_for_exception(hvm_vm *vm, hvm_exception *exc) {
   obj->data.v = s;
   hvm_obj_space_add_obj_ref(vm->obj_space, obj);
   return obj;
+  */
 }
