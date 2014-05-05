@@ -10,5 +10,5 @@ end
 
 desc 'Clean'
 task 'clean' do
-  sh "rm test_vm"
+  sh "rm -f test"
 end

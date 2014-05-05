@@ -16,6 +16,11 @@ hvm_vm *run_chunk(hvm_chunk *chunk) {
   hvm_vm_run(vm);
   return vm;
 }
+hvm_vm *gen_chunk_and_run(hvm_gen *gen) {
+  hvm_chunk *chunk = hvm_gen_chunk(gen);
+  hvm_vm *vm = run_chunk(chunk);
+  return vm;
+}
 
 TEST int_comparison_test() {
   hvm_gen *gen = hvm_new_gen();
@@ -33,10 +38,9 @@ TEST int_comparison_test() {
   hvm_gen_lte(gen->block, hvm_vm_reg_gen(lte_reg), hvm_vm_reg_gen(b), hvm_vm_reg_gen(c));
   // Greater than or equal
   hvm_gen_gte(gen->block, hvm_vm_reg_gen(gte_reg), hvm_vm_reg_gen(c), hvm_vm_reg_gen(b));
-
   hvm_gen_die(gen->block);
-  hvm_chunk *chunk = hvm_gen_chunk(gen);
-  hvm_vm *vm = run_chunk(chunk);
+
+  hvm_vm *vm = gen_chunk_and_run(gen);
 
   // Assertions
   obj = vm->general_regs[hvm_vm_reg_gen(lt_reg)];
