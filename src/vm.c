@@ -721,17 +721,22 @@ handle_exception:
   exc = vm->exception;
   assert(exc != NULL);
   hvm_exception_build_backtrace(exc, vm);
-  // TODO: Climb stack properly
-  if(vm->top->catch_addr != HVM_FRAME_EMPTY_CATCH) {
-    vm->ip = vm->top->catch_addr;
-    // TODO: Write exception object to frame->catch_register
-    // Resume execution at the exception handling address
-    goto execute;
-  } else {
-    // No exception handler found
-    hvm_exception_print(exc);
-    return;
+  // Climb stack looking for catch handler.
+  uint32_t depth = vm->stack_depth;
+  while(1) {
+    frame = &vm->stack[depth];
+    if(frame->catch_addr != HVM_FRAME_EMPTY_CATCH) {
+      vm->ip = frame->catch_addr;
+      // TODO: Write exception object to frame->catch_register
+      // Resume execution at the exception handling address
+      goto execute;
+    }
+    if(depth == 0) { break; }
+    depth--;
   }
+  // No exception handler found
+  hvm_exception_print(exc);
+  return;
 }
 
 struct hvm_obj_ref* hvm_vm_get_const(hvm_vm *vm, uint32_t id) {
