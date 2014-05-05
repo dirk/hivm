@@ -101,6 +101,7 @@ hvm_obj_ref *hvm_obj_for_exception(hvm_vm *vm, hvm_exception *exc) {
   hvm_obj_ref *excref = hvm_new_obj_ref();
   excref->type = HVM_INTERNAL;
   excref->data.v = exc;
+  excref->flags |= HVM_OBJ_FLAG_NO_FOLLOW;
   hvm_obj_space_add_obj_ref(vm->obj_space, excref);
   return excref;
   /*

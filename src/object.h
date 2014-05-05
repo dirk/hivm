@@ -34,7 +34,11 @@ union hvm_obj_ref_data {
 /// auto-promote to ancient generation).
 #define HVM_OBJ_FLAG_CONSTANT 0x2
 /// Flags an object as being tracked by the garbage collector.
-#define HVM_OBJ_FLAG_GCED 0x4
+#define HVM_OBJ_FLAG_GC_TRACKED 0x4
+/// Instructs the GC not to follow objects referenced by this object.
+/// For INTERNAL objects this tells the GC to not to try to free the memory
+/// at `.data.v`.
+#define HVM_OBJ_FLAG_NO_FOLLOW 0x8
 
 /// Base reference to an object.
 typedef struct hvm_obj_ref {
