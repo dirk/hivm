@@ -352,6 +352,14 @@ execute:
         vm->ip = dest;
         vm->top = frame;
         continue;
+      case HVM_OP_CATCH: // 1B OP | 8B DEST | 1B REG
+        dest = READ_U64(&vm->program[vm->ip + 1]);
+        reg  = vm->program[vm->ip + 9];
+        frame = &vm->stack[vm->stack_depth];
+        frame->catch_addr     = dest;
+        frame->catch_register = reg;
+        vm->ip += 9;
+        break;
 
       case HVM_OP_CALLADDRESS: // 1B OP | 1B REG | 1B REG
         reg  = vm->program[vm->ip + 1];
@@ -420,8 +428,11 @@ execute:
         sym_id = key->data.u64;
         hvm_vm_copy_regs(vm);
         // fprintf(stderr, "CALLPRIMITIVE(%lld, $%d)\n", sym_id, breg);
+        // FIXME: This may need to be smartened up.
+        hvm_exception *current_exc = vm->exception;// If there's a current exception
         val = hvm_vm_call_primitive(vm, sym_id);
-        CHECK_EXCEPTION;
+        // CHECK_EXCEPTION;
+        if(vm->exception != current_exc) { goto handle_exception; }
         hvm_vm_register_write(vm, breg, val);
         vm->ip += 2;
         break;
@@ -726,10 +737,15 @@ handle_exception:
   while(1) {
     frame = &vm->stack[depth];
     if(frame->catch_addr != HVM_FRAME_EMPTY_CATCH) {
-      vm->ip = frame->catch_addr;
-      // TODO: Write exception object to frame->catch_register
+      strct = hvm_obj_for_exception(vm, exc);
+      hvm_vm_register_write(vm, frame->catch_register, strct);
       // Resume execution at the exception handling address
+      vm->ip = frame->catch_addr;
+      // Clear the exception handler from the frame
+      frame->catch_addr = HVM_FRAME_EMPTY_CATCH;
+      frame->catch_register = hvm_vm_reg_null();
       goto execute;
+      return;
     }
     if(depth == 0) { break; }
     depth--;

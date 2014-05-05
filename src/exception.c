@@ -9,6 +9,7 @@
 #include "object.h"
 #include "frame.h"
 #include "chunk.h"
+#include "gc1.h"
 #include "exception.h"
 
 hvm_exception *hvm_new_exception() {
@@ -93,4 +94,21 @@ void hvm_exception_print(hvm_exception *exc) {
       fprintf(stderr, "    unknown (%d:%s)\n", loc->line, loc->file);
     }
   }
+}
+
+hvm_obj_ref *hvm_obj_for_exception(hvm_vm *vm, hvm_exception *exc) {
+  hvm_obj_struct *s = hvm_new_obj_struct();
+  // Create the reference to the internal exception
+  hvm_obj_ref *excref = hvm_new_obj_ref();
+  excref->type = HVM_INTERNAL;
+  excref->data.v = exc;
+  hvm_obj_space_add_obj_ref(vm->obj_space, excref);
+  hvm_obj_struct_internal_set(s, hvm_symbolicate(vm->symbols, "hvm_exception"), excref);
+  // Create the object to return
+  hvm_obj_ref *obj;
+  obj = hvm_new_obj_ref();
+  obj->type = HVM_STRUCTURE;
+  obj->data.v = s;
+  hvm_obj_space_add_obj_ref(vm->obj_space, obj);
+  return obj;
 }

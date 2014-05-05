@@ -24,10 +24,25 @@ void hvm_bootstrap_primitives(hvm_vm *vm) {
   PRIM_SET("int_to_string", hvm_prim_int_to_string);
 
   PRIM_SET("exit", hvm_prim_exit);
+
+  PRIM_SET("print_exception", hvm_prim_print_exception);
 }
 
 hvm_obj_ref *hvm_prim_exit(hvm_vm *vm) {
   exit(0);
+}
+
+hvm_obj_ref *hvm_prim_print_exception(hvm_vm *vm) {
+  hvm_obj_ref *excstruct = vm->param_regs[0];
+  assert(excstruct != NULL);
+  assert(excstruct->type == HVM_STRUCTURE);
+  hvm_obj_ref *excref;
+  excref = hvm_obj_struct_internal_get(excstruct->data.v, hvm_symbolicate(vm->symbols, "hvm_exception"));
+  assert(excref != NULL);
+  assert(excref->type == HVM_INTERNAL);
+  hvm_exception *exc = excref->data.v;
+  hvm_exception_print(exc);
+  return hvm_const_null;
 }
 
 hvm_obj_ref *hvm_prim_print(hvm_vm *vm) {
