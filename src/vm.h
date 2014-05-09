@@ -198,13 +198,15 @@ typedef enum {
   HVM_OP_GT  = 45,          // 1B OP | 3B REGs
   HVM_OP_LTE = 46,          // 1B OP | 3B REGs
   HVM_OP_GTE = 47,          // 1B OP | 3B REGs
+  HVM_OP_EQ  = 48,          // 1B OP | 3B REGs
 
   // TODO: Bitwise instructions
-  // TODO: Exception instructions
+
   HVM_OP_CATCH = 50,         // 1B OP | 8B DEST | 1B REG
   HVM_OP_CLEARCATCH = 51,    // 1B OP
   HVM_OP_CLEAREXCEPTION = 52,// 1B OP
   HVM_OP_SETEXCEPTION = 53,  // 1B OP | 1B REG
+  // TODO: THROW, RETHROW
 
   HVM_OP_ARRAYPUSH = 27,    // 1B OP | 2B REGS
   HVM_OP_ARRAYSHIFT = 28,   // 1B OP | 2B REGS

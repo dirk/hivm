@@ -27,7 +27,9 @@ hvm_obj_array *hvm_new_obj_array_with_length(hvm_obj_ref *lenref) {
   hvm_obj_array *arr = malloc(sizeof(hvm_obj_array));
   assert(lenref->type == HVM_INTEGER);
   guint len = (guint)(lenref->data.i64);
+  // printf("new array len: %d\n", len);
   arr->array = g_array_sized_new(TRUE, TRUE, sizeof(hvm_obj_ref*), len);
+  // printf("arr->array->len: %d\n", arr->array->len);
   return arr;
 }
 
@@ -64,8 +66,9 @@ hvm_obj_ref* hvm_obj_array_get(hvm_obj_ref *arrref, hvm_obj_ref *idxref) {
   hvm_obj_array *arr = arrref->data.v;
   guint idx, len;
   idx = (guint)(idxref->data.i64);
+  // TODO: Glib doesn't actually store length in array->len
   len = arr->array->len;
-  assert(idx < len);
+  // assert(idx < len);
   hvm_obj_ref *ptr = g_array_index(arr->array, hvm_obj_ref*, idx);
   return ptr;
 }
@@ -76,7 +79,7 @@ hvm_obj_ref* hvm_obj_array_remove(hvm_obj_ref *arrref, hvm_obj_ref *idxref) {
   guint idx, len;
   idx = (guint)(idxref->data.i64);
   len = arr->array->len;
-  assert(idx < len);
+  // assert(idx < len);
   hvm_obj_ref *ptr = g_array_index(arr->array, hvm_obj_ref*, idx);
   g_array_remove_index(arr->array, idx);
   return ptr;
@@ -88,7 +91,7 @@ void hvm_obj_array_set(hvm_obj_ref *arrref, hvm_obj_ref *idxref, hvm_obj_ref *va
   guint idx, len;
   idx = (guint)(idxref->data.i64);
   len = arr->array->len;
-  assert(idx < len);
+  // assert(idx < len);
   hvm_obj_ref **el = &g_array_index(arr->array, hvm_obj_ref*, idx);
   *el = valref;
 }
@@ -122,7 +125,9 @@ hvm_obj_ref *hvm_new_obj_int() {
   return ref;
 }
 
-#define INT_TYPE_CHECK if(a->type != HVM_INTEGER || b->type != HVM_INTEGER) { return NULL; }
+#define INT_TYPE_CHECK assert(a != NULL); \
+                       assert(b != NULL); \
+                       if(a->type != HVM_INTEGER || b->type != HVM_INTEGER) { return NULL; }
 
 hvm_obj_ref *hvm_obj_int_add(hvm_obj_ref *a, hvm_obj_ref *b) {
   INT_TYPE_CHECK;
@@ -209,6 +214,13 @@ hvm_obj_ref *hvm_obj_int_gte(hvm_obj_ref *a, hvm_obj_ref *b) {
   INT_TYPE_CHECK;
   INT_COMPARISON_OP_HEAD;
   cv = av >= bv;
+  c->data.i64 = cv;
+  return c;
+}
+hvm_obj_ref *hvm_obj_int_eq(hvm_obj_ref *a, hvm_obj_ref *b) {
+  INT_TYPE_CHECK;
+  INT_COMPARISON_OP_HEAD;
+  cv = av == bv;
   c->data.i64 = cv;
   return c;
 }

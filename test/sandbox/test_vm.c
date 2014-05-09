@@ -41,7 +41,7 @@ void test_loop(hvm_gen *gen) {
   hvm_gen_litinteger(gen->block, n, 10);
   hvm_gen_litinteger(gen->block, incr, 1);// Incrementing by one
   hvm_gen_label(gen->block, "loop");
-  hvm_gen_lt(gen->block, z, n, i); // 0 = i < n
+  hvm_gen_lt(gen->block, z, n, i); // 0 = n < i
   hvm_gen_if_label(gen->block, z, "end");
   hvm_gen_move(gen->block, hvm_vm_reg_arg(0), i);
   hvm_gen_set_symbol(gen->block, z, "int_to_string");

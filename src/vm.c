@@ -170,7 +170,7 @@ hvm_obj_ref *hvm_vm_call_primitive(hvm_vm *vm, hvm_symbol_id sym_id) {
     // TODO: Refactor exception creation
     // Primitive not found
     hvm_exception  *exc = hvm_new_exception();
-    char buff[256];// TODO: Danger, Will Robinson, buffer overflow!
+    char buff[256];// TODO: Buffer overflow if primitive name too long
     buff[0] = '\0';
     strcat(buff, "Primitive not found: ");
     // NOTE: Possible error that desymbolicate() could fail.
@@ -496,7 +496,7 @@ execute:
       case HVM_OP_SETFLOAT:
       case HVM_OP_SETSTRUCT:
       case HVM_OP_SETSYMBOL:
-        // TODO: Type-checking
+        // TODO: Type-checking or just do SETCONSTANT
         reg         = vm->program[vm->ip + 1];
         const_index = READ_U32(&vm->program[vm->ip + 2]);
         // fprintf(stderr, "0x%08llX  ", vm->ip);
@@ -603,7 +603,8 @@ execute:
       case HVM_OP_LT:
       case HVM_OP_GT:
       case HVM_OP_LTE:
-      case HVM_OP_GTE: // 1B OP | 3B REGs
+      case HVM_OP_GTE:
+      case HVM_OP_EQ:  // 1B OP | 3B REGs
         // A = B < C
         AREG; BREG; CREG;
         b = hvm_vm_register_read(vm, breg);
@@ -612,6 +613,7 @@ execute:
         else if(instr == HVM_OP_GT)  { a = hvm_obj_int_gt(b, c); }
         else if(instr == HVM_OP_LTE) { a = hvm_obj_int_lte(b, c); }
         else if(instr == HVM_OP_GTE) { a = hvm_obj_int_gte(b, c); }
+        else if(instr == HVM_OP_EQ) { a = hvm_obj_int_eq(b, c); }
         if(a == NULL) {
           hvm_exception *exc = hvm_new_operand_not_integer_exception();
           vm->exception = exc;
