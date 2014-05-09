@@ -26,6 +26,8 @@ void hvm_bootstrap_primitives(hvm_vm *vm) {
   PRIM_SET("exit", hvm_prim_exit);
 
   PRIM_SET("print_exception", hvm_prim_print_exception);
+
+  PRIM_SET("print_char", hvm_prim_print_char);
 }
 
 hvm_obj_ref *hvm_prim_exit(hvm_vm *vm) {
@@ -80,6 +82,31 @@ hvm_obj_ref *hvm_prim_print(hvm_vm *vm) {
   }
   hvm_obj_string *str = strref->data.v;
   fputs(str->data, stdout);
+  return hvm_const_null;
+}
+hvm_obj_ref *hvm_prim_print_char(hvm_vm *vm) {
+  hvm_obj_ref *intref = vm->param_regs[0];
+  if(intref->type != HVM_INTEGER) {
+    hvm_exception *exc = hvm_new_exception();
+    char *type = hvm_human_name_for_obj_type(intref);
+    char buff[256];
+    buff[0] = '\0';
+    strcat(buff, "`print_char` expects string, got ");
+    strcat(buff, type);
+    hvm_obj_ref *obj = hvm_new_obj_ref_string_data(hvm_util_strclone(buff));
+    exc->message = obj;
+
+    hvm_location *loc = hvm_new_location();
+    loc->name = hvm_util_strclone("hvm_prim_print_char");
+    hvm_exception_push_location(exc, loc);
+
+    vm->exception = exc;
+    return NULL;
+  }
+  int64_t i = intref->data.i64;
+  // fprintf(stderr, "char: %lld\n", i);
+  char    c = (char)i;
+  fputc(c, stdout);
   return hvm_const_null;
 }
 
