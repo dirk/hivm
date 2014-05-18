@@ -8,5 +8,6 @@ hvm_obj_ref *hvm_prim_exit(hvm_vm *vm);
 hvm_obj_ref *hvm_prim_print(hvm_vm *vm);
 hvm_obj_ref *hvm_prim_print_exception(hvm_vm *vm);
 hvm_obj_ref *hvm_prim_print_char(hvm_vm *vm);
+hvm_obj_ref *hvm_prim_debug_print_struct(hvm_vm *vm);
 
 #endif

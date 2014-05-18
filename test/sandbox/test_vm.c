@@ -83,6 +83,11 @@ void test_closure(hvm_gen *gen) {
   hvm_gen_set_symbol(gen->block, sym, "a");
   hvm_gen_setlocal(gen->block, sym, a);
   hvm_gen_getclosure(gen->block, a);
+
+  hvm_gen_move(gen->block, hvm_vm_reg_arg(0), a);
+  hvm_gen_set_symbol(gen->block, sym, "debug_print_struct");
+  hvm_gen_callprimitive(gen->block, sym, hvm_vm_reg_null());
+
   hvm_gen_die(gen->block);
 }
 
