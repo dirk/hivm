@@ -119,7 +119,7 @@ void hvm_print_data(byte *data, uint64_t size) {
     printf("  0x%08llX  ", i);
     switch(op) {
       case HVM_OP_DIE:// 1B OP
-        printf("die()\n");
+        printf("die\n");
         break;
       case HVM_OP_MOVE:// 1B OP | 1B REG | 1B REG
         reg1 = data[i + 1];
@@ -220,6 +220,40 @@ void hvm_print_data(byte *data, uint64_t size) {
         reg1 = data[i + 1];
         printf("$%-3d = getclosure\n", reg1);
         i += 1;
+        break;
+      case HVM_OP_LT: // 1B OP | 3B REGs
+        reg1 = data[i + 1];
+        reg2 = data[i + 2];
+        reg3 = data[i + 3];
+        printf("$%-3d = $%-3d <  $%-3d\n", reg1, reg2, reg3);
+        i += 3;
+        break;
+      // HVM_OP_GT  = 45,          // 1B OP | 3B REGs
+      // HVM_OP_LTE = 46,          // 1B OP | 3B REGs
+      // HVM_OP_GTE = 47,          // 1B OP | 3B REGs
+      // HVM_OP_EQ  = 48,          // 1B OP | 3B REGs
+      case HVM_OP_IF: // 1B OP | 1B REG  | 8B DEST
+        reg1 = data[i + 1];
+        u64  = READ_U64(&data[i + 2]);
+        printf("if($%d, 0x%08llX)\n", reg1, u64);
+        i += 9;
+        break;
+      case HVM_OP_CATCH: // 1B OP | 8B DEST | 1B REG
+        u64  = READ_U64(&data[i + 1]);
+        reg1 = data[i + 9];
+        printf("catch(0x%08llX, $%d)\n", u64, reg1);
+        i += 9;
+        break;
+      case HVM_OP_SETEXCEPTION: // 1B OP | 1B REG
+        reg1 = data[i + 1];
+        printf("$%-3d = setexception\n", reg1);
+        i += 1;
+        break;
+      case HVM_OP_CLEAREXCEPTION: // 1B OP
+        printf("clearexception\n");
+        break;
+      case HVM_OP_CLEARCATCH: // 1B OP
+        printf("clearcatch\n");
         break;
       default:
         printf("%02X (%d)\n", op, op);
