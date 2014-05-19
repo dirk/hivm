@@ -42,7 +42,7 @@ hvm_obj_ref *hvm_chunk_get_constant_object(hvm_vm *vm, hvm_chunk_constant *cnst)
     ref->data.u64 = hvm_symbolicate(vm->symbols, co->data.v);
     return ref;
   } else {
-    fprintf(stderr, "Can't yet handle object type %s\n", hvm_human_name_for_obj_type(co));
+    fprintf(stderr, "Can't yet handle object type %s\n", hvm_human_name_for_obj_type(co->type));
     return hvm_const_null;
   }
 }
@@ -78,7 +78,7 @@ void print_constants(hvm_chunk *chunk) {
   int i = 0;
   while(*consts != NULL) {
     cnst = *consts;
-    printf("  #%-4d 0x%08llX  (%p)  %-9s", i, cnst->index, cnst->object, hvm_human_name_for_obj_type(cnst->object));
+    printf("  #%-4d 0x%08llX  (%p)  %-9s", i, cnst->index, cnst->object, hvm_human_name_for_obj_type(cnst->object->type));
     print_constant_object(cnst->object);
     printf("\n");
     i++;

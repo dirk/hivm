@@ -115,9 +115,9 @@ void test_generator() {
   // hvm_gen_die(gen->block);
   */
 
-  // test_loop(gen);
+  test_loop(gen);
   // test_exception_catch(gen);
-  test_closure(gen);
+  // test_closure(gen);
 
   /*
   // Hijinks-like code

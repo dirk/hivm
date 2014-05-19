@@ -338,7 +338,7 @@ hvm_obj_ref *hvm_new_obj_ref_string_data(char *data) {
 
 // UTILITIES
 
-char *hvm_human_name_for_obj_type(hvm_obj_ref* obj) {
+char *hvm_human_name_for_obj_type(hvm_obj_type type) {
   static char *string  = "string",
               *unknown = "unknown",
               *symbol  = "symbol",
@@ -347,7 +347,7 @@ char *hvm_human_name_for_obj_type(hvm_obj_ref* obj) {
               *structure = "structure",
               *array = "array",
               *flot = "float";
-  switch(obj->type) {
+  switch(type) {
     case HVM_STRING:
       return string;
     case HVM_SYMBOL:
