@@ -321,6 +321,7 @@ hvm_obj_ref *hvm_new_obj_ref() {
   ref->type = HVM_NULL;
   ref->data.u64 = 0;
   ref->flags = 0;
+  ref->entry = NULL;
   return ref;
 }
 void hvm_obj_ref_set_string(hvm_obj_ref *ref, hvm_obj_string *str) {

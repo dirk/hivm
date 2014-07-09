@@ -48,6 +48,8 @@ typedef struct hvm_obj_ref {
   union hvm_obj_ref_data data;
   /// Internal flags for the reference.
   byte flags;
+  /// Pointer to its entry in the GC heap
+  void *entry;
 } hvm_obj_ref;
 
 // TYPES

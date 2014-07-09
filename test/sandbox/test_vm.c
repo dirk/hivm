@@ -88,7 +88,7 @@ void test_closure(hvm_gen *gen) {
   hvm_gen_set_symbol(gen->block, sym, "debug_print_struct");
   hvm_gen_callprimitive(gen->block, sym, hvm_vm_reg_null());
 
-  hvm_gen_die(gen->block);
+  // hvm_gen_die(gen->block);
 }
 
 void test_generator() {
@@ -115,9 +115,14 @@ void test_generator() {
   // hvm_gen_die(gen->block);
   */
 
-  test_loop(gen);
+  // test_loop(gen);
   // test_exception_catch(gen);
-  // test_closure(gen);
+  test_closure(gen);
+
+  hvm_gen_set_symbol(gen->block, hvm_vm_reg_gen(0), "gc_run");
+  hvm_gen_callprimitive(gen->block, hvm_vm_reg_gen(0), hvm_vm_reg_null());
+
+  hvm_gen_die(gen->block);
 
   /*
   // Hijinks-like code

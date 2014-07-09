@@ -32,4 +32,9 @@ typedef struct hvm_gc1_obj_space {
 hvm_gc1_obj_space *hvm_new_obj_space();
 void hvm_obj_space_add_obj_ref(hvm_gc1_obj_space *space, hvm_obj_ref *obj);
 
+void hvm_gc1_run(hvm_vm *vm, hvm_gc1_obj_space *space);
+/// Traverse the object space and reset the mark bits.
+void hvm_gc1_obj_space_mark_reset(hvm_gc1_obj_space *space);
+void hvm_gc1_obj_space_mark(hvm_vm *vm, hvm_gc1_obj_space *space);
+
 #endif
