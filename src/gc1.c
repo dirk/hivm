@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
+#include <string.h>
 
 #include "vm.h"
 #include "symbol.h"
@@ -11,10 +12,15 @@
 #define FLAGTRUE(v, f)  (v & f) == f
 #define FLAGFALSE(v, f) (v & f) == 0
 
+#define FLAG_GC_MARKED 0x1
+
+// Dereferences an entry pointer and returns the first byte of the struct.
+#define FIRST_BYTE_OF_ENTRY(V) *(char*)(V)
+
 hvm_gc1_obj_space *hvm_new_obj_space() {
   hvm_gc1_obj_space *space = malloc(sizeof(hvm_gc1_obj_space));
   space->heap.size    = HVM_GC1_INITIAL_HEAP_SIZE;
-  space->heap.entries = malloc(HVM_GC1_HEAP_MEMORY_SIZE(space->heap.size));
+  space->heap.entries = calloc(HVM_GC1_HEAP_MEMORY_SIZE(space->heap.size), sizeof(char));
   space->heap.length  = 0;
   return space;
 }
@@ -40,10 +46,9 @@ static inline void _gc1_mark_obj_ref(hvm_obj_ref *obj) {
   assert(obj->entry != NULL); // Make sure there is a GC entry
   hvm_gc1_heap_entry *entry = obj->entry;
   // Check if already marked
-  if(FLAGTRUE(entry->flags, 0x1)) { return; }
+  if(FLAGTRUE(entry->flags, FLAG_GC_MARKED)) { return; }
   // Mark the GC entry
   entry->flags = entry->flags | 0x1; // 0000 0001
-  fprintf(stderr, "mark_obj_ref.marked: obj_ref = %p (%s)\n", obj, hvm_human_name_for_obj_type(obj->type));
   // Handle complex data structures
   if(obj->type == HVM_STRUCTURE) {
     _gc1_mark_struct(obj->data.v);
@@ -77,11 +82,8 @@ static inline void _gc1_mark_registers(hvm_vm *vm) {
   }
 }
 
-void hvm_gc1_obj_space_mark(hvm_vm *vm, hvm_gc1_obj_space *space) {
+static inline void _gc1_mark_stack(hvm_vm *vm) {
   uint32_t i;
-  // Go through the registers and mark
-  _gc1_mark_registers(vm);
-  // Climb through each of the stack frames and mark objects
   for(i = 0; i <= vm->stack_depth; i++) {
     struct hvm_frame *frame = &vm->stack[i];
     hvm_obj_struct *locals = frame->locals;
@@ -89,13 +91,39 @@ void hvm_gc1_obj_space_mark(hvm_vm *vm, hvm_gc1_obj_space *space) {
   }
 }
 
+static inline void _gc1_free(hvm_gc1_heap_entry *entry) {
+  // Free the object referenced
+  hvm_obj_free(entry->obj);
+  // Then clear out the entry
+  memset(entry, 0, sizeof(hvm_gc1_heap_entry));
+}
+
+static inline void _gc1_sweep(hvm_gc1_obj_space *space) {
+  for(uint32_t id = 0; id < space->heap.length; id++) {
+    hvm_gc1_heap_entry *entry = &space->heap.entries[id];
+    if(FLAGFALSE(entry->flags, FLAG_GC_MARKED)) {
+      _gc1_free(entry);
+    }
+  }
+}
+
+void hvm_gc1_obj_space_mark(hvm_vm *vm, hvm_gc1_obj_space *space) {
+  // Go through the registers
+  _gc1_mark_registers(vm);
+  // Climb through each of the stack frames
+  _gc1_mark_stack(vm);
+  // Free unmarked objects
+  _gc1_sweep(space);
+  // TODO: Compact the object space
+}
+
 void hvm_gc1_run(hvm_vm *vm, hvm_gc1_obj_space *space) {
-  fprintf(stderr, "gc1_run.start\n");
+  // fprintf(stderr, "gc1_run.start\n");
   // Reset all of our markings
   hvm_gc1_obj_space_mark_reset(space);
   // Mark objects
   hvm_gc1_obj_space_mark(vm, space);
-  fprintf(stderr, "gc1_run.end\n");
+  // fprintf(stderr, "gc1_run.end\n");
 }
 
 void hvm_obj_space_grow(hvm_gc1_obj_space *space) {

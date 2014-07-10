@@ -54,7 +54,7 @@ void test_loop(hvm_gen *gen) {
   hvm_gen_add(gen->block, i, i, incr);
   hvm_gen_goto_label(gen->block, "loop");
   hvm_gen_label(gen->block, "end");
-  hvm_gen_die(gen->block);
+  // hvm_gen_die(gen->block);
 }
 
 void test_exception_catch(hvm_gen *gen) {
@@ -115,9 +115,9 @@ void test_generator() {
   // hvm_gen_die(gen->block);
   */
 
-  // test_loop(gen);
+  test_loop(gen);
   // test_exception_catch(gen);
-  test_closure(gen);
+  // test_closure(gen);
 
   hvm_gen_set_symbol(gen->block, hvm_vm_reg_gen(0), "gc_run");
   hvm_gen_callprimitive(gen->block, hvm_vm_reg_gen(0), hvm_vm_reg_null());

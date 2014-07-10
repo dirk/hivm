@@ -337,6 +337,25 @@ hvm_obj_ref *hvm_new_obj_ref_string_data(char *data) {
   return obj;
 }
 
+// DESTRUCTORS
+void hvm_obj_free(hvm_obj_ref *ref) {
+  // Make sure it's not a special data type
+  assert(ref->type != HVM_NULL && ref->type != HVM_SYMBOL && ref->type != HVM_INTERNAL);
+  // Complex data structures need their underpinnings freed first
+  if(ref->type == HVM_STRUCTURE) {
+    hvm_obj_struct_free(ref->data.v);
+  } else if(ref->type == HVM_ARRAY) {
+    fprintf(stderr, "hvm_obj_array_free not implemented yet\n");
+    exit(1);
+  }
+  free(ref);
+}
+void hvm_obj_struct_free(hvm_obj_struct *strct) {
+  // Free the struct's internal heap
+  free(strct->heap);
+}
+
+
 // UTILITIES
 
 char *hvm_human_name_for_obj_type(hvm_obj_type type) {

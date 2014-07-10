@@ -99,6 +99,11 @@ hvm_obj_array *hvm_new_obj_array_with_length(hvm_obj_ref*);
 /// Construct a new structure.
 /// @memberof hvm_obj_struct
 hvm_obj_struct *hvm_new_obj_struct();
+
+// DESTRUCTORS
+void hvm_obj_free(hvm_obj_ref *ref);
+void hvm_obj_struct_free(hvm_obj_struct*);
+
 // Internal struct manipulation
 hvm_obj_ref *hvm_obj_struct_internal_get(hvm_obj_struct*, hvm_symbol_id);
 void hvm_obj_struct_internal_set(hvm_obj_struct*, hvm_symbol_id, hvm_obj_ref*);
