@@ -148,8 +148,13 @@ static inline void _gc1_relocate(hvm_gc1_obj_space *space, uint32_t free_entry, 
   assert(free_entry < used_entry);
   hvm_gc1_heap_entry *dest   = &space->heap.entries[free_entry];
   hvm_gc1_heap_entry *source = &space->heap.entries[used_entry];
+  // Copy the entries
   memcpy(dest, source, sizeof(hvm_gc1_heap_entry));
+  // "Delete" the old entry
   FIRST_BYTE_OF_ENTRY(source) = 0;
+  // Update the object reference to point to the right place
+  hvm_obj_ref *obj = dest->obj;
+  obj->entry = dest;
 }
 
 static inline void _gc1_compact(hvm_gc1_obj_space *space) {
@@ -168,7 +173,7 @@ static inline void _gc1_compact(hvm_gc1_obj_space *space) {
   space->heap.length = free_entry;
 }
 
-void hvm_gc1_obj_space_mark(hvm_vm *vm, hvm_gc1_obj_space *space) {
+void hvm_gc1_obj_space_mark(hvm_vm *vm) {
   // Go through the registers
   _gc1_mark_registers(vm);
   // Climb through each of the stack frames
@@ -180,7 +185,7 @@ void hvm_gc1_run(hvm_vm *vm, hvm_gc1_obj_space *space) {
   // Reset all of our markings
   hvm_gc1_obj_space_mark_reset(space);
   // Mark objects
-  hvm_gc1_obj_space_mark(vm, space);
+  hvm_gc1_obj_space_mark(vm);
   // Free unmarked objects
   _gc1_sweep(space);
   // Compact the object space
