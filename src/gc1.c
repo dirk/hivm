@@ -173,10 +173,6 @@ void hvm_gc1_obj_space_mark(hvm_vm *vm, hvm_gc1_obj_space *space) {
   _gc1_mark_registers(vm);
   // Climb through each of the stack frames
   _gc1_mark_stack(vm);
-  // Free unmarked objects
-  _gc1_sweep(space);
-  // TODO: Compact the object space
-  _gc1_compact(space);
 }
 
 void hvm_gc1_run(hvm_vm *vm, hvm_gc1_obj_space *space) {
@@ -185,6 +181,10 @@ void hvm_gc1_run(hvm_vm *vm, hvm_gc1_obj_space *space) {
   hvm_gc1_obj_space_mark_reset(space);
   // Mark objects
   hvm_gc1_obj_space_mark(vm, space);
+  // Free unmarked objects
+  _gc1_sweep(space);
+  // Compact the object space
+  _gc1_compact(space);
   // fprintf(stderr, "gc1_run.end\n");
 }
 
