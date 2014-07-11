@@ -9,6 +9,10 @@
 #include "frame.h"
 #include "gc1.h"
 
+#define bool  char
+#define true  1
+#define false 0
+
 #define FLAGTRUE(v, f)  (v & f) == f
 #define FLAGFALSE(v, f) (v & f) == 0
 
@@ -95,16 +99,73 @@ static inline void _gc1_free(hvm_gc1_heap_entry *entry) {
   // Free the object referenced
   hvm_obj_free(entry->obj);
   // Then clear out the entry
-  memset(entry, 0, sizeof(hvm_gc1_heap_entry));
+  // memset(entry, 0, sizeof(hvm_gc1_heap_entry));
+  // Only setting the first byte since that's what's checked.
+  FIRST_BYTE_OF_ENTRY(entry) = 0;
 }
 
 static inline void _gc1_sweep(hvm_gc1_obj_space *space) {
   for(uint32_t id = 0; id < space->heap.length; id++) {
     hvm_gc1_heap_entry *entry = &space->heap.entries[id];
     if(FLAGFALSE(entry->flags, FLAG_GC_MARKED)) {
+      fprintf(stderr, "freeing:%d\n", id);
       _gc1_free(entry);
     }
   }
+}
+
+static inline bool _gc1_entry_is_null(hvm_gc1_obj_space *space, uint32_t idx) {
+  hvm_gc1_heap_entry *entry = &space->heap.entries[idx];
+  return FIRST_BYTE_OF_ENTRY(entry) == 0;
+}
+
+static inline void _gc1_compact_find_next_free_entry(hvm_gc1_obj_space *space, uint32_t *free_entry) {
+  uint32_t idx = *free_entry;
+  while(idx < space->heap.length && !_gc1_entry_is_null(space, idx)) {
+    idx += 1;
+  }
+  *free_entry = idx;
+}
+static inline bool _gc1_compact_has_used_entry_after(hvm_gc1_obj_space *space, uint32_t free_entry, uint32_t *used_entry) {
+  // Start at the index after the free entry index
+  uint32_t idx = free_entry + 1;
+  // Make sure we have space left to search
+  while(idx < space->heap.length) {
+    if(_gc1_entry_is_null(space, idx)) {
+      // Pass over free entry
+      idx += 1;
+      continue;
+    } else {
+      // Non-null entry, so it's used
+      *used_entry = idx;
+      return true;
+    }
+  }
+  return false; // No space left
+}
+
+static inline void _gc1_relocate(hvm_gc1_obj_space *space, uint32_t free_entry, uint32_t used_entry) {
+  assert(free_entry < used_entry);
+  hvm_gc1_heap_entry *dest   = &space->heap.entries[free_entry];
+  hvm_gc1_heap_entry *source = &space->heap.entries[used_entry];
+  memcpy(dest, source, sizeof(hvm_gc1_heap_entry));
+  FIRST_BYTE_OF_ENTRY(source) = 0;
+}
+
+static inline void _gc1_compact(hvm_gc1_obj_space *space) {
+  uint32_t free_entry = 0;
+  uint32_t used_entry = 0;
+  _gc1_compact_find_next_free_entry(space, &free_entry);
+  while(_gc1_compact_has_used_entry_after(space, free_entry, &used_entry)) {
+    // Move the used entry to the free entry
+    _gc1_relocate(space, free_entry, used_entry);
+    fprintf(stderr, "relocating from used:%d to free:%d\n", used_entry, free_entry);
+    // Find the next free entry after this one
+    free_entry += 1;
+    _gc1_compact_find_next_free_entry(space, &free_entry);
+  }
+  fprintf(stderr, "free entry:%d\n", free_entry);
+  space->heap.length = free_entry;
 }
 
 void hvm_gc1_obj_space_mark(hvm_vm *vm, hvm_gc1_obj_space *space) {
@@ -115,6 +176,7 @@ void hvm_gc1_obj_space_mark(hvm_vm *vm, hvm_gc1_obj_space *space) {
   // Free unmarked objects
   _gc1_sweep(space);
   // TODO: Compact the object space
+  _gc1_compact(space);
 }
 
 void hvm_gc1_run(hvm_vm *vm, hvm_gc1_obj_space *space) {
@@ -148,7 +210,7 @@ void hvm_obj_space_add_obj_ref(hvm_gc1_obj_space *space, hvm_obj_ref *obj) {
     hvm_obj_space_grow(space);
   }
   hvm_gc1_heap_entry *entry = &space->heap.entries[next_id];
-  fprintf(stderr, "obj_space_add: obj_ref = %p (%s)\n", obj, hvm_human_name_for_obj_type(obj->type));
+  // fprintf(stderr, "obj_space_add: obj_ref = %p (%s)\n", obj, hvm_human_name_for_obj_type(obj->type));
   // Set up the entry to point to the object
   entry->obj = obj;
   entry->flags = 0x0;

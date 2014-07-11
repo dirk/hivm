@@ -121,6 +121,10 @@ void test_generator() {
 
   hvm_gen_set_symbol(gen->block, hvm_vm_reg_gen(0), "gc_run");
   hvm_gen_callprimitive(gen->block, hvm_vm_reg_gen(0), hvm_vm_reg_null());
+  
+  test_closure(gen);
+  hvm_gen_set_symbol(gen->block, hvm_vm_reg_gen(0), "gc_run");
+  hvm_gen_callprimitive(gen->block, hvm_vm_reg_gen(0), hvm_vm_reg_null());
 
   hvm_gen_die(gen->block);
 
