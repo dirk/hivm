@@ -311,6 +311,7 @@ void hvm_vm_run(hvm_vm *vm) {
   hvm_obj_ref *a, *b, *c, *arr, *idx, *key, *val, *strct;
   hvm_frame *frame, *parent_frame;
   hvm_exception *exc;
+  char *msg;
 
 execute:
   for(; vm->ip < vm->program_size;) {
@@ -692,6 +693,18 @@ execute:
         hvm_vm_register_write(vm, areg, a);
         vm->ip += 2;
         break;
+      case HVM_OP_ARRAYLEN: // 1B OP | 2B REGS
+        // TODO: Implement this
+        exc = hvm_new_exception();
+        msg = "Array length instruction not implemented yet";
+        exc->message = hvm_new_obj_ref_string_data(hvm_util_strclone(msg));
+        hvm_location *loc = hvm_new_location();
+        loc->name = hvm_util_strclone("hvm_arraylen");
+        hvm_exception_push_location(exc, loc);
+        // Raise the exception
+        vm->exception = exc;
+        goto handle_exception;
+        
 
       // STRUCTS --------------------------------------------------------------
       case HVM_OP_STRUCTSET:
@@ -715,8 +728,8 @@ execute:
         key   = hvm_vm_register_read(vm, creg);
         if(strct->type != HVM_STRUCTURE) {
           // Bad type
-          hvm_exception *exc = hvm_new_exception();
-          char *msg = "Attempting to get member of non-structure";
+          exc = hvm_new_exception();
+          msg = "Attempting to get member of non-structure";
           hvm_obj_ref *obj = hvm_new_obj_ref_string_data(hvm_util_strclone(msg));
           exc->message = obj;
 

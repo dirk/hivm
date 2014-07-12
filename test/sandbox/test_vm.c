@@ -1,12 +1,16 @@
 #include <stdio.h>
 #include <assert.h>
 
+#include <glib.h>
+
 #include "hvm.h"
 #include "hvm_symbol.h"
 #include "hvm_object.h"
 #include "hvm_chunk.h"
 #include "hvm_generator.h"
 #include "hvm_bootstrap.h"
+
+
 
 /*
 void test_heap() {
@@ -277,5 +281,18 @@ int main(int argc, char **argv) {
   printf("a2: %llu\n", a2);
   printf("size = %llu\n", st->size);
   */
+  
+  // hvm_obj_ref *i = hvm_new_obj_int();
+  // i->data.i64 = 10;
+  // hvm_obj_array *a = hvm_new_obj_array_with_length(i);
+  // hvm_obj_ref  *ar = hvm_new_obj_ref();
+  // ar->type = HVM_ARRAY;
+  // ar->data.v = a;
+  // 
+  // hvm_obj_array_push(ar, i);
+  // printf("a->array->len = %d\n", a->array->len);
+  
+  
+  
   return 0;
 }

@@ -63,14 +63,7 @@ hvm_obj_ref* hvm_obj_array_pop(hvm_obj_ref *a) {
 
 hvm_obj_ref* hvm_obj_array_get(hvm_obj_ref *arrref, hvm_obj_ref *idxref) {
   assert(arrref->type == HVM_ARRAY); assert(idxref->type == HVM_INTEGER);
-  hvm_obj_array *arr = arrref->data.v;
-  guint idx, len;
-  idx = (guint)(idxref->data.i64);
-  // TODO: Glib doesn't actually store length in array->len
-  len = arr->array->len;
-  // assert(idx < len);
-  hvm_obj_ref *ptr = g_array_index(arr->array, hvm_obj_ref*, idx);
-  return ptr;
+  return hvm_obj_array_internal_get(arrref->data.v, (uint64_t)(idxref->data.i64));
 }
 
 hvm_obj_ref* hvm_obj_array_remove(hvm_obj_ref *arrref, hvm_obj_ref *idxref) {
@@ -79,7 +72,7 @@ hvm_obj_ref* hvm_obj_array_remove(hvm_obj_ref *arrref, hvm_obj_ref *idxref) {
   guint idx, len;
   idx = (guint)(idxref->data.i64);
   len = arr->array->len;
-  // assert(idx < len);
+  assert(idx < len);
   hvm_obj_ref *ptr = g_array_index(arr->array, hvm_obj_ref*, idx);
   g_array_remove_index(arr->array, idx);
   return ptr;
@@ -91,11 +84,23 @@ void hvm_obj_array_set(hvm_obj_ref *arrref, hvm_obj_ref *idxref, hvm_obj_ref *va
   guint idx, len;
   idx = (guint)(idxref->data.i64);
   len = arr->array->len;
-  // assert(idx < len);
+  assert(idx < len);
   hvm_obj_ref **el = &g_array_index(arr->array, hvm_obj_ref*, idx);
   *el = valref;
 }
 
+uint64_t hvm_obj_array_internal_len(hvm_obj_array *arr) {
+  guint len = arr->array->len;
+  return (uint64_t)len;
+}
+hvm_obj_ref* hvm_obj_array_internal_get(hvm_obj_array *arr, uint64_t _idx) {
+  guint idx, len;
+  idx = (guint)_idx;
+  len = arr->array->len;
+  assert(idx < len);
+  hvm_obj_ref *ptr = g_array_index(arr->array, hvm_obj_ref*, idx);
+  return ptr;
+}
 
 void hvm_obj_struct_set(hvm_obj_ref *sref, hvm_obj_ref *key, hvm_obj_ref *val) {
   assert(sref->type == HVM_STRUCTURE); assert(key->type == HVM_SYMBOL);

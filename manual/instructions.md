@@ -26,6 +26,9 @@
 `arraynew A L`
 :  Create a new array in A with length of non-negative integer L ($zero is allowed).
 
+`arraylen B A`
+:  Get the length of A and store it in B as an integer.
+
 #### Structure operations
 
 `structset S K V`

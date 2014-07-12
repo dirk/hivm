@@ -40,6 +40,7 @@ void hvm_gc1_obj_space_mark_reset(hvm_gc1_obj_space *space) {
 
 // Forward declaration
 static inline void _gc1_mark_struct(hvm_obj_struct *strct);
+static inline void _gc1_mark_array(hvm_obj_array *arr);
 
 static inline void _gc1_mark_obj_ref(hvm_obj_ref *obj) {
   if(FLAGTRUE(obj->flags, HVM_OBJ_FLAG_CONSTANT) ||
@@ -57,7 +58,7 @@ static inline void _gc1_mark_obj_ref(hvm_obj_ref *obj) {
   if(obj->type == HVM_STRUCTURE) {
     _gc1_mark_struct(obj->data.v);
   } else if(obj->type == HVM_ARRAY) {
-    fprintf(stderr, "mark_obj_ref.unmarked: obj_ref = %p (%s)\n", obj, hvm_human_name_for_obj_type(obj->type));
+    _gc1_mark_array(obj->data.v);
   }
 }
 
@@ -67,6 +68,14 @@ void _gc1_mark_struct(hvm_obj_struct *strct) {
     hvm_obj_struct_heap_pair *pair = strct->heap[idx];
     hvm_obj_ref *obj = pair->obj;
     _gc1_mark_obj_ref(obj);
+  }
+}
+void _gc1_mark_array(hvm_obj_array *arr) {
+  uint64_t idx, len;
+  len = hvm_obj_array_internal_len(arr);
+  for(idx = 0; idx < len; idx++) {
+    hvm_obj_ref *ptr = hvm_obj_array_internal_get(arr, idx);
+    _gc1_mark_obj_ref(ptr);
   }
 }
 

@@ -194,11 +194,11 @@ typedef enum {
   HVM_OP_MOD = 25,          // 1B OP | 3B REGs
   HVM_OP_POW = 26,          // 1B OP | 3B REGs
 
-  HVM_OP_LT  = 44,          // 1B OP | 3B REGs
-  HVM_OP_GT  = 45,          // 1B OP | 3B REGs
-  HVM_OP_LTE = 46,          // 1B OP | 3B REGs
-  HVM_OP_GTE = 47,          // 1B OP | 3B REGs
-  HVM_OP_EQ  = 48,          // 1B OP | 3B REGs
+  HVM_OP_LT  = 45,          // 1B OP | 3B REGs
+  HVM_OP_GT  = 46,          // 1B OP | 3B REGs
+  HVM_OP_LTE = 47,          // 1B OP | 3B REGs
+  HVM_OP_GTE = 48,          // 1B OP | 3B REGs
+  HVM_OP_EQ  = 49,          // 1B OP | 3B REGs
 
   // TODO: Bitwise instructions
 
@@ -216,19 +216,20 @@ typedef enum {
   HVM_OP_ARRAYSET = 32,     // 1B OP | 3B REGS
   HVM_OP_ARRAYREMOVE = 33,  // 1B OP | 3B REGS
   HVM_OP_ARRAYNEW = 34,     // 1B OP | 2B REGS
+  HVM_OP_ARRAYLEN = 35,     // 1B OP | 2B REGS
   
-  HVM_OP_STRUCTSET = 35,    // 1B OP | 3B REGS
-  HVM_OP_STRUCTGET = 36,    // 1B OP | 3B REGS
-  HVM_OP_STRUCTDELETE = 37, // 1B OP | 3B REGS
-  HVM_OP_STRUCTNEW = 38,    // 1B OP | 1B REG
-  HVM_OP_STRUCTHAS = 39,    // 1B OP | 3B REGS
+  HVM_OP_STRUCTSET = 36,    // 1B OP | 3B REGS
+  HVM_OP_STRUCTGET = 37,    // 1B OP | 3B REGS
+  HVM_OP_STRUCTDELETE = 38, // 1B OP | 3B REGS
+  HVM_OP_STRUCTNEW = 39,    // 1B OP | 1B REG
+  HVM_OP_STRUCTHAS = 40,    // 1B OP | 3B REGS
 
-  HVM_OP_LITINTEGER = 40,// 1B OP | 1B REG  | 8B LIT
+  HVM_OP_LITINTEGER = 41,// 1B OP | 1B REG  | 8B LIT
 
-  HVM_OP_CALLPRIMITIVE = 41,// 1B OP | 1B REG | 1B REG
+  HVM_OP_CALLPRIMITIVE = 42,// 1B OP | 1B REG | 1B REG
 
-  HVM_OP_MOVE = 42,// 1B OP | 1B REG | 1B REG
-  HVM_OP_GOTOADDRESS = 43,// 1B OP | 1B REG
+  HVM_OP_MOVE = 43,// 1B OP | 1B REG | 1B REG
+  HVM_OP_GOTOADDRESS = 44,// 1B OP | 1B REG
 
 } hvm_opcodes;
 
