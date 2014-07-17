@@ -83,11 +83,14 @@
 `catch DEST EXC`
 :  Register an exception handler for the current stack frame at destination DEST. If the handler is invoked then the exception will be placed in register EXC (can be $null).
 
+`getexceptiondata DATA EXC`
+:  Get the data object from exception EXC and store it in DATA.
+
 `clearcatch`
 :  Clear the current stack frame's exception handler.
 
-`throw EXC`
-:  Raise an exception.
+`throw DATA`
+:  Raise an exception. DATA is an object to be attached to the exception (can be $null).
 
 `clearexception`
 :  Clear the current exception and continue execution.

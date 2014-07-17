@@ -399,6 +399,25 @@ execute:
         hvm_vm_register_write(vm, reg, val);
         vm->ip += 1;
         break;
+      case HVM_OP_THROW: // 1B OP | 1B REG
+        AREG;
+        // Get the object to be associated with the execption
+        val = hvm_vm_register_read(vm, areg);
+        // Create the exception and set the object
+        exc = hvm_new_exception();
+        exc->data = val;
+        // Set the exception and jump to the handler
+        vm->exception = exc;
+        goto handle_exception;
+      case HVM_OP_GETEXCEPTIONDATA: // 1B OP | 1B REG | 1B REG
+        AREG; BREG;
+        b = hvm_vm_register_read(vm, breg);
+        assert(b->type == HVM_EXCEPTION);
+        exc = b->data.v;
+        val = exc->data;
+        hvm_vm_register_write(vm, areg, val);
+        vm->ip += 2;
+        break;
         
       case HVM_OP_CALLADDRESS: // 1B OP | 1B REG | 1B REG
         reg  = vm->program[vm->ip + 1];
@@ -799,7 +818,6 @@ handle_exception:
       frame->catch_addr = HVM_FRAME_EMPTY_CATCH;
       frame->catch_register = hvm_vm_reg_null();
       goto execute;
-      return;
     }
     if(depth == 0) { break; }
     depth--;

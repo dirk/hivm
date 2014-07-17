@@ -1,7 +1,7 @@
 def include_env v
   ENV[v].to_s
 end
-$cc = ENV['CC'].nil? ? 'clang-3.4' : ENV['CC']
+$cc = ENV['CC'].nil? ? 'clang' : ENV['CC']
 $ar = 'ar'
 $ld = 'ld'
 # $ldflags = "-lpthread -L. #{include_env 'LDFLAGS'}".strip

@@ -8,6 +8,7 @@
 #include "object.h"
 #include "frame.h"
 #include "gc1.h"
+#include "exception.h"
 
 #define bool  char
 #define true  1
@@ -59,6 +60,9 @@ static inline void _gc1_mark_obj_ref(hvm_obj_ref *obj) {
     _gc1_mark_struct(obj->data.v);
   } else if(obj->type == HVM_ARRAY) {
     _gc1_mark_array(obj->data.v);
+  } else if(obj->type == HVM_EXCEPTION) {
+    hvm_exception *exc = obj->data.v;
+    _gc1_mark_obj_ref(exc->data);
   }
 }
 
@@ -200,6 +204,7 @@ void hvm_gc1_run(hvm_vm *vm, hvm_gc1_obj_space *space) {
   // Compact the object space
   _gc1_compact(space);
   // fprintf(stderr, "gc1_run.end\n");
+  // TODO: Shrink the object space
 }
 
 void hvm_obj_space_grow(hvm_gc1_obj_space *space) {
@@ -216,7 +221,6 @@ void hvm_obj_space_add_obj_ref(hvm_gc1_obj_space *space, hvm_obj_ref *obj) {
   } else {
     obj->flags |= HVM_OBJ_FLAG_GC_TRACKED;
   }
-  // TODO: Get the next ID intelligently (ie. be able to decrease the length).
   unsigned int next_id = space->heap.length;
   space->heap.length += 1;
   // Check if we still have space

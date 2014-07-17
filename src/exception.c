@@ -14,7 +14,8 @@
 
 hvm_exception *hvm_new_exception() {
   hvm_exception *exc = malloc(sizeof(hvm_exception));
-  exc->message = NULL;
+  exc->message   = NULL;
+  exc->data      = hvm_const_null;
   exc->backtrace = g_array_new(TRUE, TRUE, sizeof(hvm_location*));
   return exc;
 }
@@ -99,7 +100,7 @@ void hvm_exception_print(hvm_exception *exc) {
 hvm_obj_ref *hvm_obj_for_exception(hvm_vm *vm, hvm_exception *exc) {
   // Create the reference to the internal exception
   hvm_obj_ref *excref = hvm_new_obj_ref();
-  excref->type = HVM_INTERNAL;
+  excref->type = HVM_EXCEPTION;
   excref->data.v = exc;
   excref->flags |= HVM_OBJ_FLAG_NO_FOLLOW;
   hvm_obj_space_add_obj_ref(vm->obj_space, excref);

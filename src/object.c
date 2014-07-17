@@ -7,6 +7,8 @@
 #include "vm.h"
 #include "symbol.h"
 #include "object.h"
+#include "frame.h"
+#include "exception.h"
 
 // TODO: Flywheelize this.
 hvm_obj_string *hvm_new_obj_string() {
@@ -352,6 +354,9 @@ void hvm_obj_free(hvm_obj_ref *ref) {
   } else if(ref->type == HVM_ARRAY) {
     fprintf(stderr, "hvm_obj_array_free not implemented yet\n");
     exit(1);
+  } else if(ref->type == HVM_EXCEPTION) {
+    hvm_exception *exc = ref->data.v;
+    free(exc);
   }
   free(ref);
 }

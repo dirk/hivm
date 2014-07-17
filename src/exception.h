@@ -4,6 +4,7 @@
 
 typedef struct hvm_exception {
   hvm_obj_ref *message;
+  hvm_obj_ref *data;
 #ifdef GLIB_MAJOR_VERSION
   /// Array of frames.
   GArray *backtrace;

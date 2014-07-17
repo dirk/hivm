@@ -40,7 +40,7 @@ hvm_obj_ref *hvm_prim_print_exception(hvm_vm *vm) {
   // excref = hvm_obj_struct_internal_get(excstruct->data.v, hvm_symbolicate(vm->symbols, "hvm_exception"));
   hvm_obj_ref *excref = vm->param_regs[0];
   assert(excref != NULL);
-  assert(excref->type == HVM_INTERNAL);
+  assert(excref->type == HVM_EXCEPTION);
   hvm_exception *exc = excref->data.v;
   hvm_exception_print(exc);
   return hvm_const_null;

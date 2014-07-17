@@ -17,7 +17,8 @@ typedef enum {
   HVM_STRUCTURE = 4,
   HVM_ARRAY = 5,
   HVM_SYMBOL = 6,// Internally same as HVM_INTEGER
-  HVM_INTERNAL
+  HVM_INTERNAL = 7,
+  HVM_EXCEPTION = 8
 } hvm_obj_type;
 
 /// @brief Union of types for the data field in hvm_obj_ref.
