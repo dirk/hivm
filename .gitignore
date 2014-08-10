@@ -9,3 +9,6 @@ include/*
 test/sandbox/test
 test/sandbox/test_vm
 test/unit/test
+
+dummy/*
+hivm.xcodeproj
