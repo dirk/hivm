@@ -43,8 +43,7 @@ hvm_vm *hvm_new_vm() {
   // Constants
   vm->const_pool.next_index = 0;
   vm->const_pool.size = HVM_CONSTANT_POOL_INITIAL_SIZE;
-  vm->const_pool.entries = malloc(sizeof(struct hvm_object_ref*) * 
-    vm->const_pool.size);
+  vm->const_pool.entries = malloc(sizeof(hvm_obj_ref*) * vm->const_pool.size);
   // Variables
   vm->globals      = hvm_new_obj_struct();
   vm->symbols      = hvm_new_symbol_store();
@@ -59,8 +58,8 @@ hvm_vm *hvm_new_vm() {
 
   vm->exception = NULL;
   vm->debug_entries_capacity = HVM_DEBUG_ENTRIES_INITIAL_CAPACITY;
-  vm->debug_entries = malloc(sizeof(hvm_chunk_debug_entry*) * vm->debug_entries_capacity);
   vm->debug_entries_size = 0;
+  vm->debug_entries = malloc(sizeof(hvm_chunk_debug_entry) * vm->debug_entries_capacity);
 
   return vm;
 }
@@ -599,6 +598,7 @@ execute:
       case HVM_OP_MOD: // 1B OP | 3B REGs
         // A = B + C
         AREG; BREG; CREG;
+        a = NULL;
         b = hvm_vm_register_read(vm, breg);
         c = hvm_vm_register_read(vm, creg);
         // TODO: Add float support
@@ -627,6 +627,7 @@ execute:
       case HVM_OP_EQ:  // 1B OP | 3B REGs
         // A = B < C
         AREG; BREG; CREG;
+        a = NULL;
         b = hvm_vm_register_read(vm, breg);
         c = hvm_vm_register_read(vm, creg);
         if(instr == HVM_OP_LT)       { a = hvm_obj_int_lt(b, c); }

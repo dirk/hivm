@@ -367,6 +367,8 @@ void hvm_gen_process_block(hvm_chunk *chunk, struct hvm_gen_data *data, hvm_gen_
           WRITE(0, &zero, byte);
           WRITE(1, &zero, byte);
           fprintf(stderr, "Don't know what to do with data type: %d\n", item->op_h_data.data_type);
+          // Free cnst so that we don't leak
+          free(cnst);
         }
         WRITE(2, &sub, uint32_t);
         chunk->size += 6;
@@ -805,7 +807,7 @@ void hvm_gen_eq(hvm_gen_item_block *block, byte a, byte b, byte c) {
 // META-GENERATORS
 
 void hvm_gen_goto_label(hvm_gen_item_block *block, char *name) {
-  hvm_gen_item_op_d1_label *gt = malloc(sizeof(hvm_gen_item_op_d1));
+  hvm_gen_item_op_d1_label *gt = malloc(sizeof(hvm_gen_item_op_d1_label));
   gt->type = HVM_GEN_OPD1_LABEL;
   gt->op = HVM_OP_GOTO;
   gt->dest = gen_strclone(name);

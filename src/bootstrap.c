@@ -34,6 +34,7 @@ hvm_obj_ref *hvm_prim_exit(hvm_vm *vm) {
 }
 
 hvm_obj_ref *hvm_prim_print_exception(hvm_vm *vm) {
+  // TODO: Make exceptions be plain structures?
   // hvm_obj_ref *excstruct = vm->param_regs[0];
   // assert(excstruct != NULL);
   // assert(excstruct->type == HVM_STRUCTURE);

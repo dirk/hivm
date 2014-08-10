@@ -25,7 +25,7 @@
 hvm_gc1_obj_space *hvm_new_obj_space() {
   hvm_gc1_obj_space *space = malloc(sizeof(hvm_gc1_obj_space));
   space->heap.size    = HVM_GC1_INITIAL_HEAP_SIZE;
-  space->heap.entries = calloc(HVM_GC1_HEAP_MEMORY_SIZE(space->heap.size), sizeof(char));
+  space->heap.entries = calloc(HVM_GC1_HEAP_MEMORY_SIZE(space->heap.size), sizeof(hvm_gc1_heap_entry));
   space->heap.length  = 0;
   return space;
 }
