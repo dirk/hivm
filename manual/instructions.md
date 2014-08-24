@@ -48,23 +48,38 @@
 
 #### Control flow & subroutines
 
+##### Direct calls
+
+Direct calls operate via hardcoded destinations in the 8-byte destination register (referred to as SUB). Direct calls are intended to be used within a common compilation block for fast sub-routine invocation and tail-call recursion.
+
 `call SUB RET`
 :  Invoke the subroutine at SUB. RET can be a register for return or $null for no return or ignoring return.
-
-`callsymbolic SYM RET`
-:  Invoke subroutine identified by the symbol (ID) in register SYM.
-
-`calladdress SUB RET`
-:  Invoke subroutine at address in register SUB.
 
 `tailcall SUB`
 :  Same as `call` but does not grow the stack. Current subroutine's return will be the return from SUB.
 
+##### Indirect calls
+
+Indirect calls use symbols and addresses passed via registers to control which subroutine/primitive is invoked.
+
+`callsymbolic SYM RET`
+:  Invoke subroutine identified by the symbol ID in register SYM.
+
+`calladdress SUB RET`
+:  Invoke subroutine at address in register SUB.
+
 `callprimitive SYM RET`
-:  Invoke the primitive with symbol (ID) in SYM.
+:  Invoke the primitive with symbol ID in SYM.
+
+##### Control flow
 
 `return RET`
 :  Return from the current subroutine to the parent. RET can be a register for returning a value or $null.
+
+`if COND DEST`
+:  Jump to DEST if COND is truthy (not null and not a zero integer).
+
+##### Jumps and gotos
 
 `jump DIFF`
 :  Jump DIFF (integer) instructions forwards (positive) or backwards (negative).
@@ -74,9 +89,6 @@
 
 `gotoaddress DEST`
 :  Go to address in register DEST.
-
-`if COND DEST`
-:  Jump to DEST if COND is truthy (not null and not a zero integer).
 
 #### Exceptions
 
@@ -105,7 +117,11 @@
 `setexception EXC`
 :  Set the current exception into register EXC.
 
-#### Constant assignment
+#### Constant and literal assignment
+
+##### Constants
+
+Constants are stored in a constant-substitution section of an `hvm_chunk`. At load time these constants are copied from the chunk into the global constant pool (`vm->const_pool`) and the indexes in the instructions are updated to point the corresponding value in the global pool.
 
 NOTE: May want to make a `setconstant` instruction available.
 
@@ -127,7 +143,9 @@ NOTE: May want to make a `setconstant` instruction available.
 `setnull A`
 :  Set register A to null.
 
-#### Literal assignment
+##### Literals
+
+Literals are directly stored in the instruction. For example `litinteger` takes 10-bytes: byte 1 is the instruction itself, byte 2 is the destination register, and bytes 3-10 are used for the 64-bit integer.
 
 `litinteger A I`
 :  Set A to literal integer I.
