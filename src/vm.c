@@ -11,6 +11,11 @@
 #include "chunk.h"
 // #include "generator.h"
 #include "gc1.h"
+#include "debug.h"
+
+#ifndef bool
+#define bool char
+#endif
 
 struct hvm_obj_ref* hvm_const_null = &(hvm_obj_ref){
   .type = HVM_NULL,
@@ -317,13 +322,19 @@ execute:
     // fprintf(stderr, "top: %p, ip: %llu\n", vm->top, vm->ip);
     // Update the current frame address
     vm->top->current_addr = vm->ip;
+    // Fetch the instruction
+    instr = vm->program[vm->ip];
 
 #ifdef HVM_VM_DEBUG
     // Debugger breakpoint-checking code goes here
+    bool should_continue = hvm_debug_before_instruction(vm, instr);
+    if(!should_continue) {
+      // Halt the VM's execution
+      fprintf(stderr, "Execution halted by debugger.\n");
+      return;
+    }
 #endif
 
-    // Fetch the instruction
-    instr = vm->program[vm->ip];
     // Execute the instruction
     switch(instr) {
       case HVM_OP_NOOP:

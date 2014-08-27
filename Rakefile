@@ -36,7 +36,8 @@ headers = {
   "chunk"  => "hvm_chunk",
   "generator" => "hvm_generator",
   "bootstrap" => "hvm_bootstrap",
-  "exception" => "hvm_exception.h"
+  "exception" => "hvm_exception",
+  "debug" => "hvm_debug"
 }
 headers.each do |src, dst|
   file "include/#{dst}.h" => "src/#{src}.h" do |t|
@@ -59,6 +60,7 @@ objects = [
 debug_objects = objects.map do |file|
   (file == 'src/vm.o') ? 'src/vm-db.o' : file
 end
+debug_objects << 'src/debug.o'
 
 static_archiver = lambda do |t|
   # sh "cc -o #{t.name} #{t.prerequisites.join ' '} #{LDFLAGS} #{CFLAGS}"
