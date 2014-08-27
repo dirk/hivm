@@ -19,11 +19,14 @@ def cflags_for file
   if basename == "generator.o" || basename == "bootstrap.o"
     cflags += ' -Wno-unused-parameter'
   end
+  if basename == "vm-db.o"
+    cflags += ' -DHVM_VM_DEBUG'
+  end
   return cflags
 end
 
 desc "Build"
-task "build" => ["libhivm.a", "libhivm.so"]
+task "build" => ["libhivm.a", "libhivm-db.a"]#, "libhivm.so"]
 task "default" => ["build", "build:include"]
 
 headers = {
@@ -53,12 +56,19 @@ objects = [
   # Generated source
   'src/chunk.pb-c.o'
 ]
+debug_objects = objects.map do |file|
+  (file == 'src/vm.o') ? 'src/vm-db.o' : file
+end
 
-# desc "Compile"
-file 'libhivm.a' => objects do |t|
+static_archiver = lambda do |t|
   # sh "cc -o #{t.name} #{t.prerequisites.join ' '} #{LDFLAGS} #{CFLAGS}"
   sh "#{$ar} rcs #{t.name} #{t.prerequisites.join ' '}"
 end
+
+# Generating the static libraries
+file 'libhivm.a' => objects, &static_archiver
+file 'libhivm-db.a' => debug_objects, &static_archiver
+
 file 'libhivm.so' => objects do |t|
   sh "#{$cc} #{t.prerequisites.join ' '} #{cflags_for t.name} -shared -o #{t.name}"
 end
@@ -67,6 +77,7 @@ file "src/chunk.pb-c.c" => ["src/chunk.proto"] do |t|
   sh "protoc-c --c_out=. #{t.prerequisites.first}"
 end
 
+# Generic compilation of object files
 rule '.o' => ['.c'] do |t|
   sh "#{$cc} #{t.source} -c #{cflags_for t.name} -o #{t.name}"
   # if File.basename(t.name) == "object.o"
@@ -80,6 +91,11 @@ rule '.o' => ['.c'] do |t|
   # end
 end
 
+# Compiling the debug version of vm.c
+file 'src/vm-db.o' => 'src/vm.c' do |t|
+  sh "#{$cc} #{t.source} -c #{cflags_for t.name} -o #{t.name}"
+end
+
 desc "Clean up objects"
 task "clean" do
   sh "rm -f src/*.o"
@@ -87,6 +103,7 @@ task "clean" do
   sh "rm -f include/*.h"
   # sh "rm test/*.o"
   sh "rm -f libhivm.*"
+  sh "rm -f libhivm-db.a"
 end
 
 namespace "clean" do

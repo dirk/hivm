@@ -317,8 +317,14 @@ execute:
     // fprintf(stderr, "top: %p, ip: %llu\n", vm->top, vm->ip);
     // Update the current frame address
     vm->top->current_addr = vm->ip;
+
+#ifdef HVM_VM_DEBUG
+    // Debugger breakpoint-checking code goes here
+#endif
+
     // Fetch the instruction
     instr = vm->program[vm->ip];
+    // Execute the instruction
     switch(instr) {
       case HVM_OP_NOOP:
         // fprintf(stderr, "NOOP\n");
