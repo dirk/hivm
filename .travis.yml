@@ -1,5 +1,5 @@
 language: c
 compiler: clang
-before_install: sudo apt-get update -qq && sudo apt-get -q install protobuf-c-compiler libprotobuf-c0-dev libprotobuf-c0
+before_install: sudo apt-get update -qq && sudo apt-get -q install protobuf-c-compiler libprotobuf-c0-dev libprotobuf-c0 lua5.1 liblua5.1-0-dev
 install: gem install rake
 script: rake
