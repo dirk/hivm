@@ -16,7 +16,8 @@ def cflags_for file
   if basename == "libhivm.so"
     cflags += " #{`pkg-config --libs libprotobuf-c`.strip} #{`pkg-config --libs glib-2.0`.strip}"
   end
-  if basename == "generator.o" || basename == "bootstrap.o"
+  # TODO: Refactor to make this unnecessary
+  if basename == "generator.o" || basename == "bootstrap.o" || basename == "debug.o"
     cflags += ' -Wno-unused-parameter'
   end
   if basename == "vm-db.o" || basename == "debug.o"
