@@ -7,6 +7,11 @@ $ld = 'ld'
 # $ldflags = "-lpthread -L. #{include_env 'LDFLAGS'}".strip
 $cflags  = "-g -fPIC -Wall -Wextra -Wconversion -std=c99 -I. #{include_env 'CFLAGS'}".strip
 
+$lua = 'lua5.1'
+if `uname -s`.strip == 'Darwin'
+  $lua = 'lua'
+end
+
 def cflags_for file
   basename = File.basename file
   cflags = $cflags
@@ -21,7 +26,7 @@ def cflags_for file
     cflags += ' -Wno-unused-parameter'
   end
   if basename == "vm-db.o" || basename == "debug.o"
-    cflags += " -DHVM_VM_DEBUG #{`pkg-config --cflags lua`.strip}"
+    cflags += " -DHVM_VM_DEBUG #{`pkg-config --cflags #{$lua}`.strip}"
   end
   return cflags
 end
