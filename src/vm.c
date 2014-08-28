@@ -452,6 +452,14 @@ execute:
         continue;
       case HVM_OP_RETURN: // 1B OP | 1B REG
         reg = vm->program[vm->ip + 1];
+        if(vm->stack_depth == 0) {
+          exc = hvm_new_exception();
+          msg = "Attempt to return from stack root";
+          exc->message = hvm_new_obj_ref_string_data(hvm_util_strclone(msg));
+          // Raise the exception
+          vm->exception = exc;
+          goto handle_exception;
+        }
         // Current frame
         frame = vm->top;
         vm->ip = frame->return_addr;
