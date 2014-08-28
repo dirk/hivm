@@ -20,7 +20,7 @@ void hvm_exception_build_backtrace(hvm_exception *exc, hvm_vm *vm);
 void hvm_exception_push_location(hvm_exception *exc, hvm_location *loc);
 void hvm_exception_print(hvm_exception *exc);
 
-void hvm_print_backtrace(GArray *backtrace);
+void hvm_print_backtrace(void *backtrace);
 
 hvm_obj_ref *hvm_obj_for_exception(hvm_vm *vm, hvm_exception *exc);
 

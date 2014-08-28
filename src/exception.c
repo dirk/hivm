@@ -80,7 +80,8 @@ void hvm_exception_build_backtrace(hvm_exception *exc, hvm_vm *vm) {
   }
 }
 
-void hvm_print_backtrace(GArray *backtrace) {
+void hvm_print_backtrace(void *backtrace_ptr) {
+  GArray *backtrace = (GArray *)backtrace_ptr;
   unsigned int i;
   hvm_location *loc;
   for(i = 0; i < backtrace->len; i++) {
