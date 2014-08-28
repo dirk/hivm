@@ -110,15 +110,17 @@ void test_generator() {
   
   byte sym = hvm_vm_reg_gen(0);
 
+  hvm_gen_set_debug_entry(gen->block, 0, "(main)");
+  hvm_gen_set_symbol(gen->block, sym, "test");
+  hvm_gen_callsymbolic(gen->block, sym, hvm_vm_reg_null());
+  hvm_gen_die(gen->block);
+
   hvm_gen_sub(gen->block, "test");
+  hvm_gen_set_debug_entry(gen->block, 0, "test");
   hvm_gen_litinteger(gen->block, hvm_vm_reg_gen(1), 1);
   hvm_gen_set_symbol(gen->block, sym, "debug_begin");
   hvm_gen_callprimitive(gen->block, sym, hvm_vm_reg_null());
   hvm_gen_return(gen->block, hvm_vm_reg_null());
-
-  hvm_gen_set_symbol(gen->block, sym, "test");
-  hvm_gen_callsymbolic(gen->block, sym, hvm_vm_reg_null());
-  hvm_gen_die(gen->block);
 
   // OLD TEST
   /*

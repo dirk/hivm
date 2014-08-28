@@ -329,8 +329,8 @@ void hvm_gen_catch_label(hvm_gen_item_block *block, char *label, byte reg);
 // for the sub-routine.
 void hvm_gen_sub(hvm_gen_item_block *block, char *name);
 
-
 void hvm_gen_litinteger_label(hvm_gen_item_block *block, byte reg, char *label);
+
 
 void hvm_gen_set_debug_entry(hvm_gen_item_block *block, uint64_t line, char *name);
 

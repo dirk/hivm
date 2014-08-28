@@ -80,21 +80,25 @@ void hvm_exception_build_backtrace(hvm_exception *exc, hvm_vm *vm) {
   }
 }
 
-void hvm_exception_print(hvm_exception *exc) {
-  hvm_obj_ref    *ref = exc->message;
-  hvm_obj_string *str = ref->data.v;
-  fprintf(stderr, "Exception: %s\n", str->data);
-  fprintf(stderr, "Backtrace:\n");
+void hvm_print_backtrace(GArray *backtrace) {
   unsigned int i;
   hvm_location *loc;
-  for(i = 0; i < exc->backtrace->len; i++) {
-    loc = g_array_index(exc->backtrace, hvm_location*, i);
+  for(i = 0; i < backtrace->len; i++) {
+    loc = g_array_index(backtrace, hvm_location*, i);
     if(loc->name != NULL) {
       fprintf(stderr, "    %s (%d:%s)\n", loc->name, loc->line, loc->file);
     } else {
       fprintf(stderr, "    unknown (%d:%s)\n", loc->line, loc->file);
     }
   }
+}
+
+void hvm_exception_print(hvm_exception *exc) {
+  hvm_obj_ref    *ref = exc->message;
+  hvm_obj_string *str = ref->data.v;
+  fprintf(stderr, "Exception: %s\n", str->data);
+  fprintf(stderr, "Backtrace:\n");
+  hvm_print_backtrace(exc->backtrace);
 }
 
 hvm_obj_ref *hvm_obj_for_exception(hvm_vm *vm, hvm_exception *exc) {

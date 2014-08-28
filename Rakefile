@@ -15,7 +15,7 @@ end
 def cflags_for file
   basename = File.basename file
   cflags = $cflags
-  if basename == "object.o" || basename == "generator.o" || basename == "exception.o"
+  if basename == "object.o" || basename == "generator.o" || basename == "exception.o" || basename == "debug.o"
     cflags += " #{`pkg-config --cflags glib-2.0`.strip}"
   end
   if basename == "libhivm.so"
