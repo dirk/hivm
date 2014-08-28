@@ -19,8 +19,8 @@ def cflags_for file
   if basename == "generator.o" || basename == "bootstrap.o"
     cflags += ' -Wno-unused-parameter'
   end
-  if basename == "vm-db.o"
-    cflags += ' -DHVM_VM_DEBUG'
+  if basename == "vm-db.o" || basename == "debug.o"
+    cflags += " -DHVM_VM_DEBUG #{`pkg-config --cflags lua`.strip}"
   end
   return cflags
 end
