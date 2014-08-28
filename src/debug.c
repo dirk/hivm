@@ -7,6 +7,8 @@
 #include <lualib.h>
 
 #include "vm.h"
+#include "object.h"
+#include "symbol.h"
 #include "debug.h"
 
 #ifndef LUA_OK
@@ -25,12 +27,23 @@ static bool hvm_debug_continue;
 // Debugger functions for Lua
 int hvm_lua_exit(lua_State*);
 
-void hvm_debug_setup() {
+hvm_obj_ref *hvm_prim_debug_begin(hvm_vm *vm) {
+  hvm_debug_begin();
+  return hvm_const_null;
+}
+
+void hvm_debug_setup(hvm_vm *vm) {
+  // Setup the Lua instance
   hvm_lua_state = lua_open();
   luaopen_base(hvm_lua_state);
   // Add our exit() function
   lua_pushcfunction(hvm_lua_state, hvm_lua_exit);
   lua_setglobal(hvm_lua_state, "exit");
+
+  // Add the primitives
+  hvm_symbol_id symbol;
+  symbol = hvm_symbolicate(vm->symbols, "debug_begin");
+  hvm_obj_struct_internal_set(vm->primitives, symbol, (void*)hvm_prim_debug_begin);
 }
 
 void hvm_debug_prompt() {
@@ -70,7 +83,5 @@ void hvm_debug_begin() {
 }
 
 bool hvm_debug_before_instruction(hvm_vm *vm, byte instr) {
-  hvm_debug_setup();
-  hvm_debug_begin();
-  return 0;
+  return 1;
 }

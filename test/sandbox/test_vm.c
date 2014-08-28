@@ -108,6 +108,18 @@ void test_generator() {
   // hvm_gen_add(gen->block, hvm_vm_reg_gen(5), hvm_vm_reg_gen(3), hvm_vm_reg_gen(4));
   // hvm_gen_return(gen->block, hvm_vm_reg_gen(5));
   
+  byte sym = hvm_vm_reg_gen(0);
+
+  hvm_gen_sub(gen->block, "test");
+  hvm_gen_litinteger(gen->block, hvm_vm_reg_gen(1), 1);
+  hvm_gen_set_symbol(gen->block, sym, "debug_begin");
+  hvm_gen_callprimitive(gen->block, sym, hvm_vm_reg_null());
+  hvm_gen_return(gen->block, hvm_vm_reg_null());
+
+  hvm_gen_set_symbol(gen->block, sym, "test");
+  hvm_gen_callsymbolic(gen->block, sym, hvm_vm_reg_null());
+  hvm_gen_die(gen->block);
+
   // OLD TEST
   /*
   hvm_gen_set_string(gen->block, hvm_vm_reg_arg(0), "Hello world!\n");
@@ -119,6 +131,7 @@ void test_generator() {
   // hvm_gen_die(gen->block);
   */
 
+  /*
   test_loop(gen);
   // test_exception_catch(gen);
   // test_closure(gen);
@@ -131,6 +144,7 @@ void test_generator() {
   hvm_gen_callprimitive(gen->block, hvm_vm_reg_gen(0), hvm_vm_reg_null());
 
   hvm_gen_die(gen->block);
+  */
 
   /*
   // Hijinks-like code

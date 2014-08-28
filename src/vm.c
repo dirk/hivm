@@ -66,6 +66,10 @@ hvm_vm *hvm_new_vm() {
   vm->debug_entries_size = 0;
   vm->debug_entries = malloc(sizeof(hvm_chunk_debug_entry) * vm->debug_entries_capacity);
 
+#ifdef HVM_VM_DEBUG
+  hvm_debug_setup(vm);
+#endif
+
   return vm;
 }
 

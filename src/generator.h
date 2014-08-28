@@ -319,11 +319,16 @@ void hvm_gen_goto_label(hvm_gen_item_block *block, char *name);
 void hvm_gen_set_string(hvm_gen_item_block *block, byte reg, char *string);
 void hvm_gen_set_symbol(hvm_gen_item_block *block, byte reg, char *string);
 void hvm_gen_set_integer(hvm_gen_item_block *block, byte reg, int64_t integer);
-void hvm_gen_sub(hvm_gen_item_block *block, char *name);
 void hvm_gen_push_block(hvm_gen_item_block *block, hvm_gen_item_block *push);
 void hvm_gen_call_sub(hvm_gen_item_block *block, char *name, byte ret);
 void hvm_gen_if_label(hvm_gen_item_block *block, byte reg, char *label);
 void hvm_gen_catch_label(hvm_gen_item_block *block, char *label, byte reg);
+
+// SYMBOLICATED SUB-ROUTINES
+// Call at the head of a sub-routine to set up a symbol in the symbol table
+// for the sub-routine.
+void hvm_gen_sub(hvm_gen_item_block *block, char *name);
+
 
 void hvm_gen_litinteger_label(hvm_gen_item_block *block, byte reg, char *label);
 
