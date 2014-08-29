@@ -331,7 +331,8 @@ void hvm_gen_sub(hvm_gen_item_block *block, char *name);
 
 void hvm_gen_litinteger_label(hvm_gen_item_block *block, byte reg, char *label);
 
-
+// Debug information generators
+void hvm_gen_set_debug_line(hvm_gen_item_block *block, uint64_t line);
 void hvm_gen_set_debug_entry(hvm_gen_item_block *block, uint64_t line, char *name);
 
 #endif

@@ -9,6 +9,7 @@
 #include "hvm_chunk.h"
 #include "hvm_generator.h"
 #include "hvm_bootstrap.h"
+#include "hvm_debug.h"
 
 
 
@@ -97,6 +98,7 @@ void test_closure(hvm_gen *gen) {
 
 void test_generator() {
   hvm_gen *gen = hvm_new_gen();
+  hvm_gen_set_file(gen, "test");
   // hvm_gen_set_symbol(gen->block, hvm_vm_reg_gen(1), "_test");
   // hvm_gen_callsymbolic(gen->block, hvm_vm_reg_gen(1), hvm_vm_reg_gen(2));
   // hvm_gen_die(gen->block);
@@ -111,16 +113,21 @@ void test_generator() {
   byte sym = hvm_vm_reg_gen(0);
 
   hvm_gen_set_debug_entry(gen->block, 0, "(main)");
-  hvm_gen_set_symbol(gen->block, sym, "test");
+  hvm_gen_set_symbol(gen->block, sym, "subroutine");
   hvm_gen_callsymbolic(gen->block, sym, hvm_vm_reg_null());
   hvm_gen_die(gen->block);
 
-  hvm_gen_sub(gen->block, "test");
-  hvm_gen_set_debug_entry(gen->block, 0, "test");
+  hvm_gen_sub(gen->block, "subroutine");
+  hvm_gen_set_debug_entry(gen->block, 1, "subroutine");
   hvm_gen_litinteger(gen->block, hvm_vm_reg_gen(1), 1);
-  hvm_gen_set_symbol(gen->block, sym, "debug_begin");
-  hvm_gen_callprimitive(gen->block, sym, hvm_vm_reg_null());
-  hvm_gen_return(gen->block, hvm_vm_reg_null());
+  // hvm_gen_set_symbol(gen->block, sym, "debug_begin");
+  // hvm_gen_callprimitive(gen->block, sym, hvm_vm_reg_null());
+  hvm_gen_set_debug_line(gen->block, 2);
+  hvm_gen_set_string(gen->block, hvm_vm_reg_arg(0), "Hello world!\n");
+  hvm_gen_set_symbol(gen->block, hvm_vm_reg_gen(0), "print");
+  hvm_gen_callprimitive(gen->block, hvm_vm_reg_gen(0), hvm_vm_reg_null());
+  hvm_gen_set_debug_line(gen->block, 3);
+  hvm_gen_return(gen->block, hvm_vm_reg_gen(1));
 
   // OLD TEST
   /*
@@ -237,6 +244,8 @@ void test_generator() {
 
   printf("AFTER LOADING:\n");
   hvm_print_data(vm->program, vm->program_size);
+
+  hvm_debug_begin(vm);
 
   printf("RUNNING...\n");
   hvm_vm_run(vm);

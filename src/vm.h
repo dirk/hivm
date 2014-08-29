@@ -113,6 +113,9 @@ typedef struct hvm_vm {
   struct hvm_symbol_store *symbols;
   /// Primitives
   struct hvm_obj_struct *primitives;
+
+  /// Debugger information store
+  void *debugger;
 } hvm_vm;
 
 /// Create a new virtual machine.

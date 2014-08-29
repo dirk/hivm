@@ -331,7 +331,7 @@ execute:
 
 #ifdef HVM_VM_DEBUG
     // Debugger breakpoint-checking code goes here
-    bool should_continue = hvm_debug_before_instruction(vm, instr);
+    bool should_continue = hvm_debug_before_instruction(vm);
     if(!should_continue) {
       // Halt the VM's execution
       fprintf(stderr, "Execution halted by debugger.\n");
