@@ -169,12 +169,15 @@ typedef enum {
   HVM_OP_DIE  = 1,        // 1B OP
   HVM_OP_JUMP = 3,        // 1B OP | 4B DIFF
   HVM_OP_GOTO = 2,        // 1B OP | 8B DEST
-  HVM_OP_CALL = 4,        // 1B OP | 8B DEST  | 1B REG
-  HVM_OP_CALLSYMBOLIC = 5,// 1B OP | 1B REG   | 1B REG
-  HVM_OP_CALLADDRESS = 6, // 1B OP | 1B REG   | 1B REG
-  HVM_OP_TAILCALL = 7,    // 1B OP | 8B DEST
   HVM_OP_RETURN = 8,      // 1B OP | 1B REG
   HVM_OP_IF = 9,          // 1B OP | 1B REG  | 8B DEST
+  // Calls
+  HVM_OP_CALL = 4,            // 1B OP | 8B DEST  | 1B REG
+  HVM_OP_TAILCALL = 7,        // 1B OP | 8B DEST
+  // Invocations
+  HVM_OP_INVOKESYMBOLIC = 5,  // 1B OP | 1B REG   | 1B REG
+  HVM_OP_INVOKEADDRESS = 6,   // 1B OP | 1B REG   | 1B REG
+  HVM_OP_INVOKEPRIMITIVE = 42,// 1B OP | 1B REG | 1B REG
 
   HVM_OP_SETSTRING = 10, // 1B OP | 1B REG  | 4B CONST
   HVM_OP_SETINTEGER = 11,// 1B OP | 1B REG  | 4B CONST
@@ -230,8 +233,6 @@ typedef enum {
   HVM_OP_STRUCTDELETE = 38, // 1B OP | 3B REGS
   HVM_OP_STRUCTNEW = 39,    // 1B OP | 1B REG
   HVM_OP_STRUCTHAS = 40,    // 1B OP | 3B REGS
-
-  HVM_OP_CALLPRIMITIVE = 42,// 1B OP | 1B REG | 1B REG
 
   HVM_OP_MOVE = 43,// 1B OP | 1B REG | 1B REG
   HVM_OP_GOTOADDRESS = 44,// 1B OP | 1B REG

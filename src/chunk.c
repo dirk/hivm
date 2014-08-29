@@ -139,13 +139,13 @@ void hvm_print_data(byte *data, uint64_t size) {
         i += 5;
         printf("$%-3d = setsymbol #%d\n", reg1, u32);
         break;
-      case HVM_OP_CALLPRIMITIVE:// 1B OP | 1B REG | 1B REG
+      case HVM_OP_INVOKEPRIMITIVE:// 1B OP | 1B REG | 1B REG
         sym = data[i + 1];
         ret = data[i + 2];
         i += 2;
         printf("$%-3d = callprimitive($%d)\n", ret, sym);
         break;
-      case HVM_OP_CALLSYMBOLIC:
+      case HVM_OP_INVOKESYMBOLIC:
         sym = data[i + 1];
         ret = data[i + 2];
         i += 2;

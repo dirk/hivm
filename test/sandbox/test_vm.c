@@ -50,12 +50,12 @@ void test_loop(hvm_gen *gen) {
   hvm_gen_if_label(gen->block, z, "end");
   hvm_gen_move(gen->block, hvm_vm_reg_arg(0), i);
   hvm_gen_set_symbol(gen->block, z, "int_to_string");
-  hvm_gen_callprimitive(gen->block, z, z);
+  hvm_gen_invokeprimitive(gen->block, z, z);
   hvm_gen_move(gen->block, hvm_vm_reg_arg(0), z);
   hvm_gen_set_symbol(gen->block, z, "print");
-  hvm_gen_callprimitive(gen->block, z, hvm_vm_reg_null());
+  hvm_gen_invokeprimitive(gen->block, z, hvm_vm_reg_null());
   hvm_gen_set_string(gen->block, hvm_vm_reg_arg(0), "\n");
-  hvm_gen_callprimitive(gen->block, z, hvm_vm_reg_null());
+  hvm_gen_invokeprimitive(gen->block, z, hvm_vm_reg_null());
   hvm_gen_add(gen->block, i, i, incr);
   hvm_gen_goto_label(gen->block, "loop");
   hvm_gen_label(gen->block, "end");
@@ -73,11 +73,11 @@ void test_exception_catch(hvm_gen *gen) {
   hvm_gen_label(gen->block, "catch");
   hvm_gen_set_string(gen->block, hvm_vm_reg_arg(0), "Caught exception!\n");
   hvm_gen_set_symbol(gen->block, z, "print");
-  hvm_gen_callprimitive(gen->block, z, hvm_vm_reg_null());
+  hvm_gen_invokeprimitive(gen->block, z, hvm_vm_reg_null());
   hvm_gen_set_symbol(gen->block, z, "print_exception");
   hvm_gen_setexception(gen->block, e);
   hvm_gen_move(gen->block, hvm_vm_reg_arg(0), e);
-  hvm_gen_callprimitive(gen->block, z, hvm_vm_reg_null());
+  hvm_gen_invokeprimitive(gen->block, z, hvm_vm_reg_null());
   hvm_gen_clearcatch(gen->block);
   hvm_gen_die(gen->block);
 }
@@ -91,7 +91,7 @@ void test_closure(hvm_gen *gen) {
 
   hvm_gen_move(gen->block, hvm_vm_reg_arg(0), a);
   hvm_gen_set_symbol(gen->block, sym, "debug_print_struct");
-  hvm_gen_callprimitive(gen->block, sym, hvm_vm_reg_null());
+  hvm_gen_invokeprimitive(gen->block, sym, hvm_vm_reg_null());
 
   // hvm_gen_die(gen->block);
 }
@@ -114,18 +114,18 @@ void test_generator() {
 
   hvm_gen_set_debug_entry(gen->block, 0, "(main)");
   hvm_gen_set_symbol(gen->block, sym, "subroutine");
-  hvm_gen_callsymbolic(gen->block, sym, hvm_vm_reg_null());
+  hvm_gen_invokesymbolic(gen->block, sym, hvm_vm_reg_null());
   hvm_gen_die(gen->block);
 
   hvm_gen_sub(gen->block, "subroutine");
   hvm_gen_set_debug_entry(gen->block, 1, "subroutine");
   hvm_gen_litinteger(gen->block, hvm_vm_reg_gen(1), 1);
   // hvm_gen_set_symbol(gen->block, sym, "debug_begin");
-  // hvm_gen_callprimitive(gen->block, sym, hvm_vm_reg_null());
+  // hvm_gen_invokeprimitive(gen->block, sym, hvm_vm_reg_null());
   hvm_gen_set_debug_line(gen->block, 2);
   hvm_gen_set_string(gen->block, hvm_vm_reg_arg(0), "Hello world!\n");
   hvm_gen_set_symbol(gen->block, hvm_vm_reg_gen(0), "print");
-  hvm_gen_callprimitive(gen->block, hvm_vm_reg_gen(0), hvm_vm_reg_null());
+  hvm_gen_invokeprimitive(gen->block, hvm_vm_reg_gen(0), hvm_vm_reg_null());
   hvm_gen_set_debug_line(gen->block, 3);
   hvm_gen_return(gen->block, hvm_vm_reg_gen(1));
 
@@ -133,10 +133,10 @@ void test_generator() {
   /*
   hvm_gen_set_string(gen->block, hvm_vm_reg_arg(0), "Hello world!\n");
   hvm_gen_set_symbol(gen->block, hvm_vm_reg_gen(0), "print");
-  hvm_gen_callprimitive(gen->block, hvm_vm_reg_gen(0), hvm_vm_reg_null());
+  hvm_gen_invokeprimitive(gen->block, hvm_vm_reg_gen(0), hvm_vm_reg_null());
   
   hvm_gen_set_symbol(gen->block, hvm_vm_reg_gen(0), "exit");
-  hvm_gen_callprimitive(gen->block, hvm_vm_reg_gen(0), hvm_vm_reg_null());
+  hvm_gen_invokeprimitive(gen->block, hvm_vm_reg_gen(0), hvm_vm_reg_null());
   // hvm_gen_die(gen->block);
   */
 
@@ -146,11 +146,11 @@ void test_generator() {
   // test_closure(gen);
 
   hvm_gen_set_symbol(gen->block, hvm_vm_reg_gen(0), "gc_run");
-  hvm_gen_callprimitive(gen->block, hvm_vm_reg_gen(0), hvm_vm_reg_null());
+  hvm_gen_invokeprimitive(gen->block, hvm_vm_reg_gen(0), hvm_vm_reg_null());
   
   test_closure(gen);
   hvm_gen_set_symbol(gen->block, hvm_vm_reg_gen(0), "gc_run");
-  hvm_gen_callprimitive(gen->block, hvm_vm_reg_gen(0), hvm_vm_reg_null());
+  hvm_gen_invokeprimitive(gen->block, hvm_vm_reg_gen(0), hvm_vm_reg_null());
 
   hvm_gen_die(gen->block);
   */
@@ -185,7 +185,7 @@ void test_generator() {
   // Copy string parameter into the argument
   hvm_gen_move(gen->block, hvm_vm_reg_arg(0), string_reg);
   hvm_gen_set_symbol(gen->block, sym_reg, "print");
-  hvm_gen_callprimitive(gen->block, sym_reg, hvm_vm_reg_null());
+  hvm_gen_invokeprimitive(gen->block, sym_reg, hvm_vm_reg_null());
   hvm_gen_return(gen->block, hvm_vm_reg_null());
 
   // Building the console object
@@ -225,7 +225,7 @@ void test_generator() {
   hvm_gen_set_string(gen->block, hvm_vm_reg_arg(0), "test\n");
   // TODO: Currently doesn't throw an exception if symbol not found
   // hvm_gen_callsymbolic(gen->block, 0, hvm_vm_reg_null());
-  hvm_gen_callprimitive(gen->block, hvm_vm_reg_gen(0), hvm_vm_reg_null());
+  hvm_gen_invokeprimitive(gen->block, hvm_vm_reg_gen(0), hvm_vm_reg_null());
   hvm_gen_die(gen->block);
   hvm_gen_label(gen->block, "tail");
   hvm_gen_litinteger_label(gen->block, 1, "head");

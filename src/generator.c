@@ -538,22 +538,23 @@ void hvm_gen_if(hvm_gen_item_block *block, byte val, uint64_t dest) {
 }
 
 // 1B OP | 1B REG | 1B REG
-void hvm_gen_callsymbolic(hvm_gen_item_block *block, byte sym, byte ret) {
+void hvm_gen_invokesymbolic(hvm_gen_item_block *block, byte sym, byte ret) {
   hvm_gen_item_op_a2 *op = malloc(sizeof(hvm_gen_item_op_a2));
   op->type = HVM_GEN_OPA2;
-  op->op   = HVM_OP_CALLSYMBOLIC;
+  op->op   = HVM_OP_INVOKESYMBOLIC;
   op->reg1 = sym;
   op->reg2 = ret;
   GEN_PUSH_ITEM(op);
 }
-void hvm_gen_callprimitive(hvm_gen_item_block *block, byte sym, byte ret) {
+void hvm_gen_invokeprimitive(hvm_gen_item_block *block, byte sym, byte ret) {
   hvm_gen_item_op_a2 *op = malloc(sizeof(hvm_gen_item_op_a2));
   op->type = HVM_GEN_OPA2;
-  op->op   = HVM_OP_CALLPRIMITIVE;
+  op->op   = HVM_OP_INVOKEPRIMITIVE;
   op->reg1 = sym;
   op->reg2 = ret;
   GEN_PUSH_ITEM(op);
 }
+
 // 1B OP | 1B REG
 void hvm_gen_return(hvm_gen_item_block *block, byte reg) {
   hvm_gen_item_op_a1 *op = malloc(sizeof(hvm_gen_item_op_a1));

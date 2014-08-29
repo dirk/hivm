@@ -373,7 +373,8 @@ execute:
         vm->ip = dest;
         vm->top = frame;
         continue;
-      case HVM_OP_CALLSYMBOLIC:// 1B OP | 1B REG | 1B REG
+
+      case HVM_OP_INVOKESYMBOLIC:// 1B OP | 1B REG | 1B REG
         AREG; BREG;
         key = hvm_vm_register_read(vm, areg);// This is the symbol we need to look up.
         assert(key->type == HVM_SYMBOL);
@@ -395,6 +396,37 @@ execute:
         vm->ip = dest;
         vm->top = frame;
         continue;
+      case HVM_OP_INVOKEADDRESS: // 1B OP | 1B REG | 1B REG
+        reg  = vm->program[vm->ip + 1];
+        val  = hvm_vm_register_read(vm, reg);
+        assert(val->type == HVM_INTEGER);
+        dest = (uint64_t)val->data.i64;
+        reg  = vm->program[vm->ip + 2]; // Return register now
+        vm->stack_depth += 1;
+        frame = &vm->stack[vm->stack_depth];
+        hvm_frame_initialize(frame);
+        frame->return_addr     = vm->ip + 3; // Instruction 3 bytes long.
+        frame->return_register = reg;
+        vm->ip = dest;
+        vm->ip = dest;
+        vm->top = frame;
+        continue;
+      case HVM_OP_INVOKEPRIMITIVE: // 1B OP | 1B REG | 1B REG
+        AREG; BREG;
+        key = hvm_vm_register_read(vm, areg);// This is the symbol we need to look up.
+        assert(key->type == HVM_SYMBOL);
+        sym_id = key->data.u64;
+        hvm_vm_copy_regs(vm);
+        // fprintf(stderr, "CALLPRIMITIVE(%lld, $%d)\n", sym_id, breg);
+        // FIXME: This may need to be smartened up.
+        hvm_exception *current_exc = vm->exception;// If there's a current exception
+        val = hvm_vm_call_primitive(vm, sym_id);
+        // CHECK_EXCEPTION;
+        if(vm->exception != current_exc) { goto handle_exception; }
+        hvm_vm_register_write(vm, breg, val);
+        vm->ip += 2;
+        break;
+
       case HVM_OP_CATCH: // 1B OP | 8B DEST | 1B REG
         dest = READ_U64(&vm->program[vm->ip + 1]);
         reg  = vm->program[vm->ip + 9];
@@ -438,22 +470,7 @@ execute:
         hvm_vm_register_write(vm, areg, val);
         vm->ip += 2;
         break;
-        
-      case HVM_OP_CALLADDRESS: // 1B OP | 1B REG | 1B REG
-        reg  = vm->program[vm->ip + 1];
-        val  = hvm_vm_register_read(vm, reg);
-        assert(val->type == HVM_INTEGER);
-        dest = (uint64_t)val->data.i64;
-        reg  = vm->program[vm->ip + 2]; // Return register now
-        vm->stack_depth += 1;
-        frame = &vm->stack[vm->stack_depth];
-        hvm_frame_initialize(frame);
-        frame->return_addr     = vm->ip + 3; // Instruction 3 bytes long.
-        frame->return_register = reg;
-        vm->ip = dest;
-        vm->ip = dest;
-        vm->top = frame;
-        continue;
+
       case HVM_OP_RETURN: // 1B OP | 1B REG
         reg = vm->program[vm->ip + 1];
         if(vm->stack_depth == 0) {
@@ -507,21 +524,7 @@ execute:
           vm->ip = dest;
           continue;
         }
-      case HVM_OP_CALLPRIMITIVE: // 1B OP | 1B REG | 1B REG
-        AREG; BREG;
-        key = hvm_vm_register_read(vm, areg);// This is the symbol we need to look up.
-        assert(key->type == HVM_SYMBOL);
-        sym_id = key->data.u64;
-        hvm_vm_copy_regs(vm);
-        // fprintf(stderr, "CALLPRIMITIVE(%lld, $%d)\n", sym_id, breg);
-        // FIXME: This may need to be smartened up.
-        hvm_exception *current_exc = vm->exception;// If there's a current exception
-        val = hvm_vm_call_primitive(vm, sym_id);
-        // CHECK_EXCEPTION;
-        if(vm->exception != current_exc) { goto handle_exception; }
-        hvm_vm_register_write(vm, breg, val);
-        vm->ip += 2;
-        break;
+
 
       case HVM_OP_LITINTEGER: // 1B OP | 1B REG | 8B LIT
         reg = vm->program[vm->ip + 1];
@@ -753,7 +756,7 @@ execute:
         // Raise the exception
         vm->exception = exc;
         goto handle_exception;
-        
+
 
       // STRUCTS --------------------------------------------------------------
       case HVM_OP_STRUCTSET:

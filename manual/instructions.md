@@ -48,27 +48,27 @@
 
 #### Control flow & subroutines
 
-##### Direct calls
+##### Calls
 
-Direct calls operate via hardcoded destinations in the 8-byte destination register (referred to as SUB). Direct calls are intended to be used within a common compilation block for fast sub-routine invocation and tail-call recursion.
+Calls operate directly via hardcoded destinations. They are intended to be used within a common compilation block for fast sub-routine invocation and tail-call recursion.
 
 `call SUB RET`
-:  Invoke the subroutine at SUB. RET can be a register for return or $null for no return or ignoring return.
+:  Invoke the subroutine at address SUB (8-byte). RET can be a register for return or $null for no return or ignoring return.
 
 `tailcall SUB`
 :  Same as `call` but does not grow the stack. Current subroutine's return will be the return from SUB.
 
-##### Indirect calls
+##### Invocations
 
-Indirect calls use symbols and addresses passed via registers to control which subroutine/primitive is invoked.
+Invocations use symbols and addresses passed via registers to control which subroutine/primitive is invoked.
 
-`callsymbolic SYM RET`
+`invokesymbolic SYM RET`
 :  Invoke subroutine identified by the symbol ID in register SYM.
 
-`calladdress SUB RET`
+`invokeaddress SUB RET`
 :  Invoke subroutine at address in register SUB.
 
-`callprimitive SYM RET`
+`invokeprimitive SYM RET`
 :  Invoke the primitive with symbol ID in SYM.
 
 ##### Control flow
