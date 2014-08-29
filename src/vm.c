@@ -373,6 +373,27 @@ execute:
         vm->ip = dest;
         vm->top = frame;
         continue;
+      case HVM_OP_CALLSYMBOLIC:// 1B OP | 4B CONST | 1B REG
+        reg         = vm->program[vm->ip + 5];
+        const_index = READ_U32(&vm->program[vm->ip + 1]);
+        // Get the symbol out of the constant table
+        key = hvm_vm_get_const(vm, const_index);
+        assert(key->type == HVM_SYMBOL);
+        sym_id = key->data.u64;
+        // Get the destination from the symbol table
+        val  = hvm_obj_struct_internal_get(vm->symbol_table, sym_id);
+        assert(val->type == HVM_INTERNAL);
+        dest = val->data.u64;
+        // Then perform the call
+        vm->stack_depth += 1;
+        frame = &vm->stack[vm->stack_depth];
+        hvm_frame_initialize(frame);
+        frame->return_addr     = vm->ip + 6;
+        frame->return_register = reg;
+        hvm_vm_copy_regs(vm);
+        vm->ip = dest;
+        vm->top = frame;
+        continue;
 
       case HVM_OP_INVOKESYMBOLIC:// 1B OP | 1B REG | 1B REG
         AREG; BREG;
@@ -382,10 +403,9 @@ execute:
         // fprintf(stderr, "0x%08llX  ", vm->ip);
         // fprintf(stderr, "sym: %llu -> %s\n", sym_id, hvm_desymbolicate(vm->symbols, sym_id));
         // hvm_obj_print_structure(vm, vm->symbol_table);
-        val    = hvm_obj_struct_internal_get(vm->symbol_table, sym_id);
-        // fprintf(stderr, "val: %p\n", val);
-        dest   = val->data.u64;
+        val  = hvm_obj_struct_internal_get(vm->symbol_table, sym_id);
         assert(val->type == HVM_INTERNAL);
+        dest = val->data.u64;
         // fprintf(stderr, "CALLSYMBOLIC(0x%08llX, $%d)\n", dest, breg);
         vm->stack_depth += 1;
         frame = &vm->stack[vm->stack_depth];

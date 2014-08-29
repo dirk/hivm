@@ -110,11 +110,12 @@ void test_generator() {
   // hvm_gen_add(gen->block, hvm_vm_reg_gen(5), hvm_vm_reg_gen(3), hvm_vm_reg_gen(4));
   // hvm_gen_return(gen->block, hvm_vm_reg_gen(5));
   
-  byte sym = hvm_vm_reg_gen(0);
+  // byte sym = hvm_vm_reg_gen(0);
 
   hvm_gen_set_debug_entry(gen->block, 0, "(main)");
-  hvm_gen_set_symbol(gen->block, sym, "subroutine");
-  hvm_gen_invokesymbolic(gen->block, sym, hvm_vm_reg_null());
+  //hvm_gen_set_symbol(gen->block, sym, "subroutine");
+  //hvm_gen_invokesymbolic(gen->block, sym, hvm_vm_reg_null());
+  hvm_gen_callsymbolic_symbol(gen->block, "subroutine", hvm_vm_reg_null());
   hvm_gen_die(gen->block);
 
   hvm_gen_sub(gen->block, "subroutine");

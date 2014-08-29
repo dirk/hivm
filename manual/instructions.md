@@ -53,10 +53,13 @@
 Calls operate directly via hardcoded destinations. They are intended to be used within a common compilation block for fast sub-routine invocation and tail-call recursion.
 
 `call SUB RET`
-:  Invoke the subroutine at address SUB (8-byte). RET can be a register for return or $null for no return or ignoring return.
+:  Call the subroutine at address SUB (8-byte). RET can be a register for return or $null for no return or ignoring return.
 
 `tailcall SUB`
 :  Same as `call` but does not grow the stack. Current subroutine's return will be the return from SUB.
+
+`callsymbolic CONST RET`
+:  Look up a symbol ID from the constant table, then call the subroutine identified by that symbol ID.
 
 ##### Invocations
 
@@ -129,10 +132,10 @@ NOTE: May want to make a `setconstant` instruction available.
 :  Set the string referenced by constant index S into register A.
 
 `setinteger A I`
-:  Set the integer referenced by constant index S into register A.
+:  Set the integer referenced by constant index I into register A.
 
 `setfloat A F`
-:  Set the float referenced by constant index S into register A.
+:  Set the float referenced by constant index F into register A.
 
 `setstruct A S`
 :  Set the structure referenced by constant index S into register A.

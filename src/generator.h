@@ -25,11 +25,12 @@ typedef enum {
   HVM_GEN_OPG,  // 1B OP | 1B REG | 8B LITERAL
   HVM_GEN_OPH,  // 1B OP | 1B REG | 4B CONST
 
-  HVM_GEN_OPD1_LABEL,
-  HVM_GEN_OPD2_NAME,
-  HVM_GEN_OPD2_LABEL, // 1B OP | 1B REG | [8B DEST]
-  HVM_GEN_OPH_DATA,   // 1B OP | 1B REG | [4B CONST]
-  HVM_GEN_OPG_LABEL,  // 1B OP | 1B REG | 8B DEST (i64)
+  HVM_GEN_OPD1_LABEL, // 1B OP | [8B DEST]
+  HVM_GEN_OPD2_LABEL, // 1B OP | [8B DEST] | 1B REG
+  HVM_GEN_OPD3_LABEL, // 1B OP | 1B REG    | [8B DEST]
+  HVM_GEN_OPH_DATA,   // 1B OP | 1B REG    | [4B CONST]
+  HVM_GEN_OPG_LABEL,  // 1B OP | 1B REG    | 8B DEST (i64)
+  HVM_GEN_OPB2_SYMBOL,// 1B OP | [4B SYM]  | 1B REG
 
   HVM_GEN_LABEL,
   HVM_GEN_SUB,
@@ -127,25 +128,32 @@ typedef struct hvm_gen_item_op_h {
   uint32_t cnst;
 } hvm_gen_item_op_h;
 
+typedef struct hvm_gen_item_op_b2_symbol {
+  HVM_GEN_ITEM_HEAD;
+  byte op;
+  char *symbol;
+  byte reg;
+} hvm_gen_item_op_b2_symbol;
+
 typedef struct hvm_gen_item_op_d1_label {
   HVM_GEN_ITEM_HEAD;
   byte op;
   char* dest;
 } hvm_gen_item_op_d1_label;
 
-typedef struct hvm_gen_item_op_d2_name {
+typedef struct hvm_gen_item_op_d2_label {
   HVM_GEN_ITEM_HEAD;
   byte op;
-  char* name;
+  char *label;
   byte reg;
-} hvm_gen_item_op_d2_name;
+} hvm_gen_item_op_d2_label;
 
-typedef struct hvm_gen_item_op_d2_label {
+typedef struct hvm_gen_item_op_d3_label {
   HVM_GEN_ITEM_HEAD;
   byte op;
   byte reg;
   char *label;
-} hvm_gen_item_op_d2_label;
+} hvm_gen_item_op_d3_label;
 
 typedef struct hvm_gen_item_op_g_label {
   HVM_GEN_ITEM_HEAD;
@@ -233,12 +241,12 @@ typedef union hvm_gen_item {
   hvm_gen_item_op_g  op_g;
   hvm_gen_item_op_h  op_h;
 
-  hvm_gen_item_op_d1_label op_d1_label;
-  hvm_gen_item_op_d2_name  op_d2_name;
-  hvm_gen_item_op_d2_label op_d2_label;
-  hvm_gen_item_op_g_label  op_g_label;
-  hvm_gen_item_op_h_data   op_h_data;
-  
+  hvm_gen_item_op_b2_symbol op_b2_symbol;
+  hvm_gen_item_op_d1_label  op_d1_label;
+  hvm_gen_item_op_d2_label  op_d2_label;
+  hvm_gen_item_op_d3_label  op_d3_label;
+  hvm_gen_item_op_g_label   op_g_label;
+  hvm_gen_item_op_h_data    op_h_data;
 
   // hvm_gen_item_macro macro;
   hvm_gen_item_label label;
@@ -320,7 +328,16 @@ void hvm_gen_set_string(hvm_gen_item_block *block, byte reg, char *string);
 void hvm_gen_set_symbol(hvm_gen_item_block *block, byte reg, char *string);
 void hvm_gen_set_integer(hvm_gen_item_block *block, byte reg, int64_t integer);
 void hvm_gen_push_block(hvm_gen_item_block *block, hvm_gen_item_block *push);
-void hvm_gen_call_sub(hvm_gen_item_block *block, char *name, byte ret);
+
+/// Generate a CALL to a subroutine with the label `name` in the chunk. The
+/// address is resolved at chunk compile time.
+void hvm_gen_call_label(hvm_gen_item_block *block, char *label, byte ret);
+
+/// Generate a CALLSYMBOLIC to a subroutine with a given constant symbol. The
+/// symbol name is added to the chunk constant table, which is then
+/// symbolicated and adjusted at chunk load time.
+void hvm_gen_callsymbolic_symbol(hvm_gen_item_block *block, char *symbol, byte ret);
+
 void hvm_gen_if_label(hvm_gen_item_block *block, byte reg, char *label);
 void hvm_gen_catch_label(hvm_gen_item_block *block, char *label, byte reg);
 
