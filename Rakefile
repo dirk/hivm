@@ -77,13 +77,18 @@ end
 file 'libhivm.a' => objects, &static_archiver
 file 'libhivm-db.a' => debug_objects, &static_archiver
 
+
 file 'libhivm.so' => objects do |t|
   sh "#{$cc} #{t.prerequisites.join ' '} #{cflags_for t.name} -shared -o #{t.name}"
 end
 
+
 file "src/chunk.pb-c.c" => ["src/chunk.proto"] do |t|
   sh "protoc-c --c_out=. #{t.prerequisites.first}"
 end
+
+# Let Rake know that debug.o depends on debug-lua.include.c
+file 'src/debug.o' => 'src/debug-lua.include.c'
 
 # Generic compilation of object files
 rule '.o' => ['.c'] do |t|

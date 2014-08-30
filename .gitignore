@@ -12,3 +12,5 @@ test/unit/test
 
 dummy/*
 hivm.xcodeproj
+*.sublime*
+

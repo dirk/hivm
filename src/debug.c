@@ -31,7 +31,7 @@ static bool hvm_debug_continue;
 
 // Debugger functions for Lua
 int hvm_lua_exit(lua_State*);
-int hvm_lua_bt(lua_State*);
+int hvm_lua_backtrace(lua_State*);
 int hvm_lua_breakpoint(lua_State*);
 
 hvm_obj_ref *hvm_prim_debug_begin(hvm_vm *vm) {
@@ -50,7 +50,7 @@ void hvm_debug_setup_lua(hvm_vm *vm) {
 
   // Functions for Lua
   ADD_FUNCTION(hvm_lua_exit, "exit");
-  ADD_FUNCTION(hvm_lua_bt, "backtrace");
+  ADD_FUNCTION(hvm_lua_backtrace, "backtrace");
   ADD_FUNCTION(hvm_lua_breakpoint, "breakpoint");
 
   // Add a reference to our VM instance to the Lua C registry
@@ -87,43 +87,8 @@ hvm_vm *lua_get_vm(lua_State *L) {
   return (hvm_vm*)vm;
 }
 
-int hvm_lua_exit(lua_State *L) {
-  fputs("(db) Exiting\n", stdout);
-  hvm_debug_continue = false;
-  return 0;// Pushed zero results onto the stack
-}
-// Printing backtrace
-int hvm_lua_bt(lua_State *L) {
-  hvm_vm *vm = lua_get_vm(L);
-  // fprintf(stdout, "there! %p\n", vm);
-  // Hackety hax backtrace building
-  hvm_exception *exc = hvm_new_exception();
-  hvm_exception_build_backtrace(exc, vm);
-  // Get the backtrace out of the exception
-  GArray *backtrace = exc->backtrace;
-  // Then release the exception so we don't leak
-  free(exc);
-
-  hvm_print_backtrace(backtrace);
-  // TODO: Free the backtrace
-  return 0;
-}
-// Setting a breakpoint
-int hvm_lua_breakpoint(lua_State *L) {
-  // Argument 1 is the file
-  const char *file_from_lua = luaL_checkstring(L, 1);
-  unsigned long length = strlen(file_from_lua);
-  char *file = malloc(sizeof(char) * (length + 1));
-  strcpy(file, file_from_lua);
-  // Argument 2 is the line number
-  lua_Integer line_from_lua = luaL_checkinteger(L, 2);
-  // Explicit conversion to 64-bit
-  uint64_t line = (uint64_t)line_from_lua;
-  // Set the breakpoint
-  hvm_vm *vm = lua_get_vm(L);
-  hvm_debugger_set_breakpoint(vm, file, line);
-  return 0;
-}
+#define HVM_DEBUG_C
+#include "debug-lua.include.c"
 
 // Launch the Lua interpreter for debugging.
 void hvm_debug_begin() {
