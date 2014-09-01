@@ -33,6 +33,7 @@ static bool hvm_debug_continue;
 int hvm_lua_exit(lua_State*);
 int hvm_lua_backtrace(lua_State*);
 int hvm_lua_breakpoint(lua_State*);
+int hvm_lua_registers(lua_State *L);
 
 hvm_obj_ref *hvm_prim_debug_begin(hvm_vm *vm) {
   hvm_debug_begin();
@@ -52,6 +53,7 @@ void hvm_debug_setup_lua(hvm_vm *vm) {
   ADD_FUNCTION(hvm_lua_exit, "exit");
   ADD_FUNCTION(hvm_lua_backtrace, "backtrace");
   ADD_FUNCTION(hvm_lua_breakpoint, "breakpoint");
+  ADD_FUNCTION(hvm_lua_registers, "registers");
 
   // Add a reference to our VM instance to the Lua C registry
   lua_pushstring(L, "hvm_vm");// key
@@ -77,14 +79,6 @@ void hvm_debug_setup(hvm_vm *vm) {
 
 void hvm_debug_prompt() {
   fputs("(db) ", stdout);
-}
-
-hvm_vm *lua_get_vm(lua_State *L) {
-  lua_pushstring(L, "hvm_vm");// key
-  lua_gettable(L, LUA_REGISTRYINDEX);
-  void *vm = lua_touserdata(L, -1);
-  lua_pop(L, 1);
-  return (hvm_vm*)vm;
 }
 
 #define HVM_DEBUG_C

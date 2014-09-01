@@ -4,6 +4,14 @@
 /// @file debug-lua.include.c
 /// Included in debug.c to add all the Lua commands for debugging.
 
+hvm_vm *_hvm_lua_get_vm(lua_State *L) {
+  lua_pushstring(L, "hvm_vm");// key
+  lua_gettable(L, LUA_REGISTRYINDEX);
+  void *vm = lua_touserdata(L, -1);
+  lua_pop(L, 1);
+  return (hvm_vm*)vm;
+}
+
 int hvm_lua_exit(lua_State *L) {
   fputs("(db) Exiting\n", stdout);
   hvm_debug_continue = false;
@@ -13,7 +21,7 @@ int hvm_lua_exit(lua_State *L) {
 /// Print the current debug backtrace
 /// @memberof hvm_debugger
 int hvm_lua_backtrace(lua_State *L) {
-  hvm_vm *vm = lua_get_vm(L);
+  hvm_vm *vm = _hvm_lua_get_vm(L);
   // fprintf(stdout, "there! %p\n", vm);
   // Hackety hax backtrace building
   hvm_exception *exc = hvm_new_exception();
@@ -41,7 +49,24 @@ int hvm_lua_breakpoint(lua_State *L) {
   // Explicit conversion to 64-bit
   uint64_t line = (uint64_t)line_from_lua;
   // Set the breakpoint
-  hvm_vm *vm = lua_get_vm(L);
+  hvm_vm *vm = _hvm_lua_get_vm(L);
   hvm_debugger_set_breakpoint(vm, file, line);
   return 0;
 }
+
+/// Print the registers
+/// @memberof hvm_debugger
+int hvm_lua_registers(lua_State *L) {
+  static const char *name;
+  hvm_vm *vm = _hvm_lua_get_vm(L);
+  for(unsigned int i = 0; i < HVM_GENERAL_REGISTERS; i++) {
+    hvm_obj_ref *ref = vm->general_regs[i];
+    if(ref != hvm_const_null) {
+      name = hvm_human_name_for_obj_type(ref->type);
+      fprintf(stderr, "g%-3d = %p (%s)\n", i, ref, name);
+    }
+  }
+  return 0;
+}
+
+

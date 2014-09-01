@@ -368,7 +368,7 @@ void hvm_obj_struct_free(hvm_obj_struct *strct) {
 
 // UTILITIES
 
-char *hvm_human_name_for_obj_type(hvm_obj_type type) {
+const char *hvm_human_name_for_obj_type(hvm_obj_type type) {
   static char *string  = "string",
               *unknown = "unknown",
               *symbol  = "symbol",
