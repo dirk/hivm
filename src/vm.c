@@ -45,6 +45,10 @@ hvm_vm *hvm_new_vm() {
   vm->program_size = 0;
   vm->program = calloc(sizeof(byte), vm->program_capacity);
   vm->symbol_table = hvm_new_obj_struct();
+  // Registers
+  for(unsigned int i = 0; i < HVM_GENERAL_REGISTERS; i++) {
+    vm->general_regs[i] = hvm_const_null;
+  }
   // Constants
   vm->const_pool.next_index = 0;
   vm->const_pool.size = HVM_CONSTANT_POOL_INITIAL_SIZE;
