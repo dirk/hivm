@@ -12,8 +12,8 @@ hvm_vm *_hvm_lua_get_vm(lua_State *L) {
   return (hvm_vm*)vm;
 }
 
-int hvm_lua_exit(lua_State *L) {
-  fputs("(db) Exiting\n", stdout);
+int hvm_lua_continue(lua_State *L) {
+  //fputs("(db) Exiting\n", stdout);
   hvm_debug_continue = false;
   return 0;// Pushed zero results onto the stack
 }
@@ -57,12 +57,11 @@ int hvm_lua_breakpoint(lua_State *L) {
 /// Print the registers
 /// @memberof hvm_debugger
 int hvm_lua_registers(lua_State *L) {
-  static const char *name;
   hvm_vm *vm = _hvm_lua_get_vm(L);
   for(unsigned int i = 0; i < HVM_GENERAL_REGISTERS; i++) {
     hvm_obj_ref *ref = vm->general_regs[i];
     if(ref != hvm_const_null) {
-      name = hvm_human_name_for_obj_type(ref->type);
+      const char *name = hvm_human_name_for_obj_type(ref->type);
       fprintf(stderr, "g%-3d = %p (%s)\n", i, ref, name);
     }
   }

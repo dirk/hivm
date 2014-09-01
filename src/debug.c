@@ -30,7 +30,7 @@ static lua_State *hvm_lua_state;
 static bool hvm_debug_continue;
 
 // Debugger functions for Lua
-int hvm_lua_exit(lua_State*);
+int hvm_lua_continue(lua_State*);
 int hvm_lua_backtrace(lua_State*);
 int hvm_lua_breakpoint(lua_State*);
 int hvm_lua_registers(lua_State *L);
@@ -50,10 +50,10 @@ void hvm_debug_setup_lua(hvm_vm *vm) {
   luaopen_base(L);
 
   // Functions for Lua
-  ADD_FUNCTION(hvm_lua_exit, "exit");
-  ADD_FUNCTION(hvm_lua_backtrace, "backtrace");
+  ADD_FUNCTION(hvm_lua_continue,   "continue");
+  ADD_FUNCTION(hvm_lua_backtrace,  "backtrace");
   ADD_FUNCTION(hvm_lua_breakpoint, "breakpoint");
-  ADD_FUNCTION(hvm_lua_registers, "registers");
+  ADD_FUNCTION(hvm_lua_registers,  "registers");
 
   // Add a reference to our VM instance to the Lua C registry
   lua_pushstring(L, "hvm_vm");// key
