@@ -61,33 +61,37 @@ Some instructions provide an area region of data in their fields for the virtual
 
 Subroutines may be executed either statically (address or symbolic name known ahead of time) or dynamically (address or name not known until execution). Static execution is referred to as a call, whereas dynamic execution is referred to as an invocation.
 
+Non-primitive subroutine execution instructions include a reserved data section called the `(tag)`. The tag provides a space for the virtual machine to store information relating to the execution of that subroutine. Tags are currently 3 bytes in size.
+
 ##### Calls
 
 Calls operate directly via hardcoded destinations. They are intended to be used within a common compilation block for fast subroutine invocation and tail-call recursion.
 
-`call SUB RET`
+`call (tag) SUB RET`
 :  Call the subroutine at address SUB (8-byte). RET can be a register for return or $null for no return or ignoring return.
 
-`tailcall SUB`
+`tailcall (tag) SUB`
 :  Same as `call` but does not grow the stack. Current subroutine's return will be the return from SUB.
 
-`callsymbolic CONST RET`
+`callsymbolic (tag) CONST RET`
 :  Look up a symbol ID from the constant table, then call the subroutine identified by that symbol ID.
 
 ##### Invocations
 
 Invocations use symbols and addresses passed via registers to control which subroutine/primitive is invoked.
 
-`invokesymbolic SYM RET`
+`invokesymbolic (tag) SYM RET`
 :  Invoke subroutine identified by the symbol ID in register SYM.
 
-`invokeaddress SUB RET`
+`invokeaddress (tag) SUB RET`
 :  Invoke subroutine at address in register SUB.
 
 `invokeprimitive SYM RET`
 :  Invoke the primitive with symbol ID in SYM.
 
 ##### Header
+
+**Note:** This is currently being (re)considered and is not currently implemented.
 
 Subroutines may have an optional header. This is a special no-op instruction that the virtual machine uses to store optimization metadata (tracking hot-ness, trampolining to/from the JIT, etc.). Using `hvm_gen_sub` and similar generator functions will automatically insert this header for you. The header may only appear as the first instruction in a subroutine.
 

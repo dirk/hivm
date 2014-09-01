@@ -25,6 +25,14 @@ typedef enum {
   HVM_GEN_OPG,  // 1B OP | 1B REG | 8B LITERAL
   HVM_GEN_OPH,  // 1B OP | 1B REG | 4B CONST
 
+  // 1B OP | 3B TAG | 8B DEST | 1B REG
+  HVM_GEN_OP_CALL,
+  HVM_GEN_OP_CALL_LABEL,
+  // 1B OP | 3B TAG | 4B CONST | 1B REG
+  HVM_GEN_OP_CALLSYMBOLIC_SYMBOL,
+
+
+
   HVM_GEN_OPD1_LABEL, // 1B OP | [8B DEST]
   HVM_GEN_OPD2_LABEL, // 1B OP | [8B DEST] | 1B REG
   HVM_GEN_OPD3_LABEL, // 1B OP | 1B REG    | [8B DEST]
@@ -134,6 +142,8 @@ typedef struct hvm_gen_item_op_b2_symbol {
   char *symbol;
   byte reg;
 } hvm_gen_item_op_b2_symbol;
+// Alias
+typedef hvm_gen_item_op_b2_symbol hvm_gen_op_callsymbolic_symbol;
 
 typedef struct hvm_gen_item_op_d1_label {
   HVM_GEN_ITEM_HEAD;
@@ -147,6 +157,8 @@ typedef struct hvm_gen_item_op_d2_label {
   char *label;
   byte reg;
 } hvm_gen_item_op_d2_label;
+// Alias
+typedef hvm_gen_item_op_d2_label hvm_gen_op_call_label;
 
 typedef struct hvm_gen_item_op_d3_label {
   HVM_GEN_ITEM_HEAD;
@@ -161,6 +173,15 @@ typedef struct hvm_gen_item_op_g_label {
   byte reg;
   char* label;
 } hvm_gen_item_op_g_label;
+
+
+typedef struct hvm_gen_op_call {
+  HVM_GEN_ITEM_HEAD;
+  byte op;
+  uint64_t dest;
+  byte reg;
+} hvm_gen_op_call;
+
 
 typedef enum {
   HVM_GEN_DATA_STRING,
@@ -247,6 +268,10 @@ typedef union hvm_gen_item {
   hvm_gen_item_op_d3_label  op_d3_label;
   hvm_gen_item_op_g_label   op_g_label;
   hvm_gen_item_op_h_data    op_h_data;
+
+  hvm_gen_op_call op_call;
+  hvm_gen_op_call_label op_call_label;
+  hvm_gen_op_callsymbolic_symbol op_callsymbolic_symbol;
 
   // hvm_gen_item_macro macro;
   hvm_gen_item_label label;

@@ -351,8 +351,8 @@ execute:
       case HVM_OP_DIE:
         // fprintf(stderr, "DIE\n");
         goto end;
-      case HVM_OP_TAILCALL: // 1B OP | 8B DEST
-        dest = READ_U64(&vm->program[vm->ip + 1]);
+      case HVM_OP_TAILCALL:// 1B OP | 3B TAG | 8B DEST
+        dest = READ_U64(&vm->program[vm->ip + 4]);
         // Copy important bits from parent.
         parent_frame = vm->top;
         uint64_t parent_ret_addr = parent_frame->return_addr;
@@ -365,21 +365,22 @@ execute:
         hvm_vm_copy_regs(vm);
         vm->ip = dest;
         continue;
-      case HVM_OP_CALL: // 1B OP | 8B DEST | 1B REG
-        dest = READ_U64(&vm->program[vm->ip + 1]);
-        reg  = vm->program[vm->ip + 9];
+      case HVM_OP_CALL:// 1B OP | 3B TAG | 8B DEST  | 1B REG
+        dest = READ_U64(&vm->program[vm->ip + 4]);
+        reg  = vm->program[vm->ip + 12];
         vm->stack_depth += 1;
         frame = &vm->stack[vm->stack_depth];
         hvm_frame_initialize(frame);
-        frame->return_addr     = vm->ip + 10; // Instruction is 10 bytes long.
+        frame->return_addr     = vm->ip + 13; // Instruction is 13 bytes long.
         frame->return_register = reg;
         hvm_vm_copy_regs(vm);
         vm->ip = dest;
         vm->top = frame;
         continue;
-      case HVM_OP_CALLSYMBOLIC:// 1B OP | 4B CONST | 1B REG
-        reg         = vm->program[vm->ip + 5];
-        const_index = READ_U32(&vm->program[vm->ip + 1]);
+      case HVM_OP_CALLSYMBOLIC:// 1B OP | 3B TAG | 4B CONST | 1B REG
+        // tag = vm->ip + 1
+        const_index = READ_U32(&vm->program[vm->ip + 4]);
+        reg         = vm->program[vm->ip + 8];
         // Get the symbol out of the constant table
         key = hvm_vm_get_const(vm, const_index);
         assert(key->type == HVM_SYMBOL);
@@ -392,15 +393,16 @@ execute:
         vm->stack_depth += 1;
         frame = &vm->stack[vm->stack_depth];
         hvm_frame_initialize(frame);
-        frame->return_addr     = vm->ip + 6;
+        frame->return_addr     = vm->ip + 9;
         frame->return_register = reg;
         hvm_vm_copy_regs(vm);
         vm->ip = dest;
         vm->top = frame;
         continue;
 
-      case HVM_OP_INVOKESYMBOLIC:// 1B OP | 1B REG | 1B REG
-        AREG; BREG;
+      case HVM_OP_INVOKESYMBOLIC:// 1B OP | 3B TAG | 1B REG | 1B REG
+        areg = vm->program[vm->ip + 4];
+        breg = vm->program[vm->ip + 5];
         key = hvm_vm_register_read(vm, areg);// This is the symbol we need to look up.
         assert(key->type == HVM_SYMBOL);
         sym_id = key->data.u64;
@@ -414,22 +416,22 @@ execute:
         vm->stack_depth += 1;
         frame = &vm->stack[vm->stack_depth];
         hvm_frame_initialize(frame);
-        frame->return_addr = vm->ip + 3;// Instruction is 3 bytes long
+        frame->return_addr = vm->ip + 6;// Instruction is 6 bytes long
         frame->return_register = breg;
         hvm_vm_copy_regs(vm);
         vm->ip = dest;
         vm->top = frame;
         continue;
-      case HVM_OP_INVOKEADDRESS: // 1B OP | 1B REG | 1B REG
-        reg  = vm->program[vm->ip + 1];
+      case HVM_OP_INVOKEADDRESS:// 1B OP | 3B TAG | 1B REG | 1B REG
+        reg  = vm->program[vm->ip + 4];
         val  = hvm_vm_register_read(vm, reg);
         assert(val->type == HVM_INTEGER);
         dest = (uint64_t)val->data.i64;
-        reg  = vm->program[vm->ip + 2]; // Return register now
+        reg  = vm->program[vm->ip + 5]; // Return register now
         vm->stack_depth += 1;
         frame = &vm->stack[vm->stack_depth];
         hvm_frame_initialize(frame);
-        frame->return_addr     = vm->ip + 3; // Instruction 3 bytes long.
+        frame->return_addr     = vm->ip + 6; // Instruction 3 bytes long.
         frame->return_register = reg;
         vm->ip = dest;
         vm->ip = dest;
