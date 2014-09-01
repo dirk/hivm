@@ -1,5 +1,16 @@
 ### Instruction set
 
+##### Document syntax guide
+
+- Instruction names are `lowercase`.
+- Register names are `UPPERCASE`.
+- Values in an instruction are prefixed with a `#HASH`.
+- Reserved data in an instruction is in `(parentheses)`.
+
+##### Reserved data
+
+Some instructions provide an area region of data in their fields for the virtual machine to use for internal purposes. This region is required; the bytecode generation toolchain will automatically include these regions for you.
+
 #### Array instructions
 
 `arraypush A B`
@@ -46,11 +57,13 @@
 `structnew S`
 :  Create a new struct in register S.
 
-#### Control flow & subroutines
+#### Subroutines
+
+Subroutines may be executed either statically (address or symbolic name known ahead of time) or dynamically (address or name not known until execution). Static execution is referred to as a call, whereas dynamic execution is referred to as an invocation.
 
 ##### Calls
 
-Calls operate directly via hardcoded destinations. They are intended to be used within a common compilation block for fast sub-routine invocation and tail-call recursion.
+Calls operate directly via hardcoded destinations. They are intended to be used within a common compilation block for fast subroutine invocation and tail-call recursion.
 
 `call SUB RET`
 :  Call the subroutine at address SUB (8-byte). RET can be a register for return or $null for no return or ignoring return.
@@ -74,7 +87,14 @@ Invocations use symbols and addresses passed via registers to control which subr
 `invokeprimitive SYM RET`
 :  Invoke the primitive with symbol ID in SYM.
 
-##### Control flow
+##### Header
+
+Subroutines may have an optional header. This is a special no-op instruction that the virtual machine uses to store optimization metadata (tracking hot-ness, trampolining to/from the JIT, etc.). Using `hvm_gen_sub` and similar generator functions will automatically insert this header for you. The header may only appear as the first instruction in a subroutine.
+
+`subheader (data)`
+:  Header at the beginning of the subroutine.
+
+#### Control flow
 
 `return RET`
 :  Return from the current subroutine to the parent. RET can be a register for returning a value or $null.
@@ -128,19 +148,19 @@ Constants are stored in a constant-substitution section of an `hvm_chunk`. At lo
 
 NOTE: May want to make a `setconstant` instruction available.
 
-`setstring A S`
+`setstring A #S`
 :  Set the string referenced by constant index S into register A.
 
-`setinteger A I`
+`setinteger A #I`
 :  Set the integer referenced by constant index I into register A.
 
-`setfloat A F`
+`setfloat A #F`
 :  Set the float referenced by constant index F into register A.
 
-`setstruct A S`
+`setstruct A #S`
 :  Set the structure referenced by constant index S into register A.
 
-`setsymbol A S`
+`setsymbol A #S`
 :  At load time: look up string in constant index S, then get the symbol ID from the VM's symbol table for that string. Upon execution register A will be set to that non-negative integer ID.
 
 `setnull A`
@@ -148,9 +168,9 @@ NOTE: May want to make a `setconstant` instruction available.
 
 ##### Literals
 
-Literals are directly stored in the instruction. For example `litinteger` takes 10-bytes: byte 1 is the instruction itself, byte 2 is the destination register, and bytes 3-10 are used for the 64-bit integer.
+Literals are directly stored in the instruction. For example `litinteger` takes 10 bytes: byte 1 is the instruction itself, byte 2 is the destination register, and bytes 3-10 are used for the 64-bit integer.
 
-`litinteger A I`
+`litinteger A #I`
 :  Set A to literal integer I.
 
 #### Miscellaneous
@@ -165,7 +185,7 @@ Literals are directly stored in the instruction. For example `litinteger` takes 
 :  Look up the symbol ID for the string in STR and update SYM with that value.
 
 `move A B`
-:  A = B
+:  A = B.
 
 #### Local/global variables
 
