@@ -126,7 +126,7 @@ hvm_obj_ref *hvm_prim_debug_print_struct(hvm_vm *vm) {
     hvm_obj_struct_heap_pair *pair = strct->heap[idx];
     char        *sym  = hvm_desymbolicate(vm->symbols, pair->id);
     hvm_obj_ref *ref  = pair->obj;
-    char        *name = hvm_human_name_for_obj_type(ref->type);
+    const char  *name = hvm_human_name_for_obj_type(ref->type);
     fprintf(stdout, "  %s = %s(%p)\n", sym, name, ref);
   }
   return hvm_const_null;
