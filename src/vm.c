@@ -315,6 +315,7 @@ __attribute__((always_inline)) void hvm_vm_copy_regs(hvm_vm *vm) {
 
 void hvm_vm_run(hvm_vm *vm) {
   byte instr;
+  byte *tag_address;
   uint32_t const_index;
   uint64_t dest, sym_id;//, return_addr;
   int32_t diff;
@@ -324,6 +325,7 @@ void hvm_vm_run(hvm_vm *vm) {
   hvm_frame *frame, *parent_frame;
   hvm_exception *exc;
   char *msg;
+  hvm_subroutine_tag tag;
 
 execute:
   for(; vm->ip < vm->program_size;) {
@@ -378,13 +380,21 @@ execute:
         vm->top = frame;
         continue;
       case HVM_OP_CALLSYMBOLIC:// 1B OP | 3B TAG | 4B CONST | 1B REG
-        // tag = vm->ip + 1
+        tag_address = &vm->program[vm->ip + 1];
         const_index = READ_U32(&vm->program[vm->ip + 4]);
         reg         = vm->program[vm->ip + 8];
+        // Read the tag
+        hvm_subroutine_read_tag(tag_address, &tag);
+        if(tag.heat != 1024) { tag.heat += 1; }
+        hvm_subroutine_write_tag(tag_address, &tag);
         // Get the symbol out of the constant table
         key = hvm_vm_get_const(vm, const_index);
         assert(key->type == HVM_SYMBOL);
         sym_id = key->data.u64;
+
+        char *sym_name = hvm_desymbolicate(vm->symbols, sym_id);
+        fprintf(stderr, "debug: %s:0x%08llX has heat %u\n", sym_name, dest, tag.heat);
+
         // Get the destination from the symbol table
         val  = hvm_obj_struct_internal_get(vm->symbol_table, sym_id);
         assert(val->type == HVM_INTERNAL);
@@ -885,6 +895,39 @@ handle_exception:
   hvm_exception_print(exc);
   return;
 }
+
+#if !defined(__LITTLE_ENDIAN__) && !defined(__BIG_ENDIAN__)
+#error Hivm requires a defined byte order
+#endif
+
+// TODO: Deal with endianness (right now this is little-endian-only)
+#if defined(__LITTLE_ENDIAN__)
+void hvm_subroutine_read_tag(byte *tag_start, hvm_subroutine_tag *tag) {
+  // Strip off the first byte
+  uint32_t raw = READ_U32(tag_start) & 0x00FFFFFF;
+  // Get the top 10 bits for the heat field
+  uint32_t heat = (raw & 0x00FFC000) >> 14;
+  tag->heat   = (unsigned short)heat;
+  tag->unused = 0;
+  // fprintf(stderr, "read:  tag->heat = %u\n", tag->heat);
+}
+void hvm_subroutine_write_tag(byte *tag_start, hvm_subroutine_tag *tag) {
+  // Shift the head over 14 bits so it will be in the top 10 bits
+  uint32_t heat = (uint32_t)(tag->heat) << 14;
+  // Build up the raw (with the last byte cleared out for safety)
+  uint32_t raw = heat & 0x00FFFFFF;
+  // Get the current 4 bytes (with the 3 bytes for the new tag zeroed out)
+  uint32_t source = READ_U32(tag_start) & 0xFF000000;
+  // Compute the 4 bytes to write
+  uint32_t write = raw | source;
+  // Then write them back
+  *(uint32_t*)tag_start = write;
+  // fprintf(stderr, "write: tag->heat = %u\n", tag->heat);
+  // fprintf(stderr, "raw: 0x%08X\n", raw);
+}
+#else
+#error Hivm subroutine tagging is currently little-endian only
+#endif
 
 struct hvm_obj_ref* hvm_vm_get_const(hvm_vm *vm, uint32_t id) {
   return hvm_const_pool_get_const(&vm->const_pool, id);

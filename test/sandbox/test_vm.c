@@ -116,6 +116,9 @@ void test_generator() {
   //hvm_gen_set_symbol(gen->block, sym, "subroutine");
   //hvm_gen_invokesymbolic(gen->block, sym, hvm_vm_reg_null());
   hvm_gen_callsymbolic_symbol(gen->block, "subroutine", hvm_vm_reg_null());
+  hvm_gen_callsymbolic_symbol(gen->block, "subroutine", hvm_vm_reg_null());
+  hvm_gen_callsymbolic_symbol(gen->block, "subroutine", hvm_vm_reg_null());
+  hvm_gen_callsymbolic_symbol(gen->block, "subroutine", hvm_vm_reg_null());
   hvm_gen_die(gen->block);
 
   hvm_gen_sub(gen->block, "subroutine");
@@ -123,12 +126,14 @@ void test_generator() {
   hvm_gen_litinteger(gen->block, hvm_vm_reg_gen(1), 1);
   // hvm_gen_set_symbol(gen->block, sym, "debug_begin");
   // hvm_gen_invokeprimitive(gen->block, sym, hvm_vm_reg_null());
-  hvm_gen_set_debug_line(gen->block, 2);
+  hvm_gen_callsymbolic_symbol(gen->block, "inner_subroutine", hvm_vm_reg_null());
+  hvm_gen_return(gen->block, hvm_vm_reg_gen(1));
+
+  hvm_gen_sub(gen->block, "inner_subroutine");
   hvm_gen_set_string(gen->block, hvm_vm_reg_arg(0), "Hello world!\n");
   hvm_gen_set_symbol(gen->block, hvm_vm_reg_gen(0), "print");
   hvm_gen_invokeprimitive(gen->block, hvm_vm_reg_gen(0), hvm_vm_reg_null());
-  hvm_gen_set_debug_line(gen->block, 3);
-  hvm_gen_return(gen->block, hvm_vm_reg_gen(1));
+  hvm_gen_return(gen->block, hvm_vm_reg_null());
 
   // OLD TEST
   /*
@@ -246,7 +251,7 @@ void test_generator() {
   printf("AFTER LOADING:\n");
   hvm_print_data(vm->program, vm->program_size);
 
-  hvm_debug_begin(vm);
+  //hvm_debug_begin(vm);
 
   printf("RUNNING...\n");
   hvm_vm_run(vm);

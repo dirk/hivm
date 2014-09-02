@@ -240,4 +240,16 @@ typedef enum {
 
 } hvm_opcodes;
 
+/// Size of subroutine tags (in bytes)
+#define HVM_SUBROUTINE_TAG_SIZE 3
+
+// Struct for subroutine tags (3 bytes)
+typedef struct hvm_subroutine_tag {
+  unsigned short heat;// 10 bits (max is 1023)
+  unsigned short unused;// 14 bits
+} hvm_subroutine_tag;
+
+void hvm_subroutine_read_tag(byte *tag_start, hvm_subroutine_tag *tag);
+void hvm_subroutine_write_tag(byte *tag_start, hvm_subroutine_tag *tag);
+
 #endif

@@ -92,7 +92,6 @@ void hvm_gen_data_add_reloc(struct hvm_gen_data *gd, uint64_t relocation_idx) {
 #define WRITE_OP(NAME) __attribute__((always_inline)) void write_op_##NAME \
                          (hvm_chunk *chunk, struct hvm_gen_data *data, hvm_gen_item_op_##NAME *op) 
 
-#define TAG_SIZE 3
 #define WRITE_TAG() WRITE(1, &zero, byte); \
                     WRITE(2, &zero, byte); \
                     WRITE(3, &zero, byte);
@@ -330,14 +329,14 @@ void hvm_gen_process_block(hvm_chunk *chunk, struct hvm_gen_data *data, hvm_gen_
         ref->data.v = item->op_callsymbolic_symbol.symbol;
         cnst = malloc(sizeof(hvm_chunk_constant));
         // 1 byte for the op, 3 bytes for tag
-        cnst->index = chunk->size + 1 + TAG_SIZE;
+        cnst->index = chunk->size + 1 + HVM_SUBROUTINE_TAG_SIZE;
         cnst->object = ref;
         sub = hvm_gen_data_add_constant(data, cnst);
         WRITE(0, &item->op_callsymbolic_symbol.op, byte);
         WRITE_TAG();
-        WRITE(1 + TAG_SIZE, &sub, uint32_t);
-        WRITE(5 + TAG_SIZE, &item->op_callsymbolic_symbol.reg, byte);
-        chunk->size += 6 + TAG_SIZE;
+        WRITE(1 + HVM_SUBROUTINE_TAG_SIZE, &sub, uint32_t);
+        WRITE(5 + HVM_SUBROUTINE_TAG_SIZE, &item->op_callsymbolic_symbol.reg, byte);
+        chunk->size += 6 + HVM_SUBROUTINE_TAG_SIZE;
         break;
 
       case HVM_GEN_OP_INVOKEPRIMITIVE:// 1B OP | 1B REG | 1B REG
@@ -411,10 +410,10 @@ void hvm_gen_process_block(hvm_chunk *chunk, struct hvm_gen_data *data, hvm_gen_
         WRITE(0, &item->op_call.op, byte);
         // Write the tag
         WRITE_TAG();
-        WRITE(1 + TAG_SIZE, &item->op_call.dest, uint64_t);
-        WRITE(9 + TAG_SIZE, &item->op_call.reg, byte);
-        RELOCATION(1 + TAG_SIZE);
-        chunk->size += 10 + TAG_SIZE;
+        WRITE(1 + HVM_SUBROUTINE_TAG_SIZE, &item->op_call.dest, uint64_t);
+        WRITE(9 + HVM_SUBROUTINE_TAG_SIZE, &item->op_call.reg, byte);
+        RELOCATION(1 + HVM_SUBROUTINE_TAG_SIZE);
+        chunk->size += 10 + HVM_SUBROUTINE_TAG_SIZE;
 
       default:
         // Bail out *hard* if we run into something unexpected
