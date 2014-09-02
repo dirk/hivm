@@ -31,7 +31,11 @@ typedef enum {
   // 1B OP | 3B TAG | 4B CONST | 1B REG
   HVM_GEN_OP_CALLSYMBOLIC_SYMBOL,
 
-
+  // 1B OP | 3B TAG | 1B REG | 1B REG
+  HVM_GEN_OP_INVOKESYMBOLIC,
+  HVM_GEN_OP_INVOKEADDRESS,
+  // 1B OP | 1B REG | 1B REG (untagged)
+  HVM_GEN_OP_INVOKEPRIMITIVE,
 
   HVM_GEN_OPD1_LABEL, // 1B OP | [8B DEST]
   HVM_GEN_OPD2_LABEL, // 1B OP | [8B DEST] | 1B REG
@@ -182,6 +186,27 @@ typedef struct hvm_gen_op_call {
   byte reg;
 } hvm_gen_op_call;
 
+typedef struct hvm_gen_op_invokesymbolic {
+  HVM_GEN_ITEM_HEAD;
+  byte op;
+  byte sym;
+  byte ret;
+} hvm_gen_op_invokesymbolic;
+
+typedef struct hvm_gen_op_invokeaddress {
+  HVM_GEN_ITEM_HEAD;
+  byte op;
+  byte addr;
+  byte ret;
+} hvm_gen_op_invokeaddress;
+
+typedef struct hvm_gen_op_invokeprimitive {
+  HVM_GEN_ITEM_HEAD;
+  byte op;
+  byte sym;
+  byte ret;
+} hvm_gen_op_invokeprimitive;
+
 
 typedef enum {
   HVM_GEN_DATA_STRING,
@@ -272,6 +297,8 @@ typedef union hvm_gen_item {
   hvm_gen_op_call op_call;
   hvm_gen_op_call_label op_call_label;
   hvm_gen_op_callsymbolic_symbol op_callsymbolic_symbol;
+
+  hvm_gen_op_invokeprimitive op_invokeprimitive;
 
   // hvm_gen_item_macro macro;
   hvm_gen_item_label label;

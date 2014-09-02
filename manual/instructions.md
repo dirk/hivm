@@ -83,8 +83,8 @@ Invocations use symbols and addresses passed via registers to control which subr
 `invokesymbolic (tag) SYM RET`
 :  Invoke subroutine identified by the symbol ID in register SYM.
 
-`invokeaddress (tag) SUB RET`
-:  Invoke subroutine at address in register SUB.
+`invokeaddress (tag) ADDR RET`
+:  Invoke subroutine at address in register ADDR.
 
 `invokeprimitive SYM RET`
 :  Invoke the primitive with symbol ID in SYM.

@@ -340,6 +340,13 @@ void hvm_gen_process_block(hvm_chunk *chunk, struct hvm_gen_data *data, hvm_gen_
         chunk->size += 6 + TAG_SIZE;
         break;
 
+      case HVM_GEN_OP_INVOKEPRIMITIVE:// 1B OP | 1B REG | 1B REG
+        WRITE(0, &item->op_invokeprimitive.op, byte);
+        WRITE(1, &item->op_invokeprimitive.sym, byte);
+        WRITE(2, &item->op_invokeprimitive.ret, byte);
+        chunk->size += 3;
+        break;
+
       case HVM_GEN_OPG_LABEL:
         exists = g_hash_table_lookup_extended(labels, item->op_g_label.label, NULL, NULL);
         i64 = 0;
@@ -410,8 +417,10 @@ void hvm_gen_process_block(hvm_chunk *chunk, struct hvm_gen_data *data, hvm_gen_
         chunk->size += 10 + TAG_SIZE;
 
       default:
+        // Bail out *hard* if we run into something unexpected
         fprintf(stderr, "Don't know what to do with item type: %d\n", item->base.type);
-        break;
+        exit(1);
+        return;
     }
   }
 
@@ -574,19 +583,27 @@ void hvm_gen_if(hvm_gen_item_block *block, byte val, uint64_t dest) {
 
 // 1B OP | 1B REG | 1B REG
 void hvm_gen_invokesymbolic(hvm_gen_item_block *block, byte sym, byte ret) {
-  hvm_gen_item_op_a2 *op = malloc(sizeof(hvm_gen_item_op_a2));
-  op->type = HVM_GEN_OPA2;
+  hvm_gen_op_invokesymbolic *op = malloc(sizeof(hvm_gen_op_invokesymbolic));
+  op->type = HVM_GEN_OP_INVOKESYMBOLIC;
   op->op   = HVM_OP_INVOKESYMBOLIC;
-  op->reg1 = sym;
-  op->reg2 = ret;
+  op->sym = sym;
+  op->ret = ret;
   GEN_PUSH_ITEM(op);
 }
+void hvm_gen_invokeaddress(hvm_gen_item_block *block, byte addr, byte ret) {
+  hvm_gen_op_invokeaddress *op = malloc(sizeof(hvm_gen_op_invokeaddress));
+  op->type = HVM_GEN_OP_INVOKEADDRESS;
+  op->op   = HVM_OP_INVOKEADDRESS;
+  op->addr = addr;
+  op->ret  = ret;
+  GEN_PUSH_ITEM(op); 
+}
 void hvm_gen_invokeprimitive(hvm_gen_item_block *block, byte sym, byte ret) {
-  hvm_gen_item_op_a2 *op = malloc(sizeof(hvm_gen_item_op_a2));
-  op->type = HVM_GEN_OPA2;
+  hvm_gen_op_invokeprimitive *op = malloc(sizeof(hvm_gen_op_invokeprimitive));
+  op->type = HVM_GEN_OP_INVOKEPRIMITIVE;
   op->op   = HVM_OP_INVOKEPRIMITIVE;
-  op->reg1 = sym;
-  op->reg2 = ret;
+  op->sym  = sym;
+  op->ret  = ret;
   GEN_PUSH_ITEM(op);
 }
 
