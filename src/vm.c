@@ -307,6 +307,17 @@ __attribute__((always_inline)) void hvm_vm_copy_regs(hvm_vm *vm) {
 #define READ_I32(V) *(int32_t*)(V)
 #define READ_I64(V) *(int64_t*)(V)
 
+#define READ_TAG            hvm_subroutine_read_tag(&vm->program[vm->ip + 1], &tag);
+#define WRITE_TAG           hvm_subroutine_write_tag(&vm->program[vm->ip + 1], &tag);
+#define INCREMENT_TAG_HEAT  if(tag.heat != 1024) { tag.heat += 1; }
+
+// Generic tag handler
+#define PROCESS_TAG { \
+  READ_TAG; \
+  INCREMENT_TAG_HEAT; \
+  WRITE_TAG; \
+}
+
 #define AREG areg = vm->program[vm->ip + 1];
 #define BREG breg = vm->program[vm->ip + 2];
 #define CREG creg = vm->program[vm->ip + 3];
@@ -315,7 +326,6 @@ __attribute__((always_inline)) void hvm_vm_copy_regs(hvm_vm *vm) {
 
 void hvm_vm_run(hvm_vm *vm) {
   byte instr;
-  byte *tag_address;
   uint32_t const_index;
   uint64_t dest, sym_id;//, return_addr;
   int32_t diff;
@@ -354,6 +364,7 @@ execute:
         // fprintf(stderr, "DIE\n");
         goto end;
       case HVM_OP_TAILCALL:// 1B OP | 3B TAG | 8B DEST
+        PROCESS_TAG;
         dest = READ_U64(&vm->program[vm->ip + 4]);
         // Copy important bits from parent.
         parent_frame = vm->top;
@@ -368,6 +379,7 @@ execute:
         vm->ip = dest;
         continue;
       case HVM_OP_CALL:// 1B OP | 3B TAG | 8B DEST  | 1B REG
+        PROCESS_TAG;
         dest = READ_U64(&vm->program[vm->ip + 4]);
         reg  = vm->program[vm->ip + 12];
         vm->stack_depth += 1;
@@ -380,13 +392,9 @@ execute:
         vm->top = frame;
         continue;
       case HVM_OP_CALLSYMBOLIC:// 1B OP | 3B TAG | 4B CONST | 1B REG
-        tag_address = &vm->program[vm->ip + 1];
+        PROCESS_TAG;
         const_index = READ_U32(&vm->program[vm->ip + 4]);
         reg         = vm->program[vm->ip + 8];
-        // Read the tag
-        hvm_subroutine_read_tag(tag_address, &tag);
-        if(tag.heat != 1024) { tag.heat += 1; }
-        hvm_subroutine_write_tag(tag_address, &tag);
         // Get the symbol out of the constant table
         key = hvm_vm_get_const(vm, const_index);
         assert(key->type == HVM_SYMBOL);
@@ -411,6 +419,7 @@ execute:
         continue;
 
       case HVM_OP_INVOKESYMBOLIC:// 1B OP | 3B TAG | 1B REG | 1B REG
+        PROCESS_TAG;
         areg = vm->program[vm->ip + 4];
         breg = vm->program[vm->ip + 5];
         key = hvm_vm_register_read(vm, areg);// This is the symbol we need to look up.
@@ -433,6 +442,7 @@ execute:
         vm->top = frame;
         continue;
       case HVM_OP_INVOKEADDRESS:// 1B OP | 3B TAG | 1B REG | 1B REG
+        PROCESS_TAG;
         reg  = vm->program[vm->ip + 4];
         val  = hvm_vm_register_read(vm, reg);
         assert(val->type == HVM_INTEGER);
