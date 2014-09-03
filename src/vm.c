@@ -902,9 +902,25 @@ handle_exception:
 
 // TODO: Deal with endianness (right now this is little-endian-only)
 #if defined(__LITTLE_ENDIAN__)
-void hvm_subroutine_read_tag(byte *tag_start, hvm_subroutine_tag *tag) {
+uint32_t _hvm_tag_read_endian(byte *tag_start) {
   // Strip off the first byte
   uint32_t raw = READ_U32(tag_start) & 0x00FFFFFF;
+  return raw;
+}
+void _hvm_tag_write_endian(byte *tag_start, uint32_t value) {
+  // Get the current 4 bytes (with the 3 bytes for the new tag zeroed out)
+  uint32_t source = READ_U32(tag_start) & 0xFF000000;
+  // Compute the 4 bytes to write
+  uint32_t write = value | source;
+  // Then write them back
+  *(uint32_t*)tag_start = write;
+}
+#else
+#error Hivm subroutine tagging is currently little-endian only
+#endif
+
+void hvm_subroutine_read_tag(byte *tag_start, hvm_subroutine_tag *tag) {
+  uint32_t raw = _hvm_tag_read_endian(tag_start);
   // Get the top 10 bits for the heat field
   uint32_t heat = (raw & 0x00FFC000) >> 14;
   tag->heat   = (unsigned short)heat;
@@ -915,19 +931,11 @@ void hvm_subroutine_write_tag(byte *tag_start, hvm_subroutine_tag *tag) {
   // Shift the head over 14 bits so it will be in the top 10 bits
   uint32_t heat = (uint32_t)(tag->heat) << 14;
   // Build up the raw (with the last byte cleared out for safety)
-  uint32_t raw = heat & 0x00FFFFFF;
-  // Get the current 4 bytes (with the 3 bytes for the new tag zeroed out)
-  uint32_t source = READ_U32(tag_start) & 0xFF000000;
-  // Compute the 4 bytes to write
-  uint32_t write = raw | source;
-  // Then write them back
-  *(uint32_t*)tag_start = write;
+  uint32_t value = heat & 0x00FFFFFF;
+  _hvm_tag_write_endian(tag_start, value);
   // fprintf(stderr, "write: tag->heat = %u\n", tag->heat);
   // fprintf(stderr, "raw: 0x%08X\n", raw);
 }
-#else
-#error Hivm subroutine tagging is currently little-endian only
-#endif
 
 struct hvm_obj_ref* hvm_vm_get_const(hvm_vm *vm, uint32_t id) {
   return hvm_const_pool_get_const(&vm->const_pool, id);
