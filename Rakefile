@@ -106,7 +106,7 @@ end
 
 # Compiling the debug version of vm.c
 file 'src/vm-db.o' => 'src/vm.c' do |t|
-  sh "#{$cc} #{t.source} -c #{cflags_for t.name} -o #{t.name}"
+  sh "#{$cc} #{t.prerequisites.first} -c #{cflags_for t.name} -o #{t.name}"
 end
 
 desc "Clean up objects"
