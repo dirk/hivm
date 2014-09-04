@@ -17,6 +17,9 @@
 #define bool char
 #endif
 
+// Prefix a function definition with this to force its inling into caller.
+#define ALWAYS_INLINE __attribute__((always_inline))
+
 struct hvm_obj_ref* hvm_const_null = &(hvm_obj_ref){
   .type = HVM_NULL,
   .data.v = NULL,
@@ -260,7 +263,9 @@ byte hvm_vm_reg_param(byte i) {
   return 146 + i;
 }
 
-__attribute__((always_inline)) void hvm_vm_register_write(hvm_vm *vm, byte reg, hvm_obj_ref* ref) {
+
+// Reading and writing registers
+ALWAYS_INLINE void hvm_vm_register_write(hvm_vm *vm, byte reg, hvm_obj_ref* ref) {
   assert(reg < 146 || reg > 161);// Avoid parameter registers
   if(reg <= 127) {
     vm->general_regs[reg] = ref;
@@ -269,7 +274,7 @@ __attribute__((always_inline)) void hvm_vm_register_write(hvm_vm *vm, byte reg, 
   }
   // Else noop
 }
-__attribute__((always_inline)) hvm_obj_ref* hvm_vm_register_read(hvm_vm *vm, byte reg) {
+ALWAYS_INLINE hvm_obj_ref* hvm_vm_register_read(hvm_vm *vm, byte reg) {
   assert(reg < 130 || reg > 145);// Avoid argument registers
   assert(reg <= 162);// Valid range of registers
   if(reg <= 127) {
@@ -284,7 +289,8 @@ __attribute__((always_inline)) hvm_obj_ref* hvm_vm_register_read(hvm_vm *vm, byt
   return NULL;
 }
 
-__attribute__((always_inline)) void hvm_vm_copy_regs(hvm_vm *vm) {
+// Copy argument registers into parameter registers.
+ALWAYS_INLINE void hvm_vm_copy_regs(hvm_vm *vm) {
   int64_t i;
   // Reset params
   for(i = 0; i < HVM_PARAMETER_REGISTERS; i++) { vm->param_regs[i] = NULL; }
@@ -295,17 +301,20 @@ __attribute__((always_inline)) void hvm_vm_copy_regs(hvm_vm *vm) {
     vm->param_regs[i] = vm->arg_regs[i];
     vm->arg_regs[i] = NULL;
   }
-  // Set special $pn.
+  // Set special $pn register.
+  // TODO: Make sure this works with the object space properly so that it
+  //       doesn't get leaked.
   hvm_obj_ref *pn = hvm_new_obj_int();
   pn->data.i64 = i + 1;
   vm->param_regs[HVM_PARAMETER_REGISTERS - 1] = pn;
 }
 
-
+// Utilities for reading bytes as arbitrary types from addresses
 #define READ_U32(V) *(uint32_t*)(V)
 #define READ_U64(V) *(uint64_t*)(V)
 #define READ_I32(V) *(int32_t*)(V)
 #define READ_I64(V) *(int64_t*)(V)
+
 
 #define READ_TAG            hvm_subroutine_read_tag(&vm->program[vm->ip + 1], &tag);
 #define WRITE_TAG           hvm_subroutine_write_tag(&vm->program[vm->ip + 1], &tag);
@@ -318,11 +327,13 @@ __attribute__((always_inline)) void hvm_vm_copy_regs(hvm_vm *vm) {
   WRITE_TAG; \
 }
 
+
 #define AREG areg = vm->program[vm->ip + 1];
 #define BREG breg = vm->program[vm->ip + 2];
 #define CREG creg = vm->program[vm->ip + 3];
 
 #define CHECK_EXCEPTION if(vm->exception != NULL) { goto handle_exception; }
+
 
 void hvm_vm_run(hvm_vm *vm) {
   byte instr;
@@ -453,7 +464,7 @@ execute:
         hvm_frame_initialize(frame);
         frame->return_addr     = vm->ip + 6; // Instruction 3 bytes long.
         frame->return_register = reg;
-        vm->ip = dest;
+        hvm_vm_copy_regs(vm);
         vm->ip = dest;
         vm->top = frame;
         continue;
