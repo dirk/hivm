@@ -90,6 +90,8 @@ end
 
 # Let Rake know that debug.o depends on debug-lua.include.c
 file 'src/debug.o' => 'src/debug-lua.include.c'
+# Ditto for vm-dispatch
+file 'src/vm.o' => 'src/vm-dispatch.include.c'
 
 # Generic compilation of object files
 rule '.o' => ['.c'] do |t|
@@ -105,8 +107,8 @@ rule '.o' => ['.c'] do |t|
   # end
 end
 
-# Compiling the debug version of vm.c
-file 'src/vm-db.o' => 'src/vm.c' do |t|
+# Compiling the debug version of vm.c (include the dispatcher as a dependency)
+file 'src/vm-db.o' => ['src/vm.c', 'src/vm-dispatch.include.c'] do |t|
   sh "#{$cc} #{t.prerequisites.first} -c #{cflags_for t.name} -o #{t.name}"
 end
 

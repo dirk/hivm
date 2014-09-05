@@ -4,7 +4,7 @@ $cflags = "-g -Wall -std=c99 ../../libhivm-db.a -I../../include #{`pkg-config --
 task 'default' => ['test_vm']
 
 desc "Build VM tester"
-file 'test_vm' => ['test_vm.c'] do
+file 'test_vm' => ['test_vm.c', '../../libhivm-db.a'] do
   sh "cc test_vm.c #{$cflags} -o test_vm"
 end
 
