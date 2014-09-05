@@ -12,6 +12,7 @@
 // #include "generator.h"
 #include "gc1.h"
 #include "debug.h"
+#include "jit-tracer.h"
 
 #ifndef bool
 #define bool char
@@ -76,6 +77,8 @@ hvm_vm *hvm_new_vm() {
 #ifdef HVM_VM_DEBUG
   hvm_debug_setup(vm);
 #endif
+
+  vm->is_tracing = 0;
 
   return vm;
 }
@@ -365,6 +368,13 @@ execute:
       return;
     }
 #endif
+
+    // TODO: Make it use completely separate execution paths when
+    //       tracing so that it doesn't have to check this condition
+    //       before *every* instruction.
+    if(vm->is_tracing) {
+      hvm_jit_tracer_before_instruction(vm);
+    }
 
     // Execute the instruction
     switch(instr) {

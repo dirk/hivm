@@ -116,6 +116,9 @@ typedef struct hvm_vm {
 
   /// Debugger information store
   void *debugger;
+
+  /// Whether or not it's tracing
+  char is_tracing;
 } hvm_vm;
 
 /// Create a new virtual machine.

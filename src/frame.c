@@ -17,6 +17,7 @@ void hvm_frame_initialize(hvm_frame *frame) {
   frame->catch_addr = HVM_FRAME_EMPTY_CATCH;
   frame->catch_register = hvm_vm_reg_null();
   frame->locals = hvm_new_obj_struct();
+  frame->trace = NULL;
 }
 
 hvm_location *hvm_new_location() {

@@ -19,6 +19,8 @@ typedef struct hvm_frame {
   unsigned char  catch_register;
   /// Local variables of the frame.
   hvm_obj_struct *locals;
+  /// Trace context of the frame (optional)
+  void *trace;
 } hvm_frame;
 
 typedef struct hvm_location {
