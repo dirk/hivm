@@ -102,6 +102,7 @@ EXECUTE:
       // Check if we need to start tracing
       if(tag.heat > 2 && !vm->is_tracing) {
         fprintf(stderr, "switching to trace dispatch for %s:0x%08llX\n", sym_name, dest);
+        frame->trace = hvm_new_call_trace(vm);
         vm->is_tracing = 1;
         goto EXECUTE_JIT;
       }
