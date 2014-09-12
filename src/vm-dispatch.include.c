@@ -84,7 +84,7 @@ EXECUTE:
       sym_id = key->data.u64;
 
       char *sym_name = hvm_desymbolicate(vm->symbols, sym_id);
-      fprintf(stderr, "debug: %s:0x%08llX has heat %u\n", sym_name, dest, tag.heat);
+      // fprintf(stderr, "debug: %s:0x%08llX has heat %u\n", sym_name, dest, tag.heat);
 
       // Get the destination from the symbol table
       val  = hvm_obj_struct_internal_get(vm->symbol_table, sym_id);

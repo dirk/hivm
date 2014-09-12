@@ -3,7 +3,10 @@
 /// @file jit-tracer.h
 
 typedef enum {
-  HVM_TRACE_SEQUENCE_ITEM_SETSTRING
+  HVM_TRACE_SEQUENCE_ITEM_SETSTRING,
+  HVM_TRACE_SEQUENCE_ITEM_SETSYMBOL,
+  HVM_TRACE_SEQUENCE_ITEM_INVOKEPRIMITIVE,
+  HVM_TRACE_SEQUENCE_ITEM_RETURN
 } hvm_trace_sequence_item_type;
 
 #define HVM_TRACE_SEQUENCE_ITEM_HEAD hvm_trace_sequence_item_type type; \
@@ -17,8 +20,28 @@ typedef struct hvm_trace_sequence_item_setstring {
   uint32_t constant;
 } hvm_trace_sequence_item_setstring;
 
+// Copy SETSTRING for SETSYMBOL
+typedef struct hvm_trace_sequence_item_setstring hvm_trace_sequence_item_setsymbol;
+
+typedef struct hvm_trace_sequence_item_return {
+  HVM_TRACE_SEQUENCE_ITEM_HEAD;
+  /// Register we're returning from
+  byte reg;
+} hvm_trace_sequence_item_return;
+
+typedef struct hvm_trace_sequence_item_invokeprimitive {
+  HVM_TRACE_SEQUENCE_ITEM_HEAD;
+  /// Register with the symbol for the primitive
+  byte symbol;
+  /// Register for the return value
+  byte ret;
+} hvm_trace_sequence_item_invokeprimitive;
+
 typedef union hvm_trace_sequence_item {
-  hvm_trace_sequence_item_setstring setstring;
+  hvm_trace_sequence_item_setstring        setstring;
+  hvm_trace_sequence_item_setsymbol        setsymbol;
+  hvm_trace_sequence_item_invokeprimitive  invokeprimitive;
+  hvm_trace_sequence_item_return           _return;
 } hvm_trace_sequence_item;
 
 /// Stores information about a call site (traces, JIT blocks, etc.).
@@ -39,6 +62,8 @@ typedef struct hvm_call_trace {
   unsigned int sequence_length;
   /// Capacity of the sequence
   unsigned int sequence_capacity;
+  /// Whether or not the trace is done and ready for analysis
+  bool complete;
 } hvm_call_trace;
 
 hvm_call_trace *hvm_new_call_trace(hvm_vm *vm);
