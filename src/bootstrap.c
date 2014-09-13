@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <assert.h>
 
@@ -14,8 +15,6 @@
 
 #define SYM(V) hvm_symbolicate(vm->symbols, V)
 #define PRIM_SET(K, V) hvm_obj_struct_internal_set(vm->primitives, SYM(K), (void*)V);
-
-#define bool char
 
 void hvm_bootstrap_primitives(hvm_vm *vm) {
   // hvm_obj_ref* (*prim)(hvm_vm *vm);

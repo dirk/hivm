@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <assert.h>
 #include <string.h>
 
@@ -9,10 +10,6 @@
 #include "frame.h"
 #include "gc1.h"
 #include "exception.h"
-
-#define bool  char
-#define true  1
-#define false 0
 
 #define FLAGTRUE(v, f)  (v & f) == f
 #define FLAGFALSE(v, f) (v & f) == 0
