@@ -112,7 +112,7 @@ EXECUTE:
       PROCESS_TAG;
       areg = vm->program[vm->ip + 4];
       breg = vm->program[vm->ip + 5];
-      key = hvm_vm_register_read(vm, areg);// This is the symbol we need to look up.
+      key = _hvm_vm_register_read(vm, areg);// This is the symbol we need to look up.
       assert(key->type == HVM_SYMBOL);
       sym_id = key->data.u64;
       // fprintf(stderr, "0x%08llX  ", vm->ip);
@@ -134,7 +134,7 @@ EXECUTE:
     case HVM_OP_INVOKEADDRESS:// 1B OP | 3B TAG | 1B REG | 1B REG
       PROCESS_TAG;
       reg  = vm->program[vm->ip + 4];
-      val  = hvm_vm_register_read(vm, reg);
+      val  = _hvm_vm_register_read(vm, reg);
       assert(val->type == HVM_INTEGER);
       dest = (uint64_t)val->data.i64;
       reg  = vm->program[vm->ip + 5]; // Return register now
@@ -149,7 +149,7 @@ EXECUTE:
       goto EXECUTE;
     case HVM_OP_INVOKEPRIMITIVE: // 1B OP | 1B REG | 1B REG
       AREG; BREG;
-      key = hvm_vm_register_read(vm, areg);// This is the symbol we need to look up.
+      key = _hvm_vm_register_read(vm, areg);// This is the symbol we need to look up.
       assert(key->type == HVM_SYMBOL);
       sym_id = key->data.u64;
       hvm_vm_copy_regs(vm);
@@ -162,6 +162,11 @@ EXECUTE:
         goto EXCEPTION;
       }
       hvm_vm_register_write(vm, breg, val);
+      #ifdef JIT_DISPATCH
+        if(vm->top->trace != NULL) {
+          hvm_jit_tracer_annotate_invokeprimitive_returned_type(vm, val);
+        }
+      #endif
       vm->ip += 2;
       break;
 
@@ -192,7 +197,7 @@ EXECUTE:
     case HVM_OP_THROW: // 1B OP | 1B REG
       AREG;
       // Get the object to be associated with the execption
-      val = hvm_vm_register_read(vm, areg);
+      val = _hvm_vm_register_read(vm, areg);
       // Create the exception and set the object
       exc = hvm_new_exception();
       exc->data = val;
@@ -201,7 +206,7 @@ EXECUTE:
       goto EXCEPTION;
     case HVM_OP_GETEXCEPTIONDATA: // 1B OP | 1B REG | 1B REG
       AREG; BREG;
-      b = hvm_vm_register_read(vm, breg);
+      b = _hvm_vm_register_read(vm, breg);
       assert(b->type == HVM_EXCEPTION);
       exc = b->data.v;
       val = exc->data;
@@ -224,7 +229,7 @@ EXECUTE:
       vm->ip = frame->return_addr;
       vm->stack_depth -= 1;
       vm->top = &vm->stack[vm->stack_depth];
-      hvm_vm_register_write(vm, frame->return_register, hvm_vm_register_read(vm, reg));
+      hvm_vm_register_write(vm, frame->return_register, _hvm_vm_register_read(vm, reg));
       // fprintf(stderr, "RETURN(0x%08llX) $%d -> $%d\n", frame->return_addr, reg, frame->return_register);
       goto EXECUTE;
     case HVM_OP_JUMP: // 1B OP | 4B DIFF
@@ -242,7 +247,7 @@ EXECUTE:
       goto EXECUTE;
     case HVM_OP_GOTOADDRESS: // 1B OP | 1B REGDEST
       reg = vm->program[vm->ip + 1];
-      val  = hvm_vm_register_read(vm, reg);
+      val  = _hvm_vm_register_read(vm, reg);
       assert(val->type == HVM_INTEGER);
       i64  = val->data.i64;
       dest = (uint64_t)i64;
@@ -252,7 +257,7 @@ EXECUTE:
     case HVM_OP_IF: // 1B OP | 1B REG  | 8B DEST
       reg  = vm->program[vm->ip + 1];
       dest = READ_U64(&vm->program[vm->ip + 2]);
-      val  = hvm_vm_register_read(vm, reg);
+      val  = _hvm_vm_register_read(vm, reg);
       if(val->type == HVM_NULL || (val->type == HVM_INTEGER && val->data.i64 == 0)) {
         // Falsey, add on the 9 bytes for the instruction parameters and continue onwards.
         vm->ip += 9;
@@ -276,7 +281,7 @@ EXECUTE:
 
     case HVM_OP_MOVE: // 1B OP | 1B REG | 1B REG
       AREG; BREG;
-      hvm_vm_register_write(vm, areg, hvm_vm_register_read(vm, breg));
+      hvm_vm_register_write(vm, areg, _hvm_vm_register_read(vm, breg));
       vm->ip += 2;
       break;
 
@@ -306,14 +311,14 @@ EXECUTE:
 
     case HVM_OP_SETLOCAL: // 1B OP | 1B REG   | 1B REG (local(A) = B)
       AREG; BREG;
-      key = hvm_vm_register_read(vm, areg);
+      key = _hvm_vm_register_read(vm, areg);
       assert(key->type == HVM_SYMBOL);
-      hvm_set_local(vm->top, key->data.u64, hvm_vm_register_read(vm, breg));
+      hvm_set_local(vm->top, key->data.u64, _hvm_vm_register_read(vm, breg));
       vm->ip += 2;
       break;
     case HVM_OP_GETLOCAL: // 1B OP | 1B REG   | 1B REG (A = local(B))
       AREG; BREG;
-      key = hvm_vm_register_read(vm, breg);
+      key = _hvm_vm_register_read(vm, breg);
       assert(key->type == HVM_SYMBOL);
       val = hvm_get_local(vm->top, key->data.u64);
       if(val == NULL) {
@@ -336,14 +341,14 @@ EXECUTE:
 
     case HVM_OP_SETGLOBAL: // 1B OP | 1B REG   | 1B REG
       AREG; BREG;
-      key = hvm_vm_register_read(vm, areg);
+      key = _hvm_vm_register_read(vm, areg);
       assert(key->type == HVM_SYMBOL);
-      hvm_set_global(vm, key->data.u64, hvm_vm_register_read(vm, breg));
+      hvm_set_global(vm, key->data.u64, _hvm_vm_register_read(vm, breg));
       vm->ip += 2;
       break;
     case HVM_OP_GETGLOBAL: // 1B OP | 1B REG   | 1B SYM
       AREG; BREG;
-      key = hvm_vm_register_read(vm, breg);
+      key = _hvm_vm_register_read(vm, breg);
       assert(key->type == HVM_SYMBOL);
       hvm_vm_register_write(vm, areg, hvm_get_global(vm, key->data.u64));
       vm->ip += 2;
@@ -369,8 +374,8 @@ EXECUTE:
       // A = B + C
       AREG; BREG; CREG;
       a = NULL;
-      b = hvm_vm_register_read(vm, breg);
-      c = hvm_vm_register_read(vm, creg);
+      b = _hvm_vm_register_read(vm, breg);
+      c = _hvm_vm_register_read(vm, creg);
       // TODO: Add float support
       if(instr == HVM_OP_ADD)      { a = hvm_obj_int_add(b, c); }
       else if(instr == HVM_OP_SUB) { a = hvm_obj_int_sub(b, c); }
@@ -398,8 +403,8 @@ EXECUTE:
       // A = B < C
       AREG; BREG; CREG;
       a = NULL;
-      b = hvm_vm_register_read(vm, breg);
-      c = hvm_vm_register_read(vm, creg);
+      b = _hvm_vm_register_read(vm, breg);
+      c = _hvm_vm_register_read(vm, creg);
       if(instr == HVM_OP_LT)       { a = hvm_obj_int_lt(b, c); }
       else if(instr == HVM_OP_GT)  { a = hvm_obj_int_gt(b, c); }
       else if(instr == HVM_OP_LTE) { a = hvm_obj_int_lte(b, c); }
@@ -419,62 +424,62 @@ EXECUTE:
     case HVM_OP_ARRAYPUSH: // 1B OP | 2B REGS
       // A.push(B)
       AREG; BREG;
-      a = hvm_vm_register_read(vm, areg);
-      b = hvm_vm_register_read(vm, breg);
+      a = _hvm_vm_register_read(vm, areg);
+      b = _hvm_vm_register_read(vm, breg);
       hvm_obj_array_push(a, b);
       vm->ip += 2;
       break;
     case HVM_OP_ARRAYUNSHIFT: // 1B OP | 2B REGS
       // A.unshift(B)
       AREG; BREG;
-      a = hvm_vm_register_read(vm, areg);
-      b = hvm_vm_register_read(vm, breg);
+      a = _hvm_vm_register_read(vm, areg);
+      b = _hvm_vm_register_read(vm, breg);
       hvm_obj_array_unshift(a, b);
       vm->ip += 2;
       break;
     case HVM_OP_ARRAYSHIFT: // 1B OP | 2B REGS
       // A = B.shift()
       AREG; BREG;
-      b = hvm_vm_register_read(vm, breg);
+      b = _hvm_vm_register_read(vm, breg);
       hvm_vm_register_write(vm, areg, hvm_obj_array_shift(b));
       vm->ip += 2;
       break;
     case HVM_OP_ARRAYPOP: // 1B OP | 2B REGS
       // A = B.pop()
       AREG; BREG;
-      b = hvm_vm_register_read(vm, breg);
+      b = _hvm_vm_register_read(vm, breg);
       hvm_vm_register_write(vm, areg, hvm_obj_array_pop(b));
       vm->ip += 2;
       break;
     case HVM_OP_ARRAYGET: // 1B OP | 3B REGS
       // arrayget V A I -> V = A[I]
       AREG; BREG; CREG;
-      arr = hvm_vm_register_read(vm, breg);
-      idx = hvm_vm_register_read(vm, creg);
+      arr = _hvm_vm_register_read(vm, breg);
+      idx = _hvm_vm_register_read(vm, creg);
       hvm_vm_register_write(vm, areg, hvm_obj_array_get(arr, idx));
       vm->ip += 3;
       break;
     case HVM_OP_ARRAYSET: // 1B OP | 3B REGS
       // arrayset A I V -> A[I] = V
       AREG; BREG; CREG;
-      arr = hvm_vm_register_read(vm, areg);
-      idx = hvm_vm_register_read(vm, breg);
-      val = hvm_vm_register_read(vm, creg);
+      arr = _hvm_vm_register_read(vm, areg);
+      idx = _hvm_vm_register_read(vm, breg);
+      val = _hvm_vm_register_read(vm, creg);
       hvm_obj_array_set(arr, idx, val);
       vm->ip += 3;
       break;
     case HVM_OP_ARRAYREMOVE: // 1B OP | 3B REGS
       // arrayremove V A I
       AREG; BREG; CREG;
-      arr = hvm_vm_register_read(vm, breg);
-      idx = hvm_vm_register_read(vm, creg);
+      arr = _hvm_vm_register_read(vm, breg);
+      idx = _hvm_vm_register_read(vm, creg);
       hvm_vm_register_write(vm, areg, hvm_obj_array_remove(arr, idx));
       vm->ip += 3;
       break;
     case HVM_OP_ARRAYNEW: // 1B OP | 2B REGS
       // arraynew A L
       AREG; BREG;
-      val = hvm_vm_register_read(vm, breg);
+      val = _hvm_vm_register_read(vm, breg);
       hvm_obj_array *arr = hvm_new_obj_array_with_length(val);
       a = hvm_new_obj_ref();
       a->type = HVM_ARRAY;
@@ -500,9 +505,9 @@ EXECUTE:
     case HVM_OP_STRUCTSET:
       // structset S K V
       AREG; BREG; CREG;
-      strct = hvm_vm_register_read(vm, areg);
-      key   = hvm_vm_register_read(vm, breg);
-      val   = hvm_vm_register_read(vm, creg);
+      strct = _hvm_vm_register_read(vm, areg);
+      key   = _hvm_vm_register_read(vm, breg);
+      val   = _hvm_vm_register_read(vm, creg);
       hvm_obj_struct_set(strct, key, val);
       // fprintf(stderr, "0x%08llX  ", vm->ip);
       // fprintf(stderr, "STRUCTSET $%u = $%u[$%u(%llu)]\n", areg, breg, creg, key->data.u64);
@@ -514,8 +519,8 @@ EXECUTE:
       AREG; BREG; CREG;
       // fprintf(stderr, "0x%08llX  ", vm->ip);
       // fprintf(stderr, "STRUCTGET $%u = $%u[$%u(%llu)]\n", areg, breg, creg, key->data.u64);
-      strct = hvm_vm_register_read(vm, breg);
-      key   = hvm_vm_register_read(vm, creg);
+      strct = _hvm_vm_register_read(vm, breg);
+      key   = _hvm_vm_register_read(vm, creg);
       if(strct->type != HVM_STRUCTURE) {
         // Bad type
         exc = hvm_new_exception();
@@ -541,8 +546,8 @@ EXECUTE:
     case HVM_OP_STRUCTDELETE:
       // structdelete V S K`
       AREG; BREG; CREG;
-      strct = hvm_vm_register_read(vm, breg);
-      key   = hvm_vm_register_read(vm, creg);
+      strct = _hvm_vm_register_read(vm, breg);
+      key   = _hvm_vm_register_read(vm, creg);
       hvm_vm_register_write(vm, areg, hvm_obj_struct_delete(strct, key));
       vm->ip += 3;
       break;

@@ -26,15 +26,19 @@ typedef struct hvm_trace_sequence_item_setstring hvm_trace_sequence_item_setsymb
 typedef struct hvm_trace_sequence_item_return {
   HVM_TRACE_SEQUENCE_ITEM_HEAD;
   /// Register we're returning from
-  byte reg;
+  byte register_return;
+  /// Type of the object being returned
+  hvm_obj_type returning_type;
 } hvm_trace_sequence_item_return;
 
 typedef struct hvm_trace_sequence_item_invokeprimitive {
   HVM_TRACE_SEQUENCE_ITEM_HEAD;
   /// Register with the symbol for the primitive
-  byte symbol;
+  byte register_symbol;
   /// Register for the return value
-  byte ret;
+  byte register_return;
+  /// Type of the object returned from the primitive
+  hvm_obj_type returned_type;
 } hvm_trace_sequence_item_invokeprimitive;
 
 typedef union hvm_trace_sequence_item {
@@ -68,5 +72,8 @@ typedef struct hvm_call_trace {
 
 hvm_call_trace *hvm_new_call_trace(hvm_vm *vm);
 void hvm_jit_tracer_before_instruction(hvm_vm *vm);
+
+// Special hooks for annotating instructions (invoked by the JIT dispatcher)
+void hvm_jit_tracer_annotate_invokeprimitive_returned_type(hvm_vm *vm, hvm_obj_ref *val);
 
 #endif

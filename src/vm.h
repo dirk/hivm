@@ -130,6 +130,8 @@ void hvm_vm_run(hvm_vm*);
 
 void hvm_vm_load_chunk(hvm_vm *vm, void *cv);
 
+struct hvm_obj_ref *hvm_vm_register_read(hvm_vm *vm, byte reg);
+
 /// Set a constant in the VM constant table.
 /// @memberof hvm_vm
 /// @param    vm
@@ -148,6 +150,7 @@ struct hvm_obj_ref* hvm_const_pool_get_const(hvm_const_pool*, uint32_t);
 void hvm_const_pool_set_const(hvm_const_pool*, uint32_t, struct hvm_obj_ref*);
 uint32_t hvm_vm_add_const(hvm_vm *vm, struct hvm_obj_ref* obj);
 
+
 /// Get a local variable from a stack frame.
 /// @memberof hvm_vm
 struct hvm_obj_ref* hvm_get_local(struct hvm_frame*, hvm_symbol_id);
@@ -155,12 +158,14 @@ struct hvm_obj_ref* hvm_get_local(struct hvm_frame*, hvm_symbol_id);
 /// @memberof hvm_vm
 void hvm_set_local(struct hvm_frame*, hvm_symbol_id, struct hvm_obj_ref*);
 
+
 /// Get a global variable from the VM global struct (by symbol ID).
 /// @memberof hvm_vm
 struct hvm_obj_ref* hvm_get_global(hvm_vm*, hvm_symbol_id);
 /// Set a global variable in the VM.
 /// @memberof hvm_vm
 void hvm_set_global(hvm_vm*, hvm_symbol_id, struct hvm_obj_ref*);
+
 
 struct hvm_obj_ref* hvm_vm_build_closure(hvm_vm *vm);
 
