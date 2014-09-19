@@ -26,6 +26,7 @@ void hvm_bootstrap_primitives(hvm_vm *vm) {
   PRIM_SET("exit", hvm_prim_exit);
   PRIM_SET("debug_print_struct", hvm_prim_debug_print_struct);
   PRIM_SET("gc_run", hvm_prim_gc_run);
+  PRIM_SET("rand", hvm_prim_rand);
 }
 
 hvm_obj_ref *hvm_prim_exit(hvm_vm *vm) {
@@ -134,4 +135,14 @@ hvm_obj_ref *hvm_prim_debug_print_struct(hvm_vm *vm) {
 hvm_obj_ref *hvm_prim_gc_run(hvm_vm *vm) {
   hvm_gc1_run(vm, vm->obj_space);
   return hvm_const_null;
+}
+
+hvm_obj_ref *hvm_prim_rand(hvm_vm *vm) {
+  int ret = rand();
+  // Create the full object reference with our random integer
+  hvm_obj_ref *ref = hvm_new_obj_int();
+  ref->data.i64 = (int64_t)ret;
+  // Make sure it's in the object space
+  hvm_obj_space_add_obj_ref(vm->obj_space, ref);
+  return ref;
 }
