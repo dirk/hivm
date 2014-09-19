@@ -143,13 +143,13 @@ void hvm_print_data(byte *data, uint64_t size) {
         sym = data[i + 1];
         ret = data[i + 2];
         i += 2;
-        printf("$%-3d = callprimitive($%d)\n", ret, sym);
+        printf("$%-3d = invokeprimitive($%d)\n", ret, sym);
         break;
       case HVM_OP_INVOKESYMBOLIC:
         sym = data[i + 1];
         ret = data[i + 2];
         i += 2;
-        printf("$%-3d = callsymbolic($%d)\n", ret, sym);
+        printf("$%-3d = invokesymbolic($%d)\n", ret, sym);
         break;
       case HVM_OP_LITINTEGER: // 1B OP | 1B REG | 8B LIT
         reg1 = data[i + 1];
@@ -192,6 +192,7 @@ void hvm_print_data(byte *data, uint64_t size) {
         i += 2;
         printf("$%-3d = getlocal[$%d]\n", reg1, reg2);
         break;
+
       case HVM_OP_STRUCTGET: // 1B OP | 3B REGS
         reg1 = data[i + 1];
         reg2 = data[i + 2];
@@ -211,6 +212,22 @@ void hvm_print_data(byte *data, uint64_t size) {
         i += 1;
         printf("$%-3d = structnew\n", reg1);
         break;
+
+      case HVM_OP_ARRAYNEW: // 1B OP | 2B REGS
+        reg1 = data[i + 1];
+        reg2 = data[i + 2];
+        i += 2;
+        printf("$%-3d = arraynew[$%d]\n", reg1, reg2);
+        break;
+      case HVM_OP_ARRAYSET: // 1B OP | 3B REGS
+        // A[B] = C
+        reg1 = data[i + 1];
+        reg2 = data[i + 2];
+        reg3 = data[i + 3];
+        i += 3;
+        printf("$%d.arrayset[$%d] = %d\n", reg1, reg2, reg3);
+        break;
+
       case HVM_OP_GOTOADDRESS: // 1B OP | 1B DEST REG
         reg1 = data[i + 1];
         printf("goto($%d)\n", reg1);
@@ -222,16 +239,24 @@ void hvm_print_data(byte *data, uint64_t size) {
         i += 1;
         break;
       case HVM_OP_LT: // 1B OP | 3B REGs
+      case HVM_OP_EQ:
         reg1 = data[i + 1];
         reg2 = data[i + 2];
         reg3 = data[i + 3];
-        printf("$%-3d = $%-3d <  $%-3d\n", reg1, reg2, reg3);
+        char *cmp = "?";
+        if(op == HVM_OP_LT) {
+          cmp = "<";
+        } else if(op == HVM_OP_EQ) {
+          cmp = "==";
+        }
+        printf("$%-3d = $%-3d %s $%-3d\n", reg1, reg2, cmp, reg3);
         i += 3;
         break;
       // HVM_OP_GT  = 45,          // 1B OP | 3B REGs
       // HVM_OP_LTE = 46,          // 1B OP | 3B REGs
       // HVM_OP_GTE = 47,          // 1B OP | 3B REGs
       // HVM_OP_EQ  = 48,          // 1B OP | 3B REGs
+
       case HVM_OP_IF: // 1B OP | 1B REG  | 8B DEST
         reg1 = data[i + 1];
         u64  = READ_U64(&data[i + 2]);
