@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
@@ -712,6 +713,14 @@ void hvm_gen_arrayunshift(hvm_gen_item_block *block, byte arr, byte val) {
   op->reg2 = val;
   GEN_PUSH_ITEM(op);
 }
+void hvm_gen_arraylen(hvm_gen_item_block *block, byte len, byte arr) {
+  hvm_gen_item_op_a2 *op = malloc(sizeof(hvm_gen_item_op_a2));
+  op->type = HVM_GEN_OPA2;
+  op->op   = HVM_OP_ARRAYLEN;
+  op->reg1 = len;
+  op->reg2 = arr;
+  GEN_PUSH_ITEM(op); 
+}
 // 1B OP | 3B REGS
 void hvm_gen_arrayget(hvm_gen_item_block *block, byte reg, byte arr, byte idx) {
   hvm_gen_item_op_a3 *op = malloc(sizeof(hvm_gen_item_op_a3));
@@ -849,6 +858,15 @@ void hvm_gen_eq(hvm_gen_item_block *block, byte a, byte b, byte c) {
   hvm_gen_item_op_a3 *op = malloc(sizeof(hvm_gen_item_op_a3));
   op->type = HVM_GEN_OPA3;
   op->op   = HVM_OP_EQ;
+  op->reg1 = a;
+  op->reg2 = b;
+  op->reg3 = c;
+  GEN_PUSH_ITEM(op);
+}
+void hvm_gen_and(hvm_gen_item_block *block, byte a, byte b, byte c) {
+  hvm_gen_item_op_a3 *op = malloc(sizeof(hvm_gen_item_op_a3));
+  op->type = HVM_GEN_OPA3;
+  op->op   = HVM_OP_AND;
   op->reg1 = a;
   op->reg2 = b;
   op->reg3 = c;

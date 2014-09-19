@@ -357,6 +357,7 @@ void hvm_gen_arrayget(hvm_gen_item_block *block, byte reg, byte arr, byte idx);
 void hvm_gen_arrayremove(hvm_gen_item_block *block, byte reg, byte arr, byte idx);
 void hvm_gen_arrayset(hvm_gen_item_block *block, byte arr, byte idx, byte val);
 void hvm_gen_arraynew(hvm_gen_item_block *block, byte reg, byte size);
+void hvm_gen_arraylen(hvm_gen_item_block *block, byte len, byte arr);
 
 void hvm_gen_structget(hvm_gen_item_block *block, byte reg, byte strct, byte key);
 void hvm_gen_structdelete(hvm_gen_item_block *block, byte reg, byte strct, byte key);
@@ -372,6 +373,7 @@ void hvm_gen_gt(hvm_gen_item_block *block, byte a, byte b, byte c);
 void hvm_gen_lte(hvm_gen_item_block *block, byte a, byte b, byte c);
 void hvm_gen_gte(hvm_gen_item_block *block, byte a, byte b, byte c);
 void hvm_gen_eq(hvm_gen_item_block *block, byte a, byte b, byte c);
+void hvm_gen_and(hvm_gen_item_block *block, byte a, byte b, byte c);
 
 // META-GENERATORS
 void hvm_gen_label(hvm_gen_item_block *block, char *name);
