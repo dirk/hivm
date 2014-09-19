@@ -8,9 +8,9 @@ $ld = 'ld'
 $cflags  = "-g -fPIC -Wall -Wextra -Wconversion -std=c99 -I. #{include_env 'CFLAGS'}".strip
 
 $lua = 'lua5.1'
-if `uname -s`.strip == 'Darwin'
-  $lua = 'lua'
-end
+# if `uname -s`.strip == 'Darwin'
+#   $lua = 'lua'
+# end
 
 def cflags_for file
   basename = File.basename file
