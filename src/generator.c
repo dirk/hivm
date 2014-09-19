@@ -183,9 +183,9 @@ struct label_use {
 };
 ///@endcond
 
-#define GET_LABEL(LABEL, AT) _hvm_gen_get_label(labels, label_uses, LABEL, AT)
+#define GET_LABEL(LABEL, AT) _hvm_gen_get_label(labels, &label_uses, LABEL, AT)
 
-uint64_t _hvm_gen_get_label(GHashTable *labels, GList *label_uses, char *label, uint64_t at) {
+uint64_t _hvm_gen_get_label(GHashTable *labels, GList **label_uses, char *label, uint64_t at) {
   gboolean exists = g_hash_table_lookup_extended(labels, label, NULL, NULL);
   uint64_t dest = 0;
   if(exists) {
@@ -195,7 +195,7 @@ uint64_t _hvm_gen_get_label(GHashTable *labels, GList *label_uses, char *label, 
     struct label_use *use = malloc(sizeof(struct label_use));
     use->name  = label;
     use->idx   = at;// Add one for the byte for the op.
-    label_uses = g_list_prepend(label_uses, use);
+    *label_uses = g_list_prepend(*label_uses, use);
   }
   return dest;
 }
