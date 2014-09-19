@@ -420,6 +420,21 @@ EXECUTE:
       vm->ip += 3;
       break;
 
+    // BOOLEAN COMPARISON
+    case HVM_OP_AND: // 1B OP | 3B REGS
+      AREG; BREG; CREG;
+      b = _hvm_vm_register_read(vm, breg);
+      c = _hvm_vm_register_read(vm, creg);
+      // Integer value for the result
+      val = hvm_new_obj_int();
+      // Do our truthy test
+      val->data.i64 = (int64_t)((hvm_obj_is_truthy(b) && hvm_obj_is_truthy(c)) ? 1 : 0);
+      // Add integer to GC object space and write to register
+      hvm_obj_space_add_obj_ref(vm->obj_space, val);
+      hvm_vm_register_write(vm, areg, a);
+      vm->ip += 3;
+      break;
+
     // ARRAYS ---------------------------------------------------------------
     case HVM_OP_ARRAYPUSH: // 1B OP | 2B REGS
       // A.push(B)

@@ -105,6 +105,9 @@ hvm_obj_struct *hvm_new_obj_struct();
 void hvm_obj_free(hvm_obj_ref *ref);
 void hvm_obj_struct_free(hvm_obj_struct*);
 
+bool hvm_obj_is_falsey(hvm_obj_ref *ref);
+bool hvm_obj_is_truthy(hvm_obj_ref *ref);
+
 // Internal struct manipulation
 hvm_obj_ref *hvm_obj_struct_internal_get(hvm_obj_struct*, hvm_symbol_id);
 void hvm_obj_struct_internal_set(hvm_obj_struct*, hvm_symbol_id, hvm_obj_ref*);

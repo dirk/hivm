@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <assert.h>
 
 #include <glib.h>
@@ -15,6 +16,22 @@ hvm_obj_string *hvm_new_obj_string() {
   hvm_obj_string *str = malloc(sizeof(hvm_obj_string));
   str->data = NULL;
   return str;
+}
+
+// BOOLEANS -------------------------------------------------------------------
+
+bool hvm_obj_is_falsey(hvm_obj_ref *ref) {
+  // Falsey values are null and integer zero
+  if(ref->type == HVM_NULL) {
+    return true;
+  } else if(ref->type == HVM_INTEGER && ref->data.i64 == 0) {
+    return true;
+  } else {
+    return false;
+  }
+}
+bool hvm_obj_is_truthy(hvm_obj_ref *ref) {
+  return !hvm_obj_is_falsey(ref);
 }
 
 hvm_obj_array *hvm_new_obj_array() {

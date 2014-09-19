@@ -216,6 +216,7 @@ typedef enum {
   HVM_OP_LTE = 47,          // 1B OP | 3B REGs
   HVM_OP_GTE = 48,          // 1B OP | 3B REGs
   HVM_OP_EQ  = 49,          // 1B OP | 3B REGs
+  HVM_OP_AND = 60,          // 1B OP | 3B REGs
 
   // TODO: Bitwise instructions
 
