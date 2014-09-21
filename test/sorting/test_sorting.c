@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <assert.h>
 
@@ -34,7 +35,7 @@ void build_array(hvm_gen *gen, unsigned int size) {
   byte increment = hvm_vm_reg_gen(5);
   hvm_gen_litinteger(gen->block, increment, 1);
   hvm_gen_litinteger(gen->block, idx, 0);
-  hvm_gen_litinteger(gen->block, last_idx, (int64_t)(size - 1));
+  hvm_gen_litinteger(gen->block, last_idx, (int64_t)size);
   // Loop condition (A = B < C)
   hvm_gen_label(gen->block, "build_array_condition");
   hvm_gen_eq(gen->block, r4, idx, last_idx);// $r4 = ($idx == $len)
@@ -42,7 +43,8 @@ void build_array(hvm_gen *gen, unsigned int size) {
   // Body of the loop
     // Set the array
     hvm_gen_invokeprimitive(gen->block, sym, r4);// rand() -> $r4
-    hvm_gen_arrayset(gen->block, ar, idx, r4);// $ar[$idx] = $r4
+    // hvm_gen_arrayset(gen->block, ar, idx, r4);// $ar[$idx] = $r4
+    hvm_gen_arraypush(gen->block, ar, r4);// $ar << $r4
     // Increment the index
     hvm_gen_add(gen->block, idx, idx, increment);
     hvm_gen_goto_label(gen->block, "build_array_condition");
@@ -54,6 +56,8 @@ void build_array(hvm_gen *gen, unsigned int size) {
 }
 
 void define_insertion_sort(hvm_gen *gen) {
+  hvm_gen_sub(gen->block, "insertion_sort");
+
   byte arr = hvm_vm_reg_param(0);
   byte i   = hvm_vm_reg_gen(1);
   byte j   = hvm_vm_reg_gen(2);
@@ -89,6 +93,9 @@ void define_insertion_sort(hvm_gen *gen) {
       hvm_gen_label(gen->block, "insertion_sort_inner_condition");
       // $r4 = $j > 0
       hvm_gen_gt(gen->block, r4, j, zero);
+      // Checking the left side of the AND
+        hvm_gen_eq(gen->block, r5, r4, zero);
+        hvm_gen_if_label(gen->block, r5, "insertion_sort_inner_end");
       // $a_jminus1 = A[j - 1]
       hvm_gen_add(gen->block, r5, j, neg1);
       hvm_gen_arrayget(gen->block, a_jminus1, arr, r5);
@@ -119,7 +126,7 @@ void define_insertion_sort(hvm_gen *gen) {
 }
 
 int main(int argc, char **argv) {
-  static const unsigned int array_size = 1000;
+  static const unsigned int array_size = 25;
 
   hvm_gen *gen = hvm_new_gen();
   hvm_gen_set_file(gen, "sorting");
@@ -143,7 +150,7 @@ int main(int argc, char **argv) {
 
   hvm_chunk *chunk = hvm_gen_chunk(gen);
   hvm_chunk_disassemble(chunk);
-  return 0;
+  //return 0;
 
   hvm_vm *vm = hvm_new_vm();
   hvm_bootstrap_primitives(vm);
@@ -158,6 +165,22 @@ int main(int argc, char **argv) {
 
   printf("RUNNING...\n");
   hvm_vm_run(vm);
+
+  printf("\nDONE\n\n");
+
+  hvm_obj_ref *arrref = hvm_get_local(vm->top, hvm_symbolicate(vm->symbols, array));
+  assert(arrref->type == HVM_ARRAY);
+
+  hvm_obj_array *arr = arrref->data.v;
+
+  printf("array[%u] = {\n", arr->array->len);
+  for(unsigned int i = 0; i < arr->array->len; i++) {
+    hvm_obj_ref *intval = g_array_index(arr->array, hvm_obj_ref*, i);
+    assert(intval->type == HVM_INTEGER);
+    printf("  %4u = %lld\n", i, intval->data.i64);
+  }
+  printf("}\n");
+
 
   // printf("\nAFTER RUNNING:\n");
   // hvm_obj_ref *reg = vm->general_regs[hvm_vm_reg_gen(2)];
