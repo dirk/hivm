@@ -415,6 +415,7 @@ void hvm_gen_process_block(hvm_chunk *chunk, struct hvm_gen_data *data, hvm_gen_
         WRITE(9 + HVM_SUBROUTINE_TAG_SIZE, &item->op_call.reg, byte);
         RELOCATION(1 + HVM_SUBROUTINE_TAG_SIZE);
         chunk->size += 10 + HVM_SUBROUTINE_TAG_SIZE;
+        break;
 
       default:
         // Bail out *hard* if we run into something unexpected

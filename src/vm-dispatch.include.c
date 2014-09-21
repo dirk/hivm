@@ -504,16 +504,14 @@ EXECUTE:
       vm->ip += 2;
       break;
     case HVM_OP_ARRAYLEN: // 1B OP | 2B REGS
-      // TODO: Implement this
-      exc = hvm_new_exception();
-      msg = "Array length instruction not implemented yet";
-      exc->message = hvm_new_obj_ref_string_data(hvm_util_strclone(msg));
-      hvm_location *loc = hvm_new_location();
-      loc->name = hvm_util_strclone("hvm_arraylen");
-      hvm_exception_push_location(exc, loc);
-      // Raise the exception
-      vm->exception = exc;
-      goto EXCEPTION;
+      AREG; BREG;
+      a = _hvm_vm_register_read(vm, breg);
+      assert(a->type == HVM_ARRAY);
+      val = hvm_obj_array_len(a);
+      hvm_obj_space_add_obj_ref(vm->obj_space, val);
+      hvm_vm_register_write(vm, areg, val);
+      vm->ip += 2;
+      break;
 
 
     // STRUCTS --------------------------------------------------------------

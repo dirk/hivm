@@ -80,6 +80,14 @@ hvm_obj_ref* hvm_obj_array_pop(hvm_obj_ref *a) {
   return ptr;
 }
 
+hvm_obj_ref* hvm_obj_array_len(hvm_obj_ref *a) {
+  hvm_obj_array *arr = a->data.v;
+  guint len = arr->array->len;
+  hvm_obj_ref *intval = hvm_new_obj_int();
+  intval->data.i64 = (int64_t)len;
+  return intval;
+}
+
 hvm_obj_ref* hvm_obj_array_get(hvm_obj_ref *arrref, hvm_obj_ref *idxref) {
   assert(arrref->type == HVM_ARRAY); assert(idxref->type == HVM_INTEGER);
   return hvm_obj_array_internal_get(arrref->data.v, (uint64_t)(idxref->data.i64));
