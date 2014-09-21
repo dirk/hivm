@@ -220,14 +220,29 @@ void hvm_print_data(byte *data, uint64_t size) {
         i += 2;
         printf("$%-3d = arraynew[$%d]\n", reg1, reg2);
         break;
+      case HVM_OP_ARRAYGET:
+        // A = B[C]
+        reg1 = data[i + 1];
+        reg2 = data[i + 2];
+        reg3 = data[i + 3];
+        i += 3;
+        printf("$%-3d = $%d.arrayget[$%d]\n", reg1, reg2, reg3);
+        break;
       case HVM_OP_ARRAYSET: // 1B OP | 3B REGS
         // A[B] = C
         reg1 = data[i + 1];
         reg2 = data[i + 2];
         reg3 = data[i + 3];
         i += 3;
-        printf("$%d.arrayset[$%d] = %d\n", reg1, reg2, reg3);
+        printf("$%d.arrayset[$%d] = $%d\n", reg1, reg2, reg3);
         break;
+      case HVM_OP_ARRAYLEN: // 1B OP | 2B REGS
+        reg1 = data[i + 1];
+        reg2 = data[i + 2];
+        i += 2;
+        printf("$%-3d = $%d.arraylen\n", reg1, reg2);
+        break;
+
 
       case HVM_OP_GOTOADDRESS: // 1B OP | 1B DEST REG
         reg1 = data[i + 1];
@@ -240,15 +255,21 @@ void hvm_print_data(byte *data, uint64_t size) {
         i += 1;
         break;
       case HVM_OP_LT: // 1B OP | 3B REGs
+      case HVM_OP_GT:
       case HVM_OP_EQ:
+      case HVM_OP_AND:
         reg1 = data[i + 1];
         reg2 = data[i + 2];
         reg3 = data[i + 3];
         char *cmp = "?";
         if(op == HVM_OP_LT) {
           cmp = "<";
+        } else if(op == HVM_OP_GT) {
+          cmp = ">";
         } else if(op == HVM_OP_EQ) {
           cmp = "==";
+        } else if(op == HVM_OP_AND) {
+          cmp = "&&";
         }
         printf("$%-3d = $%-3d %s $%-3d\n", reg1, reg2, cmp, reg3);
         i += 3;
