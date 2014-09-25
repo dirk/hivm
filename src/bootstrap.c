@@ -12,6 +12,7 @@
 #include "exception.h"
 #include "gc1.h"
 #include "chunk.h"
+#include "jit-tracer.h"
 
 #define SYM(V) hvm_symbolicate(vm->symbols, V)
 #define PRIM_SET(K, V) hvm_obj_struct_internal_set(vm->primitives, SYM(K), (void*)V);
@@ -24,9 +25,12 @@ void hvm_bootstrap_primitives(hvm_vm *vm) {
   PRIM_SET("print_exception", hvm_prim_print_exception);
   PRIM_SET("int_to_string", hvm_prim_int_to_string);
   PRIM_SET("exit", hvm_prim_exit);
-  PRIM_SET("debug_print_struct", hvm_prim_debug_print_struct);
+
   PRIM_SET("gc_run", hvm_prim_gc_run);
   PRIM_SET("rand", hvm_prim_rand);
+
+  PRIM_SET("debug_print_struct", hvm_prim_debug_print_struct);
+  PRIM_SET("debug_print_current_frame_trace", hvm_prim_debug_print_current_frame_trace);
 }
 
 hvm_obj_ref *hvm_prim_exit(hvm_vm *vm) {
@@ -129,6 +133,19 @@ hvm_obj_ref *hvm_prim_debug_print_struct(hvm_vm *vm) {
     const char  *name = hvm_human_name_for_obj_type(ref->type);
     fprintf(stdout, "  %s = %s(%p)\n", sym, name, ref);
   }
+  return hvm_const_null;
+}
+
+hvm_obj_ref *hvm_prim_debug_print_current_frame_trace(hvm_vm *vm) {
+  hvm_frame *frame = vm->top;
+  if(frame->trace == NULL) {
+    fprintf(stdout, "error: No trace in current frame\n");
+    goto end;
+  }
+  hvm_call_trace *trace = frame->trace;
+  fprintf(stdout, "frame(%p) = [%u]{}\n", frame, trace->sequence_length);
+
+end:
   return hvm_const_null;
 }
 
