@@ -2,16 +2,24 @@
 // Normal and JIT dispatching hooks
 #define EXECUTE_JIT execute_jit
 
-// Undefine EXECUTE and EXCEPTION since we'll always be redefining them
+// Undefine EXECUTE, EXCEPTION, and IN_JIT since we'll always be redefining them
 #undef EXECUTE
 #undef EXCEPTION
+#undef IN_JIT
 
 #ifdef JIT_DISPATCH
 #define EXECUTE   execute_jit
 #define EXCEPTION handle_exception_jit
+// Use IN_JIT to add operations to be performed when in the JIT version
+// of the dispatcher.
+//   eg. IN_JIT(
+//     hvm_jit_tracer_annotate(..);
+//   )
+#define IN_JIT(V) V
 #else
 #define EXECUTE   execute
 #define EXCEPTION handle_exception
+#define IN_JIT(V)
 #endif
 
 
@@ -32,11 +40,12 @@ EXECUTE:
   }
 #endif
 
-#ifdef JIT_DISPATCH
-  // If this is the dispatch loop for JIT tracing.
-  assert(vm->is_tracing == 1);
-  hvm_jit_tracer_before_instruction(vm);
-#endif
+  IN_JIT(
+    // If this is the dispatch loop for JIT tracing...
+    assert(vm->is_tracing == 1);
+    // Then trace the instruction
+    hvm_jit_tracer_before_instruction(vm);
+  )
 
   // Execute the instruction
   switch(instr) {
@@ -100,7 +109,11 @@ EXECUTE:
       vm->ip = dest;
       vm->top = frame;
       // Check if we need to start tracing
-      if(tag.heat > 2 && !vm->is_tracing) {
+      if((tag.heat > 2 || vm->always_trace) && !vm->is_tracing) {
+        // If frame is already being traced
+        if(frame->trace != NULL) {
+          goto EXECUTE_JIT;
+        }
         fprintf(stderr, "switching to trace dispatch for %s:0x%08llX\n", sym_name, dest);
         frame->trace = hvm_new_call_trace(vm);
         vm->is_tracing = 1;
@@ -141,7 +154,7 @@ EXECUTE:
       vm->stack_depth += 1;
       frame = &vm->stack[vm->stack_depth];
       hvm_frame_initialize(frame);
-      frame->return_addr     = vm->ip + 6; // Instruction 3 bytes long.
+      frame->return_addr     = vm->ip + 6; // Instruction 6 bytes long.
       frame->return_register = reg;
       hvm_vm_copy_regs(vm);
       vm->ip = dest;
@@ -162,11 +175,11 @@ EXECUTE:
         goto EXCEPTION;
       }
       hvm_vm_register_write(vm, breg, val);
-      #ifdef JIT_DISPATCH
+      IN_JIT(
         if(vm->top->trace != NULL) {
           hvm_jit_tracer_annotate_invokeprimitive_returned_type(vm, val);
         }
-      #endif
+      )
       vm->ip += 2;
       break;
 
