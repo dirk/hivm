@@ -118,7 +118,9 @@ typedef struct hvm_vm {
   void *debugger;
 
   /// Whether or not it's tracing
-  char is_tracing;
+  bool is_tracing;
+  /// Special flag to tell it to *always* trace
+  bool always_trace;
 } hvm_vm;
 
 /// Create a new virtual machine.

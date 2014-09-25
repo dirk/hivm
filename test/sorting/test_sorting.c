@@ -58,13 +58,14 @@ void build_array(hvm_gen *gen, unsigned int size) {
 void define_insertion_sort(hvm_gen *gen) {
   hvm_gen_sub(gen->block, "insertion_sort");
 
-  byte arr = hvm_vm_reg_param(0);
+  byte sym = hvm_vm_reg_gen(0);
   byte i   = hvm_vm_reg_gen(1);
   byte j   = hvm_vm_reg_gen(2);
   byte x   = hvm_vm_reg_gen(3);
   byte len = hvm_vm_reg_gen(10);
   byte r4  = hvm_vm_reg_gen(4);
   byte r5  = hvm_vm_reg_gen(5);
+  byte arr = hvm_vm_reg_gen(6);
 
   byte a_jminus1 = hvm_vm_reg_gen(11);
 
@@ -74,6 +75,8 @@ void define_insertion_sort(hvm_gen *gen) {
   hvm_gen_litinteger(gen->block, neg1, -1);
   byte one  = hvm_vm_reg_gen(22);
   hvm_gen_litinteger(gen->block, one, 1);
+
+  hvm_gen_move(gen->block, arr, hvm_vm_reg_param(0));
 
   // $i = 1
   hvm_gen_litinteger(gen->block, i, 1);
@@ -121,6 +124,11 @@ void define_insertion_sort(hvm_gen *gen) {
     hvm_gen_goto_label(gen->block, "insertion_sort_condition");
   // Left for loop
   hvm_gen_label(gen->block, "insertion_sort_end");
+
+  // Print our current trace for debugging
+  hvm_gen_set_symbol(gen->block, sym, "debug_print_current_frame_trace");
+  hvm_gen_invokeprimitive(gen->block, sym, hvm_vm_reg_null());
+
   // Return the array
   hvm_gen_return(gen->block, arr);
 }
@@ -154,6 +162,8 @@ int main(int argc, char **argv) {
 
   hvm_vm *vm = hvm_new_vm();
   hvm_bootstrap_primitives(vm);
+  // Set the VM to *always* trace
+  vm->always_trace = TRUE;
 
   printf("LOADING...\n");
   hvm_vm_load_chunk(vm, chunk);
@@ -173,7 +183,7 @@ int main(int argc, char **argv) {
 
   hvm_obj_array *arr = arrref->data.v;
 
-  printf("array[%u] = {\n", arr->array->len);
+  printf("array = [%u]{\n", arr->array->len);
   for(unsigned int i = 0; i < arr->array->len; i++) {
     hvm_obj_ref *intval = g_array_index(arr->array, hvm_obj_ref*, i);
     assert(intval->type == HVM_INTEGER);
