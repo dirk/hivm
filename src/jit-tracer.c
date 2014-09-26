@@ -27,11 +27,28 @@ void hvm_jit_call_trace_check_expand_capacity(hvm_call_trace *trace) {
   }
 }
 
+bool hvm_jit_call_trace_contains_ip(hvm_call_trace *trace, uint64_t ip) {
+  for(unsigned int i = 0; i < trace->sequence_length; i++) {
+    hvm_trace_sequence_item *item = &trace->sequence[i];
+    if(item->head.ip == ip) {
+      return true;
+    }
+  }
+  return false;
+}
+
 void hvm_jit_call_trace_push_instruction(hvm_vm *vm, hvm_call_trace *trace) {
+  // Skip tracing if we've already traced this instruction
+  if(hvm_jit_call_trace_contains_ip(trace, vm->ip)) {
+    return;
+  }
   byte instr = vm->program[vm->ip];
-  char do_increment = 1;
+  char do_increment = true;
   // fprintf(stderr, "trace instruction: %d\n", instr);
   hvm_trace_sequence_item *item = &trace->sequence[trace->sequence_length];
+  // Keep track of the instruction the item originally came from
+  item->head.ip = vm->ip;
+
   switch(instr) {
     case HVM_OP_SETSTRING:
     case HVM_OP_SETSYMBOL:
@@ -41,7 +58,6 @@ void hvm_jit_call_trace_push_instruction(hvm_vm *vm, hvm_call_trace *trace) {
       } else if(instr == HVM_OP_SETSYMBOL) {
         item->setsymbol.type = HVM_TRACE_SEQUENCE_ITEM_SETSYMBOL;
       }
-      item->setstring.ip   = vm->ip;
       // 1B OP | 1B REG | 4B CONST
       item->setstring.reg      = vm->program[vm->ip + 1];
       item->setstring.constant = *(uint32_t*)(&vm->program[vm->ip + 2]);
@@ -127,7 +143,7 @@ void hvm_jit_call_trace_push_instruction(hvm_vm *vm, hvm_call_trace *trace) {
       fprintf(stderr, "trace: don't know what to do with instruction: %d\n", instr);
       do_increment = 0;
   }
-  if(do_increment == 1) {
+  if(do_increment == true) {
     trace->sequence_length += 1;
     hvm_jit_call_trace_check_expand_capacity(trace);
   }

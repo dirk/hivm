@@ -24,6 +24,10 @@ typedef enum {
 #define HVM_TRACE_SEQUENCE_ITEM_HEAD hvm_trace_sequence_item_type type; \
                                      uint64_t ip;
 
+typedef struct hvm_trace_sequence_item_head {
+  HVM_TRACE_SEQUENCE_ITEM_HEAD;
+} hvm_trace_sequence_item_head;
+
 typedef struct hvm_trace_sequence_item_setstring {
   HVM_TRACE_SEQUENCE_ITEM_HEAD;
   /// Destination register for the constant
@@ -108,6 +112,8 @@ typedef struct hvm_trace_sequence_item_litinteger {
 } hvm_trace_sequence_item_litinteger;
 
 typedef union hvm_trace_sequence_item {
+  hvm_trace_sequence_item_head             head;
+
   hvm_trace_sequence_item_setstring        setstring;
   hvm_trace_sequence_item_setsymbol        setsymbol;
   hvm_trace_sequence_item_invokeprimitive  invokeprimitive;
