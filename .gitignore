@@ -8,6 +8,7 @@ include/*
 *.dSYM
 test/sandbox/test
 test/sandbox/test_vm
+test/sorting/test_sorting
 test/unit/test
 
 dummy/*
