@@ -51,6 +51,8 @@ typedef struct hvm_trace_sequence_item_invokeprimitive {
   HVM_TRACE_SEQUENCE_ITEM_HEAD;
   /// Register with the symbol for the primitive
   byte register_symbol;
+  /// Symbol contained in that register
+  hvm_symbol_id symbol_value;
   /// Register for the return value
   byte register_return;
   /// Type of the object returned from the primitive
@@ -160,6 +162,6 @@ void hvm_jit_tracer_before_instruction(hvm_vm *vm);
 // Special hooks for annotating instructions (invoked by the JIT dispatcher)
 void hvm_jit_tracer_annotate_invokeprimitive_returned_type(hvm_vm *vm, hvm_obj_ref *val);
 
-void hvm_jit_tracer_dump_trace(hvm_call_trace*);
+void hvm_jit_tracer_dump_trace(hvm_vm*, hvm_call_trace*);
 
 #endif

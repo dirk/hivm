@@ -291,6 +291,7 @@ ALWAYS_INLINE hvm_obj_ref* _hvm_vm_register_read(hvm_vm *vm, byte reg) {
   if(reg == 128) { return hvm_const_zero; }
   if(reg == 129) { return hvm_const_null; }
   // Should never reach here.
+  assert(false);
   return NULL;
 }
 
