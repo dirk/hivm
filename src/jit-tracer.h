@@ -160,4 +160,6 @@ void hvm_jit_tracer_before_instruction(hvm_vm *vm);
 // Special hooks for annotating instructions (invoked by the JIT dispatcher)
 void hvm_jit_tracer_annotate_invokeprimitive_returned_type(hvm_vm *vm, hvm_obj_ref *val);
 
+void hvm_jit_tracer_dump_trace(hvm_call_trace*);
+
 #endif

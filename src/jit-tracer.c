@@ -43,7 +43,7 @@ void hvm_jit_call_trace_push_instruction(hvm_vm *vm, hvm_call_trace *trace) {
     return;
   }
   byte instr = vm->program[vm->ip];
-  char do_increment = true;
+  bool do_increment = true;
   // fprintf(stderr, "trace instruction: %d\n", instr);
   hvm_trace_sequence_item *item = &trace->sequence[trace->sequence_length];
   // Keep track of the instruction the item originally came from
@@ -166,4 +166,16 @@ void hvm_jit_tracer_annotate_invokeprimitive_returned_type(hvm_vm *vm, hvm_obj_r
   // Update the return object type annotation using the object handed to us
   // by the VM.
   item->invokeprimitive.returned_type = val->type;
+}
+
+void hvm_jit_tracer_dump_trace(hvm_call_trace *trace) {
+  printf("  idx  ip\n");
+  for(unsigned int i = 0; i < trace->sequence_length; i++) {
+    hvm_trace_sequence_item *item = &trace->sequence[i];
+    unsigned int idx = i;
+    uint64_t address = item->head.ip;
+    printf("  %-4d 0x%08llX  ", idx, address);
+    // Dump the item's actual information
+    printf("\n");
+  }
 }

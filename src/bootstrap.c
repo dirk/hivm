@@ -143,7 +143,9 @@ hvm_obj_ref *hvm_prim_debug_print_current_frame_trace(hvm_vm *vm) {
     goto end;
   }
   hvm_call_trace *trace = frame->trace;
-  fprintf(stdout, "frame(%p) = [%u]{}\n", frame, trace->sequence_length);
+  printf("frame(%p) = [%u]{\n", frame, trace->sequence_length);
+  hvm_jit_tracer_dump_trace(trace);
+  printf("}\n");
 
 end:
   return hvm_const_null;
