@@ -177,16 +177,17 @@ void hvm_jit_tracer_annotate_invokeprimitive_returned_type(hvm_vm *vm, hvm_obj_r
 }
 
 void hvm_jit_tracer_dump_trace(hvm_vm *vm, hvm_call_trace *trace) {
-  printf("  idx  ip\n");
+  printf("  idx  ip          type\n");
   for(unsigned int i = 0; i < trace->sequence_length; i++) {
     hvm_trace_sequence_item *item = &trace->sequence[i];
     unsigned int idx = i;
     uint64_t address = item->head.ip;
-    printf("  %-4d 0x%08llX  ", idx, address);
+    printf("  %-4d 0x%08llX  %-3d  ", idx, address, item->head.type);
     // Forward declarations for variables used in the big `switch`
     const char *type;
-    byte reg;
+    byte reg, reg1, reg2, reg3;
     char *symbol_name;
+    uint32_t short_symbol_id;
 
     switch(item->head.type) {
       case HVM_TRACE_SEQUENCE_ITEM_RETURN:
@@ -194,10 +195,24 @@ void hvm_jit_tracer_dump_trace(hvm_vm *vm, hvm_call_trace *trace) {
         printf("$%d.%s", item->item_return.register_return, type);
         break;
       case HVM_TRACE_SEQUENCE_ITEM_INVOKEPRIMITIVE:
-        reg  = item->invokeprimitive.register_return;
+        reg1 = item->invokeprimitive.register_return;
+        reg2 = item->invokeprimitive.register_symbol;
         type = hvm_human_name_for_obj_type(item->invokeprimitive.returned_type);
         symbol_name = hvm_desymbolicate(vm->symbols, item->invokeprimitive.symbol_value);
-        printf("$%-3d = invokeprimitive(%s) -> %s", reg, symbol_name, type);
+        printf("$%-3d = invokeprimitive($%d = %s) -> %s", reg1, reg2, symbol_name, type);
+        break;
+      case HVM_TRACE_SEQUENCE_ITEM_ARRAYSET:
+        reg1 = item->arrayset.register_array;
+        reg2 = item->arrayset.register_index;
+        reg3 = item->arrayset.register_value;
+        printf("$%d.arrayset[$%d] = $%d", reg1, reg2, reg3);
+        break;
+      case HVM_TRACE_SEQUENCE_ITEM_SETSYMBOL:
+        reg = item->setsymbol.reg;
+        short_symbol_id = item->setsymbol.constant;
+        hvm_obj_ref *ref = hvm_const_pool_get_const(&vm->const_pool, short_symbol_id);
+        symbol_name = hvm_desymbolicate(vm->symbols, ref->data.u64);
+        printf("$%-3d = setsymbol(#%d = %s)", reg, short_symbol_id, symbol_name);
         break;
       default:
         break;
