@@ -3,12 +3,12 @@ $cflags = "-g -Wall -std=c99 ../../libhivm-db.a -I../../include #{`pkg-config --
 
 task 'default' => ['test_sorting']
 
-desc "Build VM tester"
+desc 'Build VM tester'
 file 'test_sorting' => ['test_sorting.c', '../../libhivm-db.a'] do
   sh "cc test_sorting.c #{$cflags} -o test_sorting"
 end
 
 desc 'Clean'
 task 'clean' do
-  sh "rm -f test_sorting"
+  sh 'rm -f test_sorting'
 end

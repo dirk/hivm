@@ -60,7 +60,7 @@ objects = [
   # Source
   'src/vm.o', 'src/object.o', 'src/symbol.o', 'src/frame.o', 'src/chunk.o',
   'src/generator.o', 'src/bootstrap.o', 'src/exception.o', 'src/gc1.o',
-  'src/jit-tracer.o',
+  'src/jit-tracer.o', 'src/jit-compiler.o',
   # Generated source
   'src/chunk.pb-c.o'
 ]
