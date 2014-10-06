@@ -8,9 +8,11 @@ $ld = 'ld'
 $cflags  = "-g -fPIC -Wall -Wextra -Wconversion -std=c99 -I. #{include_env 'CFLAGS'}".strip
 
 $lua = 'lua5.1'
-# if `uname -s`.strip == 'Darwin'
-#   $lua = 'lua'
-# end
+
+$llvm_config = 'llvm-config'
+if `uname -s`.strip == 'Darwin'
+  $llvm_config = "#{`brew --prefix llvm`.strip}/bin/llvm-config"
+end
 
 def cflags_for file
   basename = File.basename file
@@ -27,6 +29,10 @@ def cflags_for file
   end
   if basename == "vm-db.o" || basename == "debug.o"
     cflags += " -DHVM_VM_DEBUG #{`pkg-config --cflags #{$lua}`.strip}"
+  end
+
+  if basename == "jit-compiler.o"
+    cflags += " "+`#{$llvm_config} --cflags`.strip
   end
   return cflags
 end
