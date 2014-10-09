@@ -27,6 +27,13 @@ LLVMModuleRef hvm_get_llvm_module() {
   return hvm_shared_llvm_module;
 }
 
+void hvm_jit_compile_resolve_registers(hvm_call_trace *trace, hvm_compile_bundle *bundle) {
+  hvm_compile_sequence_data *data = bundle->data;
+  for(unsigned int i = 0; i < trace->sequence_length; i++) {
+    hvm_compile_sequence_data *item = &data[i];
+    // Do stuff with the item based upon its type.
+  }
+}
 
 void hvm_jit_compile_trace(hvm_call_trace *trace) {
   LLVMContextRef context = hvm_get_llvm_context();
@@ -34,20 +41,29 @@ void hvm_jit_compile_trace(hvm_call_trace *trace) {
   // Builder that we'll write the instructions from our trace into
   LLVMBuilderRef builder = LLVMCreateBuilderInContext(context);
 
-  // Structuring this as a two-pass compilation
+  // Allocate an array of data items for each item in the trace
+  hvm_compile_sequence_data *data = malloc(sizeof(hvm_compile_sequence_data) * trace->sequence_length);
+  // Establish a bundle for all of our stuff related to this compilation.
+  hvm_compile_bundle bundle = {
+    .data = data
+  };
 
-  // First pass through the trace will:
-  // * Resolve register references in instructions into concrete IR value
-  //   references.
-  // * Identify and extract gets/sets of globals and locals into dedicated
-  //   in-out pointers arguments to the block so that they can be passed
-  //   by the VM into the block at call time.
-  // * Identify potential guard points to be checked before/during/after
-  //   execution.
+  // Eventually going to run this as a hopefully-two-pass compilation. For now
+  // though it's going to be multi-pass.
 
-  // Second pass through the trace will use all of the above and the trace
-  // itself to generate code into the LLVM IR builder and compile the
-  // optimized native representation.
+  // Resolve register references in instructions into concrete IR value
+  // references.
+  hvm_jit_compile_resolve_registers(trace, &bundle);
 
-  return;
+  // Identify and extract gets/sets of globals and locals into dedicated
+  // in-out pointers arguments to the block so that they can be passed
+  // by the VM into the block at call time.
+
+  // Identify potential guard points to be checked before/during/after
+  // execution.
+
+  // Use all of the above and the trace itself to generate code and compile to
+  // an optimized native representation.
+
+  free(data);
 }
