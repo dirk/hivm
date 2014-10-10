@@ -8,7 +8,8 @@ typedef struct hvm_trace_compiled_frame {
 typedef enum {
   HVM_COMPILE_DATA_ARRAYSET,
   HVM_COMPILE_DATA_ARRAYGET,
-  HVM_COMPILE_DATA_SETSYMBOL
+  HVM_COMPILE_DATA_SETSYMBOL,
+  HVM_COMPILE_DATA_INVOKEPRIMITIVE
 } hvm_compile_data_type;
 
 #define HVM_COMPILE_DATA_HEAD hvm_compile_data_type type;
@@ -45,12 +46,25 @@ typedef struct hvm_compile_sequence_data_setsymbol {
   uint32_t constant;
 } hvm_compile_sequence_data_setsymbol;
 
+typedef struct hvm_compile_sequence_data_invokeprimitive {
+  HVM_COMPILE_DATA_HEAD;
+  // Source registers for the symbol ID
+  byte register_symbol;
+  // Value for the symbol ID for `hvm_vm_call_primitive(vm, symbol_id)`
+  hvm_symbol_id symbol_id;
+  LLVMValueRef  symbol_value;
+  // Result value and register
+  LLVMValueRef  value;
+  byte          reg;
+} hvm_compile_sequence_data_invokeprimitive;
+
 /// Structs used for figuring out and keeping track of data related to each
 /// sequence in the trace instruction sequence being compiled.
 typedef union hvm_compile_sequence_data {
   hvm_compile_sequence_data_arrayset  arrayset;
   hvm_compile_sequence_data_arrayget  arrayget;
-  hvm_compile_sequence_data_setsymbol setsymbol; 
+  hvm_compile_sequence_data_setsymbol setsymbol;
+  hvm_compile_sequence_data_invokeprimitive invokeprimitive;
 } hvm_compile_sequence_data;
 
 /// Holds all information relevant to a compilation of a trace (eg. instruction

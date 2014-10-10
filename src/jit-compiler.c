@@ -9,6 +9,7 @@
 
 #include "vm.h"
 #include "object.h"
+#include "bootstrap.h"
 #include "jit-tracer.h"
 #include "jit-compiler.h"
 
@@ -44,20 +45,22 @@ LLVMTypeRef hvm_jit_get_llvm_void_type() {
   return void_type;
 }
 
+#define UNPACK_BUNDLE \
+  LLVMModuleRef module          = bundle->llvm_module; \
+  LLVMExecutionEngineRef engine = bundle->llvm_engine;
+
 LLVMValueRef hvm_jit_obj_array_get_llvm_value(hvm_compile_bundle *bundle) {
   static LLVMValueRef func;
   if(!func) {
-    LLVMModuleRef module          = bundle->llvm_module;
-    LLVMExecutionEngineRef engine = bundle->llvm_engine;
-    LLVMTypeRef ptr_type          = hvm_jit_get_llvm_pointer_type();
-
+    UNPACK_BUNDLE;
+    LLVMTypeRef ptr_type       = hvm_jit_get_llvm_pointer_type();
     LLVMTypeRef return_type    = ptr_type;
     LLVMTypeRef param_types[2] = {ptr_type, ptr_type};
     // Last argument tells LLVM it's non-variadic
     LLVMTypeRef func_type      = LLVMFunctionType(return_type, param_types, 2, false);
     // LLVMAddFunction calls the following LLVM C++:
     //   Function::Create(functiontype, GlobalValue::ExternalLinkage, name, module)
-    LLVMValueRef func = LLVMAddFunction(module, "hvm_obj_array_get", func_type);
+    func = LLVMAddFunction(module, "hvm_obj_array_get", func_type);
     // Then register our function pointer as a global external linkage in
     // the execution engine.
     LLVMAddGlobalMapping(engine, func, &hvm_obj_array_get);
@@ -68,17 +71,31 @@ LLVMValueRef hvm_jit_obj_array_get_llvm_value(hvm_compile_bundle *bundle) {
 LLVMValueRef hvm_jit_obj_array_set_llvm_value(hvm_compile_bundle *bundle) {
   static LLVMValueRef func;
   if(!func) {
-    LLVMModuleRef module          = bundle->llvm_module;
-    LLVMExecutionEngineRef engine = bundle->llvm_engine;
-    LLVMTypeRef pointer_type      = hvm_jit_get_llvm_pointer_type();
-    LLVMTypeRef void_type         = hvm_jit_get_llvm_void_type();
+    UNPACK_BUNDLE;
+    LLVMTypeRef pointer_type = hvm_jit_get_llvm_pointer_type();
+    LLVMTypeRef void_type    = hvm_jit_get_llvm_void_type();
     // Set up our parameters and return
     LLVMTypeRef return_type    = void_type;
     LLVMTypeRef param_types[3] = {pointer_type, pointer_type, pointer_type};
     LLVMTypeRef func_type      = LLVMFunctionType(return_type, param_types, 3, false);
     // Build the function and register it
-    LLVMValueRef func = LLVMAddFunction(module, "hvm_obj_array_set", func_type);
+    func = LLVMAddFunction(module, "hvm_obj_array_set", func_type);
     LLVMAddGlobalMapping(engine, func, &hvm_obj_array_set);
+  }
+  return func;
+}
+
+LLVMValueRef hvm_jit_vm_call_primitive_llvm_value(hvm_compile_bundle *bundle) {
+  static LLVMValueRef func;
+  if(!func) {
+    UNPACK_BUNDLE;
+    LLVMTypeRef pointer_type   = hvm_jit_get_llvm_pointer_type();
+    LLVMTypeRef int64_type     = LLVMInt64Type();
+    LLVMTypeRef param_types[2] = {pointer_type, int64_type};
+    LLVMTypeRef func_type      = LLVMFunctionType(pointer_type, param_types, 2, false);
+    // Build and register
+    func = LLVMAddFunction(module, "hvm_vm_call_primitive", func_type);
+    LLVMAddGlobalMapping(engine, func, &hvm_vm_call_primitive);
   }
   return func;
 }
@@ -104,10 +121,10 @@ void hvm_jit_compile_resolve_registers(hvm_vm *vm, hvm_call_trace *trace, hvm_co
     general_reg_values[i]       = NULL;
   }
 
-  byte reg, reg_array, reg_index, reg_value;
+  byte reg, reg_array, reg_index, reg_value, reg_symbol;
   unsigned int type;
   hvm_compile_sequence_data *data = bundle->data;
-  LLVMValueRef value_array, value_index;
+  LLVMValueRef value_array, value_index, value_symbol;
   // Function-pointer-as-value
   LLVMValueRef func;
 
@@ -132,7 +149,7 @@ void hvm_jit_compile_resolve_registers(hvm_vm *vm, hvm_call_trace *trace, hvm_co
         // Also compile our symbol as a LLVM value
         hvm_obj_ref *ref = hvm_const_pool_get_const(&vm->const_pool, data_item->setsymbol.constant);
         // Integer constant wants an `unsigned long long`.
-        LLVMValueRef value = LLVMConstInt(pointer_type, (unsigned long long)ref, true);
+        LLVMValueRef value = LLVMConstInt(pointer_type, (unsigned long long)ref, false);
         // Save our new value into the data item.
         data_item->setsymbol.value = value;
         // TODO: Call a VM function to check this
@@ -173,6 +190,20 @@ void hvm_jit_compile_resolve_registers(hvm_vm *vm, hvm_call_trace *trace, hvm_co
         LLVMValueRef arrayset_args[3] = {array, index, value};
         // Build the function call with the function value and arguments
         LLVMBuildCall(builder, func, arrayset_args, 3, "arrayset");
+        break;
+
+      case HVM_TRACE_SEQUENCE_ITEM_INVOKEPRIMITIVE:
+        data_item->invokeprimitive.type = HVM_COMPILE_DATA_INVOKEPRIMITIVE;
+        // Get the source value information
+        reg_symbol = trace_item->invokeprimitive.register_symbol;
+        value_symbol = general_reg_values[reg_symbol];
+        assert(value_symbol != NULL);
+        // Make a pointer to our VM
+        LLVMValueRef value_vm = LLVMConstInt(pointer_type, (unsigned long long)vm, false);
+        // Build the call to `hvm_vm_call_primitive`.
+        func = hvm_jit_vm_call_primitive_llvm_value(bundle);
+        LLVMValueRef invokeprimitive_args[2] = {value_vm, value_symbol};
+        LLVMBuildCall(builder, func, invokeprimitive_args, 2, "invokeprimitive");
         break;
 
       default:
