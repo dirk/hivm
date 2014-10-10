@@ -36,16 +36,24 @@ LLVMTypeRef hvm_jit_get_llvm_pointer_type() {
   }
   return pointer_type;
 }
+LLVMTypeRef hvm_jit_get_llvm_void_type() {
+  static LLVMTypeRef void_type;
+  if(!void_type) {
+    void_type = LLVMVoidType();
+  }
+  return void_type;
+}
 
-LLVMValueRef hvm_jit_get_obj_array_get_llvm_value(hvm_compile_bundle *bundle) {
+LLVMValueRef hvm_jit_obj_array_get_llvm_value(hvm_compile_bundle *bundle) {
   static LLVMValueRef func;
   if(!func) {
     LLVMModuleRef module          = bundle->llvm_module;
     LLVMExecutionEngineRef engine = bundle->llvm_engine;
     LLVMTypeRef ptr_type          = hvm_jit_get_llvm_pointer_type();
-    // Last argument tells LLVM it's non-variadic
+
     LLVMTypeRef return_type    = ptr_type;
     LLVMTypeRef param_types[2] = {ptr_type, ptr_type};
+    // Last argument tells LLVM it's non-variadic
     LLVMTypeRef func_type      = LLVMFunctionType(return_type, param_types, 2, false);
     // LLVMAddFunction calls the following LLVM C++:
     //   Function::Create(functiontype, GlobalValue::ExternalLinkage, name, module)
@@ -53,6 +61,24 @@ LLVMValueRef hvm_jit_get_obj_array_get_llvm_value(hvm_compile_bundle *bundle) {
     // Then register our function pointer as a global external linkage in
     // the execution engine.
     LLVMAddGlobalMapping(engine, func, &hvm_obj_array_get);
+  }
+  return func;
+}
+
+LLVMValueRef hvm_jit_obj_array_set_llvm_value(hvm_compile_bundle *bundle) {
+  static LLVMValueRef func;
+  if(!func) {
+    LLVMModuleRef module          = bundle->llvm_module;
+    LLVMExecutionEngineRef engine = bundle->llvm_engine;
+    LLVMTypeRef pointer_type      = hvm_jit_get_llvm_pointer_type();
+    LLVMTypeRef void_type         = hvm_jit_get_llvm_void_type();
+    // Set up our parameters and return
+    LLVMTypeRef return_type    = void_type;
+    LLVMTypeRef param_types[3] = {pointer_type, pointer_type, pointer_type};
+    LLVMTypeRef func_type      = LLVMFunctionType(return_type, param_types, 3, false);
+    // Build the function and register it
+    LLVMValueRef func = LLVMAddFunction(module, "hvm_obj_array_set", func_type);
+    LLVMAddGlobalMapping(engine, func, &hvm_obj_array_set);
   }
   return func;
 }
@@ -78,9 +104,12 @@ void hvm_jit_compile_resolve_registers(hvm_vm *vm, hvm_call_trace *trace, hvm_co
     general_reg_values[i]       = NULL;
   }
 
-  byte reg;
+  byte reg, reg_array, reg_index, reg_value;
   unsigned int type;
   hvm_compile_sequence_data *data = bundle->data;
+  LLVMValueRef value_array, value_index;
+  // Function-pointer-as-value
+  LLVMValueRef func;
 
   // LLVMModuleRef  module  = bundle->llvm_module;
   LLVMBuilderRef builder = bundle->llvm_builder;
@@ -113,21 +142,37 @@ void hvm_jit_compile_resolve_registers(hvm_vm *vm, hvm_call_trace *trace, hvm_co
       case HVM_TRACE_SEQUENCE_ITEM_ARRAYGET:
         data_item->arrayget.type = HVM_COMPILE_DATA_ARRAYGET;
         // Getting the pointer value to the array
-        byte reg_array = trace_item->arrayget.register_array;
+        reg_array = trace_item->arrayget.register_array;
         assert(general_reg_values[reg_array] != NULL);
         LLVMValueRef array = general_reg_values[reg_array];
         // Getting the index value
-        byte reg_index = trace_item->arrayget.register_index;
+        reg_index = trace_item->arrayget.register_index;
         assert(general_reg_values[reg_index] != NULL);
         LLVMValueRef index = general_reg_values[reg_index];
         // Get the function as a LLVM value we can work with
-        LLVMValueRef func = hvm_jit_get_obj_array_get_llvm_value(bundle);
-        LLVMValueRef args[2] = {array, index};
+        func = hvm_jit_obj_array_get_llvm_value(bundle);
+        LLVMValueRef arrayget_args[2] = {array, index};
         // Build the function call
-        LLVMValueRef return_value = LLVMBuildCall(builder, func, args, 2, "arrayget");
+        LLVMValueRef value_return = LLVMBuildCall(builder, func, arrayget_args, 2, "arrayget");
         // Save the return value
         byte reg = trace_item->arrayget.register_value;
-        JIT_SAVE_DATA_ITEM_AND_VALUE(reg, data_item, return_value);
+        JIT_SAVE_DATA_ITEM_AND_VALUE(reg, data_item, value_return);
+        break;
+
+      case HVM_TRACE_SEQUENCE_ITEM_ARRAYSET:
+        data_item->arrayset.type = HVM_COMPILE_DATA_ARRAYSET;
+        // Get the values we need for the array-set operation
+        reg_array = trace_item->arrayset.register_array;
+        reg_index = trace_item->arrayset.register_index;
+        reg_value = trace_item->arrayset.register_value;
+        value_array = general_reg_values[reg_array];
+        value_index = general_reg_values[reg_index];
+        value       = general_reg_values[reg_value];
+        // Get the array-set function
+        func = hvm_jit_obj_array_set_llvm_value(bundle);
+        LLVMValueRef arrayset_args[3] = {array, index, value};
+        // Build the function call with the function value and arguments
+        LLVMBuildCall(builder, func, arrayset_args, 3, "arrayset");
         break;
 
       default:
