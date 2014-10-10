@@ -6,7 +6,9 @@ typedef struct hvm_trace_compiled_frame {
 } hvm_trace_compiled_frame;
 
 typedef enum {
-  HVM_COMPILE_DATA_ARRAYSET
+  HVM_COMPILE_DATA_ARRAYSET,
+  HVM_COMPILE_DATA_ARRAYGET,
+  HVM_COMPILE_DATA_SETSYMBOL
 } hvm_compile_data_type;
 
 #define HVM_COMPILE_DATA_HEAD hvm_compile_data_type type;
@@ -23,7 +25,18 @@ typedef struct hvm_compile_sequence_data_arrayset {
   LLVMValueRef value;
 } hvm_compile_sequence_data_arrayset;
 
+typedef struct hvm_compile_sequence_data_arrayget {
+  HVM_COMPILE_DATA_HEAD;
+  // Sourcing values (array and the index into the array)
+  LLVMValueRef array;
+  LLVMValueRef index;
+  // Result value and result register
+  LLVMValueRef value;
+  byte reg;
+} hvm_compile_sequence_data_arrayget;
+
 typedef struct hvm_compile_sequence_data_setsymbol {
+  HVM_COMPILE_DATA_HEAD;
   // Register that the `.symbol` would be placed into.
   byte reg;
   // The symbol that was retrieved up from the constant table.
@@ -36,6 +49,7 @@ typedef struct hvm_compile_sequence_data_setsymbol {
 /// sequence in the trace instruction sequence being compiled.
 typedef union hvm_compile_sequence_data {
   hvm_compile_sequence_data_arrayset  arrayset;
+  hvm_compile_sequence_data_arrayget  arrayget;
   hvm_compile_sequence_data_setsymbol setsymbol; 
 } hvm_compile_sequence_data;
 
@@ -44,6 +58,9 @@ typedef union hvm_compile_sequence_data {
 typedef struct hvm_compile_bundle {
   hvm_compile_sequence_data *data;
   // TODO: Keep track of registers and how they're being read and written.
+  void *llvm_module;
+  void *llvm_engine;
+  void *llvm_builder;
 } hvm_compile_bundle;
 
 // External API

@@ -201,6 +201,12 @@ void hvm_jit_tracer_dump_trace(hvm_vm *vm, hvm_call_trace *trace) {
         symbol_name = hvm_desymbolicate(vm->symbols, item->invokeprimitive.symbol_value);
         printf("$%-3d = invokeprimitive($%d = %s) -> %s", reg1, reg2, symbol_name, type);
         break;
+      case HVM_TRACE_SEQUENCE_ITEM_ARRAYGET:
+        reg1 = item->arrayset.register_array;
+        reg2 = item->arrayset.register_index;
+        reg3 = item->arrayset.register_value;
+        printf("$%-3d = $%d.arrayget[$%d]", reg1, reg2, reg3);
+        break;
       case HVM_TRACE_SEQUENCE_ITEM_ARRAYSET:
         reg1 = item->arrayset.register_array;
         reg2 = item->arrayset.register_index;
