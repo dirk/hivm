@@ -168,6 +168,7 @@ struct hvm_obj_ref* hvm_get_global(hvm_vm*, hvm_symbol_id);
 /// @memberof hvm_vm
 void hvm_set_global(hvm_vm*, hvm_symbol_id, struct hvm_obj_ref*);
 
+struct hvm_obj_ref *hvm_vm_call_primitive(hvm_vm*, struct hvm_obj_ref*);
 
 struct hvm_obj_ref* hvm_vm_build_closure(hvm_vm *vm);
 

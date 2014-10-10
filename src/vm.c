@@ -180,8 +180,11 @@ void hvm_vm_load_chunk(hvm_vm *vm, void *cv) {
   hvm_vm_load_chunk_debug_entries(vm, start, chunk->debug_entries);
 }
 
-hvm_obj_ref *hvm_vm_call_primitive(hvm_vm *vm, hvm_symbol_id sym_id) {
+hvm_obj_ref *hvm_vm_call_primitive(hvm_vm *vm, hvm_obj_ref *sym_object) {
   hvm_obj_ref* (*prim)(hvm_vm *vm);
+
+  assert(sym_object->type == HVM_SYMBOL);
+  hvm_symbol_id sym_id = sym_object->data.u64;
 
   // hvm_obj_print_structure(vm, vm->primitives);
   void *pv = hvm_obj_struct_internal_get(vm->primitives, sym_id);
