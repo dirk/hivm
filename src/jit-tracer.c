@@ -28,27 +28,35 @@ void hvm_jit_call_trace_check_expand_capacity(hvm_call_trace *trace) {
   }
 }
 
-bool hvm_jit_call_trace_contains_ip(hvm_call_trace *trace, uint64_t ip) {
+hvm_trace_sequence_item *hvm_jit_call_trace_find_ip(hvm_call_trace *trace, uint64_t ip) {
   for(unsigned int i = 0; i < trace->sequence_length; i++) {
     hvm_trace_sequence_item *item = &trace->sequence[i];
     if(item->head.ip == ip) {
-      return true;
+      return item;
     }
   }
-  return false;
+  return NULL;
 }
 
 void hvm_jit_call_trace_push_instruction(hvm_vm *vm, hvm_call_trace *trace) {
+  hvm_trace_sequence_item *item, *existing_item;
+
   // Skip tracing if we've already traced this instruction
-  if(hvm_jit_call_trace_contains_ip(trace, vm->ip)) {
+  existing_item = hvm_jit_call_trace_find_ip(trace, vm->ip);
+  if(existing_item != NULL) {
+    trace->current_item = existing_item;
     return;
   }
+
   byte instr = vm->program[vm->ip];
   bool do_increment = true;
   // fprintf(stderr, "trace instruction: %d\n", instr);
-  hvm_trace_sequence_item *item = &trace->sequence[trace->sequence_length];
+  item = &trace->sequence[trace->sequence_length];
   // Keep track of the instruction the item originally came from
   item->head.ip = vm->ip;
+  // Also note in the trace that this is the current item for our annotation
+  // helpers.
+  trace->current_item = item;
 
   switch(instr) {
     case HVM_OP_SETSTRING:
@@ -74,7 +82,6 @@ void hvm_jit_call_trace_push_instruction(hvm_vm *vm, hvm_call_trace *trace) {
       hvm_obj_ref *ref = hvm_vm_register_read(vm, item->invokeprimitive.register_symbol);
       assert(ref->type == HVM_SYMBOL);
       item->invokeprimitive.symbol_value = ref->data.u64;
-        
       break;
 
     case HVM_OP_RETURN:
@@ -93,6 +100,7 @@ void hvm_jit_call_trace_push_instruction(hvm_vm *vm, hvm_call_trace *trace) {
       item->item_if.type = HVM_TRACE_SEQUENCE_ITEM_IF;
       item->item_if.register_value = vm->program[vm->ip + 1];
       item->item_if.destination    = *(uint64_t*)(&vm->program[vm->ip + 2]);
+      item->item_if.branched       = false;
       break;
 
     case HVM_OP_GOTO:
@@ -149,7 +157,7 @@ void hvm_jit_call_trace_push_instruction(hvm_vm *vm, hvm_call_trace *trace) {
 
     default:
       fprintf(stderr, "trace: don't know what to do with instruction: %d\n", instr);
-      do_increment = 0;
+      do_increment = false;
   }
   if(do_increment == true) {
     trace->sequence_length += 1;
@@ -166,14 +174,24 @@ void hvm_jit_tracer_before_instruction(hvm_vm *vm) {
 }
 
 void hvm_jit_tracer_annotate_invokeprimitive_returned_type(hvm_vm *vm, hvm_obj_ref *val) {
-  hvm_frame *frame = vm->top;
-  hvm_call_trace *trace = frame->trace;
+  hvm_frame *frame              = vm->top;
+  hvm_call_trace *trace         = frame->trace;
   // Get the current item (was pushed in `hvm_jit_call_trace_push_instruction`)
-  hvm_trace_sequence_item *item = &trace->sequence[trace->sequence_length - 1];
-  assert(item->invokeprimitive.type == HVM_TRACE_SEQUENCE_ITEM_INVOKEPRIMITIVE);
+  hvm_trace_sequence_item *item = trace->current_item;
+  assert(item->head.type == HVM_TRACE_SEQUENCE_ITEM_INVOKEPRIMITIVE);
   // Update the return object type annotation using the object handed to us
   // by the VM.
   item->invokeprimitive.returned_type = val->type;
+}
+
+void hvm_jit_tracer_annotate_if_branched(hvm_vm *vm, bool branched) {
+  hvm_frame *frame              = vm->top;
+  hvm_call_trace *trace         = frame->trace;
+  hvm_trace_sequence_item *item = trace->current_item;
+  // Check to make sure the item is the right type and set the
+  // `.branched` property.
+  assert(item->head.type == HVM_TRACE_SEQUENCE_ITEM_IF);
+  item->item_if.branched = branched;
 }
 
 void hvm_jit_tracer_dump_trace(hvm_vm *vm, hvm_call_trace *trace) {
@@ -188,6 +206,7 @@ void hvm_jit_tracer_dump_trace(hvm_vm *vm, hvm_call_trace *trace) {
     byte reg, reg1, reg2, reg3;
     char *symbol_name;
     uint32_t short_symbol_id;
+    uint64_t u64;
 
     switch(item->head.type) {
       case HVM_TRACE_SEQUENCE_ITEM_RETURN:
@@ -219,6 +238,18 @@ void hvm_jit_tracer_dump_trace(hvm_vm *vm, hvm_call_trace *trace) {
         hvm_obj_ref *ref = hvm_const_pool_get_const(&vm->const_pool, short_symbol_id);
         symbol_name = hvm_desymbolicate(vm->symbols, ref->data.u64);
         printf("$%-3d = setsymbol(#%d = %s)", reg, short_symbol_id, symbol_name);
+        break;
+      case HVM_TRACE_SEQUENCE_ITEM_ADD:
+        reg1 = item->add.register_result;
+        reg2 = item->add.register_operand1;
+        reg3 = item->add.register_operand2;
+        printf("$%-3d = $%d + $%d", reg1, reg2, reg3);
+        break;
+      case HVM_TRACE_SEQUENCE_ITEM_IF:
+        reg1 = item->item_if.register_value;
+        u64  = item->item_if.destination;
+        char *branched = (item->item_if.branched ? "yes" : "no");
+        printf("if($%d, 0x%08llX, branched = %s)", reg1, u64, branched);
         break;
       default:
         break;

@@ -65,6 +65,8 @@ typedef struct hvm_trace_sequence_item_if {
   byte register_value;
   /// Destination we're jumping to if true
   uint64_t destination;
+  /// Whether or not this if branch was taken (went to destination)
+  bool branched;
 } hvm_trace_sequence_item_if;
 
 typedef struct hvm_trace_sequence_item_goto {
@@ -148,6 +150,8 @@ typedef struct hvm_call_trace {
   uint64_t entry;
   /// Meta-instruction sequence for the trace
   hvm_trace_sequence_item *sequence;
+  /// Current item in the sequence that is being traced
+  hvm_trace_sequence_item *current_item;
   /// Maximum of at least 4 billion instructions should be enough
   unsigned int sequence_length;
   /// Capacity of the sequence
@@ -160,7 +164,8 @@ hvm_call_trace *hvm_new_call_trace(hvm_vm *vm);
 void hvm_jit_tracer_before_instruction(hvm_vm *vm);
 
 // Special hooks for annotating instructions (invoked by the JIT dispatcher)
-void hvm_jit_tracer_annotate_invokeprimitive_returned_type(hvm_vm *vm, hvm_obj_ref *val);
+void hvm_jit_tracer_annotate_invokeprimitive_returned_type(hvm_vm*, hvm_obj_ref*);
+void hvm_jit_tracer_annotate_if_branched(hvm_vm*, bool branched);
 
 void hvm_jit_tracer_dump_trace(hvm_vm*, hvm_call_trace*);
 

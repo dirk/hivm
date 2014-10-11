@@ -269,7 +269,14 @@ EXECUTE:
       reg  = vm->program[vm->ip + 1];
       dest = READ_U64(&vm->program[vm->ip + 2]);
       val  = _hvm_vm_register_read(vm, reg);
-      if(val->type == HVM_NULL || (val->type == HVM_INTEGER && val->data.i64 == 0)) {
+      bool dont_branch = (val->type == HVM_NULL || (val->type == HVM_INTEGER && val->data.i64 == 0));
+      IN_JIT(
+        if(vm->top->trace != NULL) {
+          // Update the trace to indicate whether or not this branch was taken.
+          hvm_jit_tracer_annotate_if_branched(vm, !dont_branch);
+        }
+      )
+      if(dont_branch) {
         // Falsey, add on the 9 bytes for the instruction parameters and continue onwards.
         vm->ip += 9;
         break;
