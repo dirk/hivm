@@ -8,6 +8,7 @@ typedef struct hvm_trace_compiled_frame {
 typedef enum {
   HVM_COMPILE_DATA_ARRAYSET,
   HVM_COMPILE_DATA_ARRAYGET,
+  HVM_COMPILE_DATA_ADD,
   HVM_COMPILE_DATA_SETSYMBOL,
   HVM_COMPILE_DATA_INVOKEPRIMITIVE
 } hvm_compile_data_type;
@@ -36,6 +37,15 @@ typedef struct hvm_compile_sequence_data_arrayget {
   byte reg;
 } hvm_compile_sequence_data_arrayget;
 
+typedef struct hvm_compile_sequence_data_add {
+  HVM_COMPILE_DATA_HEAD;
+  LLVMValueRef operand1;
+  LLVMValueRef operand2;
+  // Results
+  LLVMValueRef result;
+  byte reg;
+} hvm_compile_sequence_data_add;
+
 typedef struct hvm_compile_sequence_data_setsymbol {
   HVM_COMPILE_DATA_HEAD;
   // Register that the `.symbol` would be placed into.
@@ -63,6 +73,7 @@ typedef struct hvm_compile_sequence_data_invokeprimitive {
 typedef union hvm_compile_sequence_data {
   hvm_compile_sequence_data_arrayset  arrayset;
   hvm_compile_sequence_data_arrayget  arrayget;
+  hvm_compile_sequence_data_add       add;
   hvm_compile_sequence_data_setsymbol setsymbol;
   hvm_compile_sequence_data_invokeprimitive invokeprimitive;
 } hvm_compile_sequence_data;

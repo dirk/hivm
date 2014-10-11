@@ -100,6 +100,20 @@ LLVMValueRef hvm_jit_vm_call_primitive_llvm_value(hvm_compile_bundle *bundle) {
   return func;
 }
 
+LLVMValueRef hvm_jit_obj_int_add_llvm_value(hvm_compile_bundle *bundle) {
+  static LLVMValueRef func;
+  if(!func) {
+    UNPACK_BUNDLE;
+    LLVMTypeRef pointer_type   = hvm_jit_get_llvm_pointer_type();
+    LLVMTypeRef param_types[2] = {pointer_type, pointer_type};
+    LLVMTypeRef func_type      = LLVMFunctionType(pointer_type, param_types, 2, false);
+    // Build and register
+    func = LLVMAddFunction(module, "hvm_obj_int_add", func_type);
+    LLVMAddGlobalMapping(engine, func, &hvm_obj_int_add);
+  }
+  return func;
+}
+
 #define JIT_SAVE_DATA_ITEM_AND_VALUE(REG, DATA_ITEM, VALUE) \
   if(REG <= 127) { \
     general_reg_data_sources[REG] = DATA_ITEM; \
@@ -124,7 +138,7 @@ void hvm_jit_compile_resolve_registers(hvm_vm *vm, hvm_call_trace *trace, hvm_co
   byte reg, reg_array, reg_index, reg_value, reg_symbol;
   unsigned int type;
   hvm_compile_sequence_data *data = bundle->data;
-  LLVMValueRef value_array, value_index, value_symbol;
+  LLVMValueRef value_array, value_index, value_symbol, value1, value2;
   // Function-pointer-as-value
   LLVMValueRef func;
 
@@ -204,6 +218,19 @@ void hvm_jit_compile_resolve_registers(hvm_vm *vm, hvm_call_trace *trace, hvm_co
         func = hvm_jit_vm_call_primitive_llvm_value(bundle);
         LLVMValueRef invokeprimitive_args[2] = {value_vm, value_symbol};
         LLVMBuildCall(builder, func, invokeprimitive_args, 2, "invokeprimitive");
+        break;
+
+      case HVM_TRACE_SEQUENCE_ITEM_ADD:
+        data_item->add.type = HVM_COMPILE_DATA_ADD;
+        // Get the source values for the operation
+        value1 = general_reg_values[trace_item->add.register_operand1];
+        value2 = general_reg_values[trace_item->add.register_operand2];
+        data_item->add.operand1 = value1;
+        data_item->add.operand2 = value2;
+        // Build our add operation
+        func = hvm_jit_obj_int_add_llvm_value(bundle);
+        LLVMValueRef add_args[2] = {value1, value2};
+        LLVMBuildCall(builder, func, add_args, 2, "add");
         break;
 
       default:
