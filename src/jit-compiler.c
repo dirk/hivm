@@ -251,12 +251,12 @@ void hvm_jit_compile_insert_block(LLVMValueRef parent_func, hvm_jit_block *block
   for(unsigned int i = 0; i < num_blocks; i++) {
     block = &blocks[i];
     // Don't duplicate blocks
-    if(ip == block->ip) {
+    if(index == block->index) {
       return;
     }
     // If the given IP is greater than this block, then shift blocks
     // backwards and insert this block.
-    if(ip > block->ip) {
+    if(index > block->index) {
       // Shuffle blocks backwards from the tail
       for(unsigned int n = num_blocks; n > i; n--) {
         struct hvm_jit_block *dest = &blocks[n];
