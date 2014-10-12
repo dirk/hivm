@@ -124,7 +124,7 @@ LLVMValueRef hvm_jit_obj_int_add_llvm_value(hvm_compile_bundle *bundle) {
     assert(false); \
   }
 
-void hvm_jit_compile_resolve_registers(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bundle *bundle) {
+void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bundle *bundle) {
   unsigned int i;
   // Sequence data items for the instruction that set a given register.
   hvm_compile_sequence_data *general_reg_data_sources[HVM_GENERAL_REGISTERS];
@@ -348,8 +348,8 @@ void hvm_jit_compile_trace(hvm_vm *vm, hvm_call_trace *trace) {
   hvm_jit_compile_identify_blocks(vm, trace, &bundle);
 
   // Resolve register references in instructions into concrete IR value
-  // references.
-  hvm_jit_compile_resolve_registers(vm, trace, &bundle);
+  // references and build the instruction sequence.
+  hvm_jit_compile_builder(vm, trace, &bundle);
 
   // Identify and extract gets/sets of globals and locals into dedicated
   // in-out pointers arguments to the block so that they can be passed

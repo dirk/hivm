@@ -114,6 +114,6 @@ typedef struct hvm_compile_bundle {
 void hvm_jit_compile_trace(hvm_vm*, hvm_call_trace*);
 
 // Compiler internals
-void hvm_jit_compile_resolve_registers(hvm_vm*, hvm_call_trace*, hvm_compile_bundle*);
+void hvm_jit_compile_builder(hvm_vm*, hvm_call_trace*, hvm_compile_bundle*);
 
 #endif
