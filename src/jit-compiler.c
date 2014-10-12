@@ -242,14 +242,9 @@ void hvm_jit_compile_resolve_registers(hvm_vm *vm, hvm_call_trace *trace, hvm_co
   }
 }
 
-void hvm_jit_compile_insert_block(hvm_compile_bundle *bundle, hvm_jit_block *blocks, unsigned int *num_blocks_ptr, unsigned int index, uint64_t ip) {
+void hvm_jit_compile_insert_block(LLVMValueRef parent_func, hvm_jit_block *blocks, unsigned int *num_blocks_ptr, unsigned int index, uint64_t ip) {
   unsigned int num_blocks = *num_blocks_ptr;
-  // Unpack the bundle
-  LLVMBuilderRef builder = bundle->llvm_builder;
   LLVMContextRef context = hvm_get_llvm_context();
-  // Get the top-level basic block and its parent function
-  LLVMBasicBlockRef insert_block = LLVMGetInsertBlock(builder);
-  LLVMValueRef      parent       = LLVMGetBasicBlockParent(insert_block);
   // Block to be operated upon
   hvm_jit_block *block;
 
@@ -278,27 +273,46 @@ void hvm_jit_compile_insert_block(hvm_compile_bundle *bundle, hvm_jit_block *blo
 set_block:
   block->ip          = ip;
   block->index       = index;
-  block->basic_block = LLVMAppendBasicBlockInContext(context, parent, NULL);
+  block->basic_block = LLVMAppendBasicBlockInContext(context, parent_func, NULL);
   // Update the count and return
   *num_blocks_ptr = num_blocks + 1;
   return;
 }
 
 void hvm_jit_compile_identify_blocks(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bundle *bundle) {
-  struct hvm_jit_block *blocks = malloc(sizeof(hvm_jit_block) * trace->sequence_length);
-  unsigned int num_blocks = 0;
+  hvm_jit_block *blocks = malloc(sizeof(hvm_jit_block) * trace->sequence_length);
+  unsigned int num_blocks;
   uint64_t ip;
+  hvm_trace_sequence_item *item;
+
+  // Unpack the bundle and get the context
+  LLVMBuilderRef builder = bundle->llvm_builder;
+  LLVMContextRef context = hvm_get_llvm_context();
+  // Get the top-level basic block and its parent function
+  LLVMBasicBlockRef insert_block = LLVMGetInsertBlock(builder);
+  LLVMValueRef      parent_func  = LLVMGetBasicBlockParent(insert_block);
+
+  // Set up a block for our entry point
+  hvm_jit_block *entry = &blocks[0];
+  // Get the first item in the trace (entry point)
+  assert(trace->sequence_length > 0);
+  item = &trace->sequence[0];
+  entry->ip          = item->head.ip;
+  entry->index       = 0;
+  entry->basic_block = LLVMAppendBasicBlockInContext(context, parent_func, NULL);
+  // Set num_blocks to reflect the existence of our entry function
+  num_blocks = 1;
 
   for(unsigned int i = 0; i < trace->sequence_length; i++) {
-    hvm_trace_sequence_item *item = &trace->sequence[i];
+    item = &trace->sequence[i];
     switch(item->head.type) {
       case HVM_OP_IF:
         ip = item->item_if.destination;
-        hvm_jit_compile_insert_block(bundle, blocks, &num_blocks, i, ip);
+        hvm_jit_compile_insert_block(parent_func, blocks, &num_blocks, i, ip);
         break;
       case HVM_OP_GOTO:
         ip = item->item_goto.destination;
-        hvm_jit_compile_insert_block(bundle, blocks, &num_blocks, i, ip);
+        hvm_jit_compile_insert_block(parent_func, blocks, &num_blocks, i, ip);
         break;
       default:
         continue;
@@ -307,7 +321,8 @@ void hvm_jit_compile_identify_blocks(hvm_vm *vm, hvm_call_trace *trace, hvm_comp
   // Now let's trim down the blocks array to the size we actually need.
   blocks = realloc(blocks, sizeof(hvm_jit_block) * num_blocks);
   // And save them in the bundle
-  bundle->blocks = blocks;
+  bundle->blocks        = blocks;
+  bundle->blocks_length = num_blocks;
 }
 
 void hvm_jit_compile_trace(hvm_vm *vm, hvm_call_trace *trace) {
