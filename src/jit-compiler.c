@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <assert.h>
+#include <string.h>
 
 #include <llvm-c/Core.h>
 #include <llvm-c/ExecutionEngine.h>
@@ -241,6 +242,74 @@ void hvm_jit_compile_resolve_registers(hvm_vm *vm, hvm_call_trace *trace, hvm_co
   }
 }
 
+void hvm_jit_compile_insert_block(hvm_compile_bundle *bundle, hvm_jit_block *blocks, unsigned int *num_blocks_ptr, unsigned int index, uint64_t ip) {
+  unsigned int num_blocks = *num_blocks_ptr;
+  // Unpack the bundle
+  LLVMBuilderRef builder = bundle->llvm_builder;
+  LLVMContextRef context = hvm_get_llvm_context();
+  // Get the top-level basic block and its parent function
+  LLVMBasicBlockRef insert_block = LLVMGetInsertBlock(builder);
+  LLVMValueRef      parent       = LLVMGetBasicBlockParent(insert_block);
+  // Block to be operated upon
+  hvm_jit_block *block;
+
+  for(unsigned int i = 0; i < num_blocks; i++) {
+    block = &blocks[i];
+    // Don't duplicate blocks
+    if(ip == block->ip) {
+      return;
+    }
+    // If the given IP is greater than this block, then shift blocks
+    // backwards and insert this block.
+    if(ip > block->ip) {
+      // Shuffle blocks backwards from the tail
+      for(unsigned int n = num_blocks; n > i; n--) {
+        struct hvm_jit_block *dest = &blocks[n];
+        struct hvm_jit_block *src  = &blocks[n - 1];
+        memcpy(dest, src, sizeof(struct hvm_jit_block));
+      }
+      // Insert the new block and return
+      goto set_block;
+    }
+  }
+  // Didn't find or insert the block, so tack it onto the tail
+  block = &blocks[num_blocks];
+
+set_block:
+  block->ip          = ip;
+  block->index       = index;
+  block->basic_block = LLVMAppendBasicBlockInContext(context, parent, NULL);
+  // Update the count and return
+  *num_blocks_ptr = num_blocks + 1;
+  return;
+}
+
+void hvm_jit_compile_identify_blocks(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bundle *bundle) {
+  struct hvm_jit_block *blocks = malloc(sizeof(hvm_jit_block) * trace->sequence_length);
+  unsigned int num_blocks = 0;
+  uint64_t ip;
+
+  for(unsigned int i = 0; i < trace->sequence_length; i++) {
+    hvm_trace_sequence_item *item = &trace->sequence[i];
+    switch(item->head.type) {
+      case HVM_OP_IF:
+        ip = item->item_if.destination;
+        hvm_jit_compile_insert_block(bundle, blocks, &num_blocks, i, ip);
+        break;
+      case HVM_OP_GOTO:
+        ip = item->item_goto.destination;
+        hvm_jit_compile_insert_block(bundle, blocks, &num_blocks, i, ip);
+        break;
+      default:
+        continue;
+    }
+  }
+  // Now let's trim down the blocks array to the size we actually need.
+  blocks = realloc(blocks, sizeof(hvm_jit_block) * num_blocks);
+  // And save them in the bundle
+  bundle->blocks = blocks;
+}
+
 void hvm_jit_compile_trace(hvm_vm *vm, hvm_call_trace *trace) {
   LLVMContextRef context = hvm_get_llvm_context();
   LLVMModuleRef  module = hvm_get_llvm_module();
@@ -258,6 +327,10 @@ void hvm_jit_compile_trace(hvm_vm *vm, hvm_call_trace *trace) {
 
   // Eventually going to run this as a hopefully-two-pass compilation. For now
   // though it's going to be multi-pass.
+
+  // Break our sequence into blocks based upon possible destinations of
+  // jumps/ifs/gotos/etc.
+  hvm_jit_compile_identify_blocks(vm, trace, &bundle);
 
   // Resolve register references in instructions into concrete IR value
   // references.
