@@ -124,6 +124,21 @@ LLVMValueRef hvm_jit_obj_int_add_llvm_value(hvm_compile_bundle *bundle) {
     assert(false); \
   }
 
+hvm_jit_block *hvm_jit_get_current_block(hvm_compile_bundle *bundle, unsigned int index) {
+  // Track the previous block since that's what we'll actually be returning
+  hvm_jit_block *prev = &bundle->blocks[0];
+
+  for(unsigned int i = 0; i < bundle->blocks_length; i++) {
+    hvm_jit_block *block = &bundle->blocks[i];
+    // Return the previous block if we've run over
+    if(block->index > index) {
+      return prev;
+    }
+    prev = block;
+  }
+  return prev;
+}
+
 void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bundle *bundle) {
   unsigned int i;
   // Sequence data items for the instruction that set a given register.
@@ -153,6 +168,12 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
   for(i = 0; i < trace->sequence_length; i++) {
     hvm_compile_sequence_data *data_item  = &data[i];
     hvm_trace_sequence_item   *trace_item = &trace->sequence[i];
+
+    hvm_jit_block    *current_block = hvm_jit_get_current_block(bundle, i);
+    LLVMBasicBlockRef current_basic_block = current_block->basic_block;
+    // Make sure our builder is in the right place
+    LLVMPositionBuilderAtEnd(builder, current_basic_block);
+
     // Do stuff with the item based upon its type.
     switch(trace_item->head.type) {
       case HVM_TRACE_SEQUENCE_ITEM_SETSYMBOL:
