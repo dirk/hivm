@@ -5,6 +5,15 @@
 typedef struct hvm_trace_compiled_frame {
 } hvm_trace_compiled_frame;
 
+typedef struct hvm_jit_block {
+  // The IP in the VM
+  uint64_t ip;
+  // The original index in the trace sequence that the block is for.
+  unsigned int index;
+  // The LLVM BasicBlock itself
+  LLVMBasicBlockRef basic_block;
+} hvm_jit_block;
+
 typedef enum {
   HVM_COMPILE_DATA_ARRAYSET,
   HVM_COMPILE_DATA_ARRAYGET,
@@ -18,6 +27,11 @@ typedef enum {
 
 // Data item conventions:
 //   .reg: Register that the result of the instruction goes in.
+
+typedef struct hvm_compile_sequence_data_goto {
+  HVM_COMPILE_DATA_HEAD;
+  hvm_jit_block *destination_block;
+} hvm_compile_sequence_data_goto;
 
 typedef struct hvm_compile_sequence_data_arrayset {
   HVM_COMPILE_DATA_HEAD;
@@ -49,6 +63,8 @@ typedef struct hvm_compile_sequence_data_add {
 
 typedef struct hvm_compile_sequence_data_if {
   HVM_COMPILE_DATA_HEAD;
+  hvm_jit_block *falsey_block;
+  hvm_jit_block *truthy_block;
 } hvm_compile_sequence_data_if;
 
 typedef struct hvm_compile_sequence_data_setsymbol {
@@ -81,17 +97,9 @@ typedef union hvm_compile_sequence_data {
   hvm_compile_sequence_data_add       add;
   hvm_compile_sequence_data_setsymbol setsymbol;
   hvm_compile_sequence_data_if        item_if;
+  hvm_compile_sequence_data_goto      item_goto;
   hvm_compile_sequence_data_invokeprimitive invokeprimitive;
 } hvm_compile_sequence_data;
-
-typedef struct hvm_jit_block {
-  // The IP in the VM
-  uint64_t ip;
-  // The original index in the trace sequence that the block is for.
-  unsigned int index;
-  // The LLVM BasicBlock itself
-  LLVMBasicBlockRef basic_block;
-} hvm_jit_block;
 
 /// Holds all information relevant to a compilation of a trace (eg. instruction
 /// sequence compilation data).
