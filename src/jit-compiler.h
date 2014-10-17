@@ -10,7 +10,8 @@ typedef enum {
   HVM_COMPILE_DATA_ARRAYGET,
   HVM_COMPILE_DATA_ADD,
   HVM_COMPILE_DATA_SETSYMBOL,
-  HVM_COMPILE_DATA_INVOKEPRIMITIVE
+  HVM_COMPILE_DATA_INVOKEPRIMITIVE,
+  HVM_COMPILE_DATA_IF
 } hvm_compile_data_type;
 
 #define HVM_COMPILE_DATA_HEAD hvm_compile_data_type type;
@@ -79,6 +80,7 @@ typedef union hvm_compile_sequence_data {
   hvm_compile_sequence_data_arrayget  arrayget;
   hvm_compile_sequence_data_add       add;
   hvm_compile_sequence_data_setsymbol setsymbol;
+  hvm_compile_sequence_data_if        item_if;
   hvm_compile_sequence_data_invokeprimitive invokeprimitive;
 } hvm_compile_sequence_data;
 
@@ -115,5 +117,6 @@ void hvm_jit_compile_trace(hvm_vm*, hvm_call_trace*);
 
 // Compiler internals
 void hvm_jit_compile_builder(hvm_vm*, hvm_call_trace*, hvm_compile_bundle*);
+hvm_jit_block *hvm_jit_compile_find_or_insert_block(LLVMValueRef, hvm_compile_bundle*, unsigned int, uint64_t);
 
 #endif

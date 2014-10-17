@@ -269,8 +269,11 @@ EXECUTE:
       reg  = vm->program[vm->ip + 1];
       dest = READ_U64(&vm->program[vm->ip + 2]);
       val  = _hvm_vm_register_read(vm, reg);
+      // Figure out whether or not we need to branch be seeing if the value
+      // is falsey (null or integer zero).
       bool dont_branch = (val->type == HVM_NULL || (val->type == HVM_INTEGER && val->data.i64 == 0));
       IN_JIT(
+        // Update the JIT branch predictor
         if(vm->top->trace != NULL) {
           // Update the trace to indicate whether or not this branch was taken.
           hvm_jit_tracer_annotate_if_branched(vm, !dont_branch);
@@ -285,7 +288,6 @@ EXECUTE:
         vm->ip = dest;
         goto EXECUTE;
       }
-
 
     case HVM_OP_LITINTEGER: // 1B OP | 1B REG | 8B LIT
       reg = vm->program[vm->ip + 1];

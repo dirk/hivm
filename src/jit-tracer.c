@@ -105,7 +105,7 @@ void hvm_jit_call_trace_push_instruction(hvm_vm *vm, hvm_call_trace *trace) {
 
     case HVM_OP_GOTO:
       item->item_goto.type = HVM_TRACE_SEQUENCE_ITEM_GOTO;
-      item->item_goto.destination = *(uint64_t*)(&vm->program[vm->ip + 2]);
+      item->item_goto.destination = *(uint64_t*)(&vm->program[vm->ip + 1]);
       break;
 
     case HVM_OP_ADD:
@@ -250,6 +250,10 @@ void hvm_jit_tracer_dump_trace(hvm_vm *vm, hvm_call_trace *trace) {
         u64  = item->item_if.destination;
         char *branched = (item->item_if.branched ? "yes" : "no");
         printf("if($%d, 0x%08llX, branched = %s)", reg1, u64, branched);
+        break;
+      case HVM_TRACE_SEQUENCE_ITEM_GOTO:
+        u64 = item->item_goto.destination;
+        printf("goto(0x%08llX)", u64);
         break;
       default:
         break;
