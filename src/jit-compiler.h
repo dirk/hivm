@@ -17,16 +17,23 @@ typedef struct hvm_jit_block {
 typedef enum {
   HVM_COMPILE_DATA_ARRAYSET,
   HVM_COMPILE_DATA_ARRAYGET,
+  HVM_COMPILE_DATA_ARRAYLEN,
   HVM_COMPILE_DATA_ADD,
   HVM_COMPILE_DATA_SETSYMBOL,
   HVM_COMPILE_DATA_INVOKEPRIMITIVE,
-  HVM_COMPILE_DATA_IF
+  HVM_COMPILE_DATA_IF,
+  HVM_COMPILE_DATA_GOTO,
+  HVM_COMPILE_DATA_LITINTEGER
 } hvm_compile_data_type;
 
 #define HVM_COMPILE_DATA_HEAD hvm_compile_data_type type;
 
 // Data item conventions:
 //   .reg: Register that the result of the instruction goes in.
+
+typedef struct hvm_compile_sequence_data_head {
+  HVM_COMPILE_DATA_HEAD;
+} hvm_compile_sequence_data_head;
 
 typedef struct hvm_compile_sequence_data_goto {
   HVM_COMPILE_DATA_HEAD;
@@ -69,13 +76,21 @@ typedef struct hvm_compile_sequence_data_if {
 
 typedef struct hvm_compile_sequence_data_setsymbol {
   HVM_COMPILE_DATA_HEAD;
-  // Register that the `.symbol` would be placed into.
+  // Register that the `.symbol` would be placed into
   byte reg;
-  // The symbol that was retrieved up from the constant table.
+  // The symbol that was retrieved up from the constant table
   LLVMValueRef value;
   // Index into the constant table
   uint32_t constant;
 } hvm_compile_sequence_data_setsymbol;
+
+typedef struct hvm_compile_sequence_data_litinteger {
+  HVM_COMPILE_DATA_HEAD;
+  // Register that the integer will be put in
+  byte reg;
+  // The constant integer in LLVM
+  LLVMValueRef value;
+} hvm_compile_sequence_data_litinteger;
 
 typedef struct hvm_compile_sequence_data_invokeprimitive {
   HVM_COMPILE_DATA_HEAD;
@@ -92,12 +107,14 @@ typedef struct hvm_compile_sequence_data_invokeprimitive {
 /// Structs used for figuring out and keeping track of data related to each
 /// sequence in the trace instruction sequence being compiled.
 typedef union hvm_compile_sequence_data {
-  hvm_compile_sequence_data_arrayset  arrayset;
-  hvm_compile_sequence_data_arrayget  arrayget;
-  hvm_compile_sequence_data_add       add;
-  hvm_compile_sequence_data_setsymbol setsymbol;
-  hvm_compile_sequence_data_if        item_if;
-  hvm_compile_sequence_data_goto      item_goto;
+  hvm_compile_sequence_data_head       head;
+  hvm_compile_sequence_data_arrayset   arrayset;
+  hvm_compile_sequence_data_arrayget   arrayget;
+  hvm_compile_sequence_data_add        add;
+  hvm_compile_sequence_data_setsymbol  setsymbol;
+  hvm_compile_sequence_data_if         item_if;
+  hvm_compile_sequence_data_goto       item_goto;
+  hvm_compile_sequence_data_litinteger litinteger;
   hvm_compile_sequence_data_invokeprimitive invokeprimitive;
 } hvm_compile_sequence_data;
 

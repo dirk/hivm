@@ -207,6 +207,7 @@ void hvm_jit_tracer_dump_trace(hvm_vm *vm, hvm_call_trace *trace) {
     char *symbol_name;
     uint32_t short_symbol_id;
     uint64_t u64;
+    int64_t  i64;
 
     switch(item->head.type) {
       case HVM_TRACE_SEQUENCE_ITEM_RETURN:
@@ -254,6 +255,16 @@ void hvm_jit_tracer_dump_trace(hvm_vm *vm, hvm_call_trace *trace) {
       case HVM_TRACE_SEQUENCE_ITEM_GOTO:
         u64 = item->item_goto.destination;
         printf("goto(0x%08llX)", u64);
+        break;
+      case HVM_TRACE_SEQUENCE_ITEM_ARRAYLEN:
+        reg1 = item->arraylen.register_value;
+        reg2 = item->arraylen.register_array;
+        printf("$%-3d = $%d.arraylen", reg1, reg2);
+        break;
+      case HVM_TRACE_SEQUENCE_ITEM_LITINTEGER:
+        reg1 = item->litinteger.register_value;
+        i64  = item->litinteger.literal_value;
+        printf("$%-3d = litinteger(%lld)", reg1, i64);
         break;
       default:
         break;
