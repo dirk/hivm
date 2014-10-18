@@ -171,6 +171,19 @@ LLVMTypeRef hvm_jit_obj_ref_llvm_type() {
   return strct;
 }
 
+LLVMTypeRef hvm_jit_exit_bailout_llvm_type() {
+  static LLVMTypeRef strct;
+  if(!strct) {
+    LLVMContextRef context = hvm_get_llvm_context();
+    strct = LLVMStructCreateNamed(context, "hvm_jit_exit_bailout");
+    LLVMTypeRef status      = LLVMIntType(sizeof(hvm_jit_exit_status) * 8);
+    LLVMTypeRef destination = hvm_jit_get_llvm_pointer_type();
+    LLVMTypeRef body[2]     = {status, destination};
+    LLVMStructSetBody(strct, body, 2, false);
+  }
+  return strct;
+}
+
 unsigned int hvm_jit_get_trace_index_for_ip(hvm_call_trace *trace, uint64_t ip, bool *found) {
   for(unsigned int index = 0; index < trace->sequence_length; index++) {
     hvm_trace_sequence_item *item = &trace->sequence[index];
@@ -403,6 +416,59 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         break;
     }
   }
+}
+
+LLVMBasicBlockRef hvm_jit_build_bailout_block(hvm_vm *vm, LLVMBuilderRef builder, LLVMValueRef parent_func, LLVMValueRef *general_reg_values, uint64_t ip) {
+  LLVMContextRef context   = hvm_get_llvm_context();
+  LLVMTypeRef pointer_type = hvm_jit_get_llvm_pointer_type();
+  LLVMTypeRef int32_type   = LLVMInt32Type();
+  LLVMTypeRef int64_type   = LLVMInt64Type();
+  LLVMValueRef i32_zero    = LLVMConstInt(int32_type, 0, true);
+
+  // Create the basic block for our bailout code
+  LLVMBasicBlockRef basic_block = LLVMAppendBasicBlockInContext(context, parent_func, NULL);
+  LLVMPositionBuilderAtEnd(builder, basic_block);
+
+  // Get the pointer to the VM registers
+  hvm_obj_ref **general_regs = vm->general_regs;
+  // Then convert that to an LLVM pointer
+  LLVMValueRef general_regs_ptr = LLVMConstInt(pointer_type, (unsigned long long)general_regs, false);
+
+  // Loop over each computed general reg value and copy that into the VM's
+  // general regs.
+  for(unsigned int i = 0; i < HVM_GENERAL_REGISTERS; i++) {
+    LLVMValueRef value = general_reg_values[i];
+    if(value == NULL) {
+      // Don't need to worry about copying NULLs
+      continue;
+    }
+    LLVMValueRef idx_val = LLVMConstInt(int32_type, i, true);
+    // Get the pointer to the item in the pointer array
+    LLVMValueRef reg_ptr = LLVMBuildGEP(builder, general_regs_ptr, (LLVMValueRef[]){idx_val}, 1, NULL);
+    // Now actually copy the value into the register
+    LLVMBuildStore(builder, value, reg_ptr);
+  }
+  // TODO: Also copy argument registers!
+
+  // Get the bailout type and allocate the structure in the stack frame
+  LLVMTypeRef bailout_type   = hvm_jit_exit_bailout_llvm_type();
+  LLVMValueRef bailout_value = LLVMBuildAlloca(builder, bailout_type, NULL);
+  // Initialize the values for the bailout struct (both unsigned)
+  LLVMTypeRef  status_type  = LLVMIntType(sizeof(hvm_jit_exit_status) * 8);
+  LLVMValueRef status_value = LLVMConstInt(status_type, HVM_JIT_EXIT_BAILOUT, false);
+  LLVMValueRef dest_value   = LLVMConstInt(int64_type, ip, false);
+  // Get the pointers to the struct elements
+  LLVMValueRef status_ptr   = LLVMBuildGEP(builder, bailout_value, (LLVMValueRef[]){i32_zero, LLVMConstInt(int32_type, 0, true)}, 2, NULL);
+  LLVMValueRef dest_ptr     = LLVMBuildGEP(builder, bailout_value, (LLVMValueRef[]){i32_zero, LLVMConstInt(int32_type, 1, true)}, 2, NULL);
+  // And store the actual values in them
+  LLVMBuildStore(builder, status_value, status_ptr);
+  LLVMBuildStore(builder, dest_value,   dest_ptr);
+  // Then dereference the whole struct so we can return it
+  LLVMValueRef bailout_ptr   = LLVMBuildGEP(builder, bailout_value, (LLVMValueRef[]){i32_zero}, 1, NULL);
+  LLVMValueRef bailout_strct = LLVMBuildLoad(builder, bailout_ptr, NULL);
+  LLVMBuildRet(builder, bailout_strct);
+
+  return basic_block;
 }
 
 hvm_jit_block *hvm_jit_compile_find_or_insert_block(LLVMValueRef parent_func, hvm_compile_bundle *bundle, unsigned int index, uint64_t ip) {

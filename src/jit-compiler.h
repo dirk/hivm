@@ -137,6 +137,19 @@ typedef struct hvm_compile_bundle {
 #endif
 } hvm_compile_bundle;
 
+typedef enum {
+  HVM_JIT_EXIT_BAILOUT
+} hvm_jit_exit_status;
+
+typedef struct hvm_jit_exit_bailout {
+  hvm_jit_exit_status status;
+  uint64_t destination;
+} hvm_jit_exit_bailout;
+
+typedef union hvm_jit_exit {
+  hvm_jit_exit_bailout bailout;
+} hvm_jit_exit;
+
 // External API
 void hvm_jit_compile_trace(hvm_vm*, hvm_call_trace*);
 
