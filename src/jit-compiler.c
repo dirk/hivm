@@ -197,15 +197,23 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
   // Function-pointer-as-value
   LLVMValueRef func;
 
-  LLVMBuilderRef    builder      = bundle->llvm_builder;
+  LLVMBuilderRef builder = bundle->llvm_builder;
   // Get the top-level basic block and its parent function
   // LLVMBasicBlockRef insert_block = LLVMGetInsertBlock(builder);
-  //LLVMValueRef       parent_func  = LLVMGetBasicBlockParent(insert_block);
+  // LLVMValueRef      parent_func  = LLVMGetBasicBlockParent(insert_block);
 
   // Set up our generic pointer type (in the 0 address space)
   LLVMTypeRef pointer_type = hvm_jit_get_llvm_pointer_type();
   LLVMTypeRef int32_type   = LLVMInt32Type();
   LLVMTypeRef int64_type   = LLVMInt64Type();
+  // Set up some basic values that we'll be using a fair amount
+  LLVMValueRef i32_zero    = LLVMConstInt(int32_type, 0, true);
+  LLVMValueRef i32_one     = LLVMConstInt(int32_type, 1, true);
+  LLVMValueRef i64_zero    = LLVMConstInt(int64_type, 0, true);
+  // Get values for HVM_NULL and HVM_INTEGER
+  LLVMTypeRef  obj_type_enum_size = LLVMIntType(sizeof(hvm_obj_type) * 8);
+  LLVMValueRef const_hvm_null     = LLVMConstInt(obj_type_enum_size, HVM_NULL, false);
+  LLVMValueRef const_hvm_integer  = LLVMConstInt(obj_type_enum_size, HVM_INTEGER, false);
 
   for(i = 0; i < trace->sequence_length; i++) {
     hvm_compile_sequence_data *data_item  = &data[i];
@@ -301,41 +309,30 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
 
       case HVM_TRACE_SEQUENCE_ITEM_IF:
         data_item->item_if.type = HVM_COMPILE_DATA_IF;
-
-        // Also get our object ref type and integer type
-        LLVMTypeRef obj_ref_type = hvm_jit_obj_ref_llvm_type();
-
-        // Now build our comparison:
-        //   FALSEY = (val->type == HVM_NULL || (val->type == HVM_INTEGER && val->data.i64 == 0))
+        // Building our comparison:
+        //   falsey = (val->type == HVM_NULL || (val->type == HVM_INTEGER && val->data.i64 == 0))
         // We only branch to the destination if it is not falsey (ie. truthy)
-        value1                = general_reg_values[trace_item->item_if.register_value];
-        LLVMValueRef val_ref  = LLVMBuildPointerCast(builder, value1, obj_ref_type, NULL);
-        LLVMValueRef i32_zero = LLVMConstInt(int32_type, 0, true);
-        LLVMValueRef i32_one  = LLVMConstInt(int32_type, 1, true);
-        LLVMValueRef i64_zero = LLVMConstInt(int64_type, 0, true);
-        // Get values for HVM_NULL and HVM_INTEGER
-        LLVMTypeRef  obj_ref_enum_type = LLVMIntType(sizeof(hvm_obj_type) * 8);
-        LLVMValueRef const_hvm_null    = LLVMConstInt(obj_ref_enum_type, HVM_NULL, false);
-        LLVMValueRef const_hvm_integer = LLVMConstInt(obj_ref_enum_type, HVM_INTEGER, false);
 
+        // Extract the value we'll be testing and cast it to an hvm_obj_ref
+        // type in the LLVM IR.
+        value1               = general_reg_values[trace_item->item_if.register_value];
+        LLVMValueRef val_ref = LLVMBuildPointerCast(builder, value1, hvm_jit_obj_ref_llvm_type(), NULL);
         // Get a pointer the the .type of the object ref struct (first 0 index
         // is to get the first value pointed at, the second 0 index is to get
-        // the first item in the struct).
+        // the first item in the struct). Then load it into an integer value.
         LLVMValueRef val_type_ptr = LLVMBuildGEP(builder, val_ref, (LLVMValueRef[]){i32_zero, i32_zero}, 2, NULL);
-        // Convert that pointer to an integer.
         LLVMValueRef val_type     = LLVMBuildLoad(builder, val_type_ptr, NULL);
-
-        // Get the .data as an i64:
+        // Get the .data of the object as an i64:
         LLVMValueRef val_data_ptr = LLVMBuildGEP(builder, val_ref, (LLVMValueRef[]){i32_zero, i32_one}, 2, NULL);
         LLVMValueRef val_data     = LLVMBuildLoad(builder, val_data_ptr, NULL);
 
-        // Left side
+        // Left side of the falsiness test
         LLVMValueRef val_is_null      = LLVMBuildICmp(builder, LLVMIntEQ, val_type, const_hvm_null, NULL);
-        // Right side
+        // Right side of the test (check if integer and i64-value is zero)
         LLVMValueRef val_is_int       = LLVMBuildICmp(builder, LLVMIntEQ, val_type, const_hvm_integer, NULL);
         LLVMValueRef val_data_is_zero = LLVMBuildICmp(builder, LLVMIntEQ, val_data, i64_zero, NULL);
         LLVMValueRef val_is_zero_int  = LLVMBuildAnd(builder, val_is_int, val_data_is_zero, NULL);
-        // Final is-falsey computation
+        // Final is-falsey computation and conversion to inverse (is-truthy)
         LLVMValueRef falsey = LLVMBuildOr(builder, val_is_null, val_is_zero_int, NULL);
         LLVMValueRef truthy = LLVMBuildNot(builder, falsey, NULL);
 
@@ -361,15 +358,19 @@ hvm_jit_block *hvm_jit_compile_find_or_insert_block(LLVMValueRef parent_func, hv
   // Block to be operated upon
   hvm_jit_block *block;
 
+  // TODO: Optimize this to look at the end of the blocks array to see if the
+  //       IP of the block to be inserted is greater than the last block's IP.
+  //       If this is true then we can probably skip the search.
+
   for(unsigned int i = 0; i < num_blocks; i++) {
     block = &blocks[i];
     // Don't duplicate blocks
-    if(index == block->index) {
+    if(ip == block->ip) {
       return block;
     }
-    // If the given index is greater than this block, then shift blocks
+    // If the given IP is greater than this block, then shift blocks
     // backwards and insert this block.
-    if(index > block->index) {
+    if(ip > block->ip) {
       // Shuffle blocks backwards from the tail
       for(unsigned int n = num_blocks; n > i; n--) {
         struct hvm_jit_block *dest = &blocks[n];
@@ -404,6 +405,9 @@ bool hvm_jit_trace_contains_ip(hvm_call_trace *trace, uint64_t ip) {
 }
 
 void hvm_jit_compile_identify_blocks(hvm_call_trace *trace, hvm_compile_bundle *bundle) {
+  // Sanity guards
+  assert(trace->sequence_length > 0);
+
   hvm_jit_block *blocks = malloc(sizeof(hvm_jit_block) * trace->sequence_length);
   // Set up the blocks and length in the bundle
   bundle->blocks        = blocks;
@@ -411,6 +415,8 @@ void hvm_jit_compile_identify_blocks(hvm_call_trace *trace, hvm_compile_bundle *
 
   uint64_t ip;
   hvm_trace_sequence_item *item;
+  hvm_compile_sequence_data *data_item;
+  hvm_jit_block *block;
 
   // Unpack the bundle and get the context
   LLVMBuilderRef builder = bundle->llvm_builder;
@@ -419,20 +425,18 @@ void hvm_jit_compile_identify_blocks(hvm_call_trace *trace, hvm_compile_bundle *
   LLVMBasicBlockRef insert_block = LLVMGetInsertBlock(builder);
   LLVMValueRef      parent_func  = LLVMGetBasicBlockParent(insert_block);
 
-  hvm_jit_block *block;
+  // Get the first item and set up a block based off of it for entry
+  item = &trace->sequence[0];
   // Set up a block for our entry point
   hvm_jit_block *entry = &blocks[0];
-  // Get the first item in the trace (entry point)
-  assert(trace->sequence_length > 0);
-  item = &trace->sequence[0];
-  entry->ip          = item->head.ip;
-  entry->index       = 0;
-  entry->basic_block = LLVMAppendBasicBlockInContext(context, parent_func, NULL);
+  entry->ip            = item->head.ip;
+  entry->index         = 0;
+  entry->basic_block   = LLVMAppendBasicBlockInContext(context, parent_func, NULL);
 
   for(unsigned int i = 0; i < trace->sequence_length; i++) {
     item = &trace->sequence[i];
     // Also need to be able to set some stuff on the data item in this pass
-    hvm_compile_sequence_data *data_item = &bundle->data[i];
+    data_item = &bundle->data[i];
 
     switch(item->head.type) {
       case HVM_OP_IF:
