@@ -228,8 +228,8 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
 
   LLVMBuilderRef builder = bundle->llvm_builder;
   // Get the top-level basic block and its parent function
-  // LLVMBasicBlockRef insert_block = LLVMGetInsertBlock(builder);
-  // LLVMValueRef      parent_func  = LLVMGetBasicBlockParent(insert_block);
+  LLVMBasicBlockRef insert_block = LLVMGetInsertBlock(builder);
+  LLVMValueRef      parent_func  = LLVMGetBasicBlockParent(insert_block);
 
   // Set up our generic pointer type (in the 0 address space)
   LLVMTypeRef pointer_type = hvm_jit_get_llvm_pointer_type();
@@ -388,11 +388,26 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         LLVMValueRef falsey = LLVMBuildOr(builder, val_is_null, val_is_zero_int, NULL);
         LLVMValueRef truthy = LLVMBuildNot(builder, falsey, NULL);
 
-        // Fetch our destination blocks from the previous pass
-        hvm_jit_block *truthy_block = data_item->item_if.truthy_block;
-        hvm_jit_block *falsey_block = data_item->item_if.falsey_block;
+        uint64_t ip;
+        // Get the TRUTHY block to branch to or set up a bailout
+        LLVMBasicBlockRef truthy_block;
+        if(data_item->item_if.truthy_block != NULL) {
+          truthy_block = data_item->item_if.truthy_block->basic_block;
+        } else {
+          ip = trace_item->item_if.destination;
+          truthy_block = hvm_jit_build_bailout_block(vm, builder, parent_func, general_reg_values, ip);
+        }
+        // Same for the FALSEY block
+        LLVMBasicBlockRef falsey_block;
+        if(data_item->item_if.falsey_block != NULL) {
+          falsey_block = data_item->item_if.falsey_block->basic_block;
+        } else {
+          // Falsey just continues past the instruction
+          ip = trace_item->head.ip + 10;
+          falsey_block = hvm_jit_build_bailout_block(vm, builder, parent_func, general_reg_values, ip);
+        }
         // And finally actually do the branch with those blocks
-        LLVMBuildCondBr(builder, truthy, truthy_block->basic_block, falsey_block->basic_block);
+        LLVMBuildCondBr(builder, truthy, truthy_block, falsey_block);
         break;
 
       case HVM_TRACE_SEQUENCE_ITEM_LITINTEGER:
@@ -556,6 +571,8 @@ void hvm_jit_compile_identify_blocks(hvm_call_trace *trace, hvm_compile_bundle *
   bundle->blocks        = blocks;
   bundle->blocks_length = 1;// See entry point below
 
+  bool found;
+  unsigned int index;
   uint64_t ip;
   hvm_trace_sequence_item *item;
   hvm_compile_sequence_data *data_item;
@@ -585,18 +602,28 @@ void hvm_jit_compile_identify_blocks(hvm_call_trace *trace, hvm_compile_bundle *
       case HVM_OP_IF:
         // Handle the truthy destination
         ip = item->item_if.destination;
-        // TODO: Generate bailout
-        assert(hvm_jit_trace_contains_ip(trace, ip));
-        // Set destination for TRUTHINESS
-        block = hvm_jit_compile_find_or_insert_block(parent_func, bundle, i, ip);
-        data_item->item_if.truthy_block = block;
-        // Handle the destination for FALSINESS
-        ip = item->head.ip + 10;// 10 bytes for op, register, and destination
-        bool found;
-        unsigned int i = hvm_jit_get_trace_index_for_ip(trace, ip, &found);
-        assert(found == true);
-        block = hvm_jit_compile_find_or_insert_block(parent_func, bundle, i, ip);
-        data_item->item_if.falsey_block = block;
+        if(hvm_jit_trace_contains_ip(trace, ip)) {
+          // Set up a TRUTHINESS block for the IP if it was found
+          block = hvm_jit_compile_find_or_insert_block(parent_func, bundle, i, ip);
+          data_item->item_if.truthy_block = block;
+        } else {
+          // Otherwise set the truthy block to NULL so that we know to insert
+          // a bailout
+          data_item->item_if.truthy_block = NULL;
+        }
+
+        found = false;
+        ip    = item->head.ip + 10;// 10 bytes for op, register, and destination
+        index = hvm_jit_get_trace_index_for_ip(trace, ip, &found);
+        // If we found a block:
+        if(found) {
+          // Setting up a FALSINESS block
+          block = hvm_jit_compile_find_or_insert_block(parent_func, bundle, index, ip);
+          data_item->item_if.falsey_block = block;  
+        } else {
+          // Otherwise set to NULL to indicate we need a bailout
+          data_item->item_if.falsey_block = NULL;
+        }
         break;
 
       case HVM_OP_GOTO:
