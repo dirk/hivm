@@ -14,6 +14,42 @@
 #include "jit-tracer.h"
 #include "jit-compiler.h"
 
+static bool constants_defined;
+// Static constants we'll be using
+static LLVMTypeRef  obj_type_enum_size;
+// Types
+static LLVMTypeRef  pointer_type;
+static LLVMTypeRef  void_type;
+static LLVMTypeRef  int32_type;
+static LLVMTypeRef  int32_type;
+static LLVMTypeRef  int64_type;
+// Some values we'll be reusing a lot
+static LLVMValueRef i32_zero;
+static LLVMValueRef i32_one;
+static LLVMValueRef i64_zero;
+// Integer values of the HVM_NULL and HVM_INTEGER enum items
+static LLVMValueRef const_hvm_null;
+static LLVMValueRef const_hvm_integer;
+
+void hvm_jit_define_constants() {
+  if(constants_defined) {
+    return;// Don't redefine!
+  }
+  obj_type_enum_size = LLVMIntType(sizeof(hvm_obj_type) * 8);
+  const_hvm_null     = LLVMConstInt(obj_type_enum_size, HVM_NULL, false);
+  const_hvm_integer  = LLVMConstInt(obj_type_enum_size, HVM_INTEGER, false);
+  pointer_type       = LLVMPointerType(LLVMVoidType(), 0);
+  void_type          = LLVMVoidType();
+  int32_type         = LLVMInt32Type();
+  int64_type         = LLVMInt64Type();
+  i32_zero           = LLVMConstInt(int32_type, 0, true);
+  i32_one            = LLVMConstInt(int32_type, 1, true);
+  i64_zero           = LLVMConstInt(int64_type, 0, true);
+  // Mark that we've defined them so we don't redefine
+  constants_defined = true;
+}
+
+// Reuse our compilation context and module through program lifetime
 static LLVMContextRef hvm_shared_llvm_context;
 static LLVMModuleRef  hvm_shared_llvm_module;
 
@@ -30,102 +66,76 @@ LLVMModuleRef hvm_get_llvm_module() {
   return hvm_shared_llvm_module;
 }
 
-LLVMTypeRef hvm_jit_get_llvm_pointer_type() {
-  static LLVMTypeRef pointer_type;
-  if(!pointer_type) {
-    // Generic pointer type
-    pointer_type = LLVMPointerType(LLVMVoidType(), 0);
-  }
-  return pointer_type;
-}
-LLVMTypeRef hvm_jit_get_llvm_void_type() {
-  static LLVMTypeRef void_type;
-  if(!void_type) {
-    void_type = LLVMVoidType();
-  }
-  return void_type;
-}
+#define UNPACK_BUNDLE(BUNDLE) \
+  LLVMModuleRef module          = BUNDLE->llvm_module; \
+  LLVMExecutionEngineRef engine = BUNDLE->llvm_engine;
 
-#define UNPACK_BUNDLE \
-  LLVMModuleRef module          = bundle->llvm_module; \
-  LLVMExecutionEngineRef engine = bundle->llvm_engine;
+#define STATIC_VALUE(TYPE, NAME) \
+  static TYPE NAME; \
+  if(NAME) { \
+    return NAME; \
+  }
 
 LLVMValueRef hvm_jit_obj_array_get_llvm_value(hvm_compile_bundle *bundle) {
-  static LLVMValueRef func;
-  if(!func) {
-    UNPACK_BUNDLE;
-    LLVMTypeRef ptr_type       = hvm_jit_get_llvm_pointer_type();
-    LLVMTypeRef return_type    = ptr_type;
-    LLVMTypeRef param_types[2] = {ptr_type, ptr_type};
-    // Last argument tells LLVM it's non-variadic
-    LLVMTypeRef func_type      = LLVMFunctionType(return_type, param_types, 2, false);
-    // LLVMAddFunction calls the following LLVM C++:
-    //   Function::Create(functiontype, GlobalValue::ExternalLinkage, name, module)
-    func = LLVMAddFunction(module, "hvm_obj_array_get", func_type);
-    // Then register our function pointer as a global external linkage in
-    // the execution engine.
-    LLVMAddGlobalMapping(engine, func, &hvm_obj_array_get);
-  }
+  STATIC_VALUE(LLVMValueRef, func);
+  UNPACK_BUNDLE(bundle);
+  LLVMTypeRef return_type    = pointer_type;
+  LLVMTypeRef param_types[2] = {pointer_type, pointer_type};
+  // Last argument tells LLVM it's non-variadic
+  LLVMTypeRef func_type      = LLVMFunctionType(return_type, param_types, 2, false);
+  // LLVMAddFunction calls the following LLVM C++:
+  //   Function::Create(functiontype, GlobalValue::ExternalLinkage, name, module)
+  func = LLVMAddFunction(module, "hvm_obj_array_get", func_type);
+  // Then register our function pointer as a global external linkage in
+  // the execution engine.
+  LLVMAddGlobalMapping(engine, func, &hvm_obj_array_get);
   return func;
 }
 
 LLVMValueRef hvm_jit_obj_array_set_llvm_value(hvm_compile_bundle *bundle) {
-  static LLVMValueRef func;
-  if(!func) {
-    UNPACK_BUNDLE;
-    LLVMTypeRef pointer_type = hvm_jit_get_llvm_pointer_type();
-    LLVMTypeRef void_type    = hvm_jit_get_llvm_void_type();
-    // Set up our parameters and return
-    LLVMTypeRef return_type    = void_type;
-    LLVMTypeRef param_types[3] = {pointer_type, pointer_type, pointer_type};
-    LLVMTypeRef func_type      = LLVMFunctionType(return_type, param_types, 3, false);
-    // Build the function and register it
-    func = LLVMAddFunction(module, "hvm_obj_array_set", func_type);
-    LLVMAddGlobalMapping(engine, func, &hvm_obj_array_set);
-  }
+  STATIC_VALUE(LLVMValueRef, func);
+  UNPACK_BUNDLE(bundle);
+  // Set up our parameters and return
+  LLVMTypeRef return_type    = void_type;
+  LLVMTypeRef param_types[3] = {pointer_type, pointer_type, pointer_type};
+  LLVMTypeRef func_type      = LLVMFunctionType(return_type, param_types, 3, false);
+  // Build the function and register it
+  func = LLVMAddFunction(module, "hvm_obj_array_set", func_type);
+  LLVMAddGlobalMapping(engine, func, &hvm_obj_array_set);
   return func;
 }
 
 LLVMValueRef hvm_jit_obj_array_len_llvm_value(hvm_compile_bundle *bundle) {
-  static LLVMValueRef func;
-  if(!func) {
-    UNPACK_BUNDLE;
-    LLVMTypeRef pointer_type   = hvm_jit_get_llvm_pointer_type();
-    LLVMTypeRef param_types[1] = {pointer_type};
-    LLVMTypeRef func_type      = LLVMFunctionType(pointer_type, param_types, 1, false);
-    // Build and register
-    func = LLVMAddFunction(module, "hvm_obj_array_len", func_type);
-    LLVMAddGlobalMapping(engine, func, &hvm_obj_array_len);
-  }
+  STATIC_VALUE(LLVMValueRef, func);
+  UNPACK_BUNDLE(bundle);
+  LLVMTypeRef param_types[1] = {pointer_type};
+  LLVMTypeRef func_type      = LLVMFunctionType(pointer_type, param_types, 1, false);
+  // Build and register
+  func = LLVMAddFunction(module, "hvm_obj_array_len", func_type);
+  LLVMAddGlobalMapping(engine, func, &hvm_obj_array_len);
   return func;
 }
 
 LLVMValueRef hvm_jit_vm_call_primitive_llvm_value(hvm_compile_bundle *bundle) {
-  static LLVMValueRef func;
-  if(!func) {
-    UNPACK_BUNDLE;
-    LLVMTypeRef pointer_type   = hvm_jit_get_llvm_pointer_type();
-    LLVMTypeRef int64_type     = LLVMInt64Type();
-    LLVMTypeRef param_types[2] = {pointer_type, int64_type};
-    LLVMTypeRef func_type      = LLVMFunctionType(pointer_type, param_types, 2, false);
-    // Build and register
-    func = LLVMAddFunction(module, "hvm_vm_call_primitive", func_type);
-    LLVMAddGlobalMapping(engine, func, &hvm_vm_call_primitive);
-  }
+  STATIC_VALUE(LLVMValueRef, func);
+  UNPACK_BUNDLE(bundle);
+  LLVMTypeRef int64_type     = LLVMInt64Type();
+  LLVMTypeRef param_types[2] = {pointer_type, int64_type};
+  LLVMTypeRef func_type      = LLVMFunctionType(pointer_type, param_types, 2, false);
+  // Build and register
+  func = LLVMAddFunction(module, "hvm_vm_call_primitive", func_type);
+  LLVMAddGlobalMapping(engine, func, &hvm_vm_call_primitive);
   return func;
 }
 
 LLVMValueRef hvm_jit_obj_int_add_llvm_value(hvm_compile_bundle *bundle) {
-  static LLVMValueRef func;
-  if(!func) {
-    UNPACK_BUNDLE;
-    LLVMTypeRef pointer_type   = hvm_jit_get_llvm_pointer_type();
-    LLVMTypeRef param_types[2] = {pointer_type, pointer_type};
-    LLVMTypeRef func_type      = LLVMFunctionType(pointer_type, param_types, 2, false);
-    // Build and register
-    func = LLVMAddFunction(module, "hvm_obj_int_add", func_type);
-    LLVMAddGlobalMapping(engine, func, &hvm_obj_int_add);
-  }
+  STATIC_VALUE(LLVMValueRef, func);
+  UNPACK_BUNDLE(bundle);
+  LLVMTypeRef param_types[2] = {pointer_type, pointer_type};
+  LLVMTypeRef func_type      = LLVMFunctionType(pointer_type, param_types, 2, false);
+  // Build and register
+  func = LLVMAddFunction(module, "hvm_obj_int_add", func_type);
+  LLVMAddGlobalMapping(engine, func, &hvm_obj_int_add);
   return func;
 }
 
@@ -156,31 +166,27 @@ hvm_jit_block *hvm_jit_get_block_by_ip(hvm_compile_bundle *bundle, uint64_t ip) 
 }
 
 LLVMTypeRef hvm_jit_obj_ref_llvm_type() {
-  static LLVMTypeRef strct;
-  if(!strct) {
-    LLVMContextRef context = hvm_get_llvm_context();
-    strct = LLVMStructCreateNamed(context, "hvm_obj_ref");
-    LLVMTypeRef type  = LLVMIntType(sizeof(hvm_obj_type) * 8);
-    LLVMTypeRef data  = LLVMIntType(sizeof(union hvm_obj_ref_data) * 8);
-    LLVMTypeRef flags = LLVMIntType(sizeof(byte) * 8);
-    LLVMTypeRef entry = LLVMIntType(sizeof(void*) * 8);
-    LLVMTypeRef body[4] = {type, data, flags, entry};
-    // Last flag tells us it's not packed
-    LLVMStructSetBody(strct, body, 4, false);
-  }
+  STATIC_VALUE(LLVMTypeRef, strct);
+  LLVMContextRef context = hvm_get_llvm_context();
+  strct = LLVMStructCreateNamed(context, "hvm_obj_ref");
+  LLVMTypeRef type  = LLVMIntType(sizeof(hvm_obj_type) * 8);
+  LLVMTypeRef data  = LLVMIntType(sizeof(union hvm_obj_ref_data) * 8);
+  LLVMTypeRef flags = LLVMIntType(sizeof(byte) * 8);
+  LLVMTypeRef entry = LLVMIntType(sizeof(void*) * 8);
+  LLVMTypeRef body[4] = {type, data, flags, entry};
+  // Last flag tells us it's not packed
+  LLVMStructSetBody(strct, body, 4, false);
   return strct;
 }
 
 LLVMTypeRef hvm_jit_exit_bailout_llvm_type() {
-  static LLVMTypeRef strct;
-  if(!strct) {
-    LLVMContextRef context = hvm_get_llvm_context();
-    strct = LLVMStructCreateNamed(context, "hvm_jit_exit_bailout");
-    LLVMTypeRef status      = LLVMIntType(sizeof(hvm_jit_exit_status) * 8);
-    LLVMTypeRef destination = hvm_jit_get_llvm_pointer_type();
-    LLVMTypeRef body[2]     = {status, destination};
-    LLVMStructSetBody(strct, body, 2, false);
-  }
+  STATIC_VALUE(LLVMTypeRef, strct);
+  LLVMContextRef context = hvm_get_llvm_context();
+  strct = LLVMStructCreateNamed(context, "hvm_jit_exit_bailout");
+  LLVMTypeRef status      = LLVMIntType(sizeof(hvm_jit_exit_status) * 8);
+  LLVMTypeRef destination = pointer_type;
+  LLVMTypeRef body[2]     = {status, destination};
+  LLVMStructSetBody(strct, body, 2, false);
   return strct;
 }
 
@@ -198,27 +204,6 @@ unsigned int hvm_jit_get_trace_index_for_ip(hvm_call_trace *trace, uint64_t ip, 
 
 
 LLVMValueRef hvm_jit_compile_value_is_falsey(LLVMBuilderRef builder, LLVMValueRef val_ref) {
-  static LLVMTypeRef  obj_type_enum_size;
-  static LLVMValueRef const_hvm_null;
-  static LLVMValueRef const_hvm_integer;
-  static LLVMTypeRef  int32_type;
-  static LLVMTypeRef  int64_type;
-  static LLVMValueRef i32_zero;
-  static LLVMValueRef i32_one;
-  static LLVMValueRef i64_zero;
-  static bool defined;
-  if(!defined) {
-    obj_type_enum_size = LLVMIntType(sizeof(hvm_obj_type) * 8);
-    const_hvm_null     = LLVMConstInt(obj_type_enum_size, HVM_NULL, false);
-    const_hvm_integer  = LLVMConstInt(obj_type_enum_size, HVM_INTEGER, false);
-    int32_type = LLVMInt32Type();
-    int64_type = LLVMInt64Type();
-    i32_zero   = LLVMConstInt(int32_type, 0, true);
-    i32_one    = LLVMConstInt(int32_type, 1, true);
-    i64_zero   = LLVMConstInt(int64_type, 0, true);
-    defined = true;
-  }
-
   // Get a pointer the the .type of the object ref struct (first 0 index
   // is to get the first value pointed at, the second 0 index is to get
   // the first item in the struct). Then load it into an integer value.
@@ -276,10 +261,6 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
   // Get the top-level basic block and its parent function
   LLVMBasicBlockRef insert_block = LLVMGetInsertBlock(builder);
   LLVMValueRef      parent_func  = LLVMGetBasicBlockParent(insert_block);
-
-  // Set up our generic pointer type (in the 0 address space)
-  LLVMTypeRef pointer_type = hvm_jit_get_llvm_pointer_type();
-  LLVMTypeRef int64_type   = LLVMInt64Type();
 
   for(i = 0; i < trace->sequence_length; i++) {
     hvm_compile_sequence_data *data_item  = &data[i];
@@ -456,17 +437,6 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
 }
 
 void hvm_jit_build_bailout_return_to_ip(LLVMBuilderRef builder, uint64_t ip) {
-  static LLVMTypeRef int32_type;
-  static LLVMTypeRef int64_type;
-  static LLVMValueRef i32_zero;
-  static bool types_defined;
-  if(!types_defined) {
-    int32_type = LLVMInt32Type();
-    int64_type = LLVMInt64Type();
-    i32_zero   = LLVMConstInt(int32_type, 0, true);
-    types_defined = true;
-  }
-
   // Get the bailout type and allocate the structure in the stack frame
   LLVMTypeRef bailout_type   = hvm_jit_exit_bailout_llvm_type();
   LLVMValueRef bailout_value = LLVMBuildAlloca(builder, bailout_type, NULL);
@@ -488,15 +458,6 @@ void hvm_jit_build_bailout_return_to_ip(LLVMBuilderRef builder, uint64_t ip) {
 
 
 LLVMBasicBlockRef hvm_jit_build_bailout_block(hvm_vm *vm, LLVMBuilderRef builder, LLVMValueRef parent_func, LLVMValueRef *general_reg_values, uint64_t ip) {
-  static LLVMTypeRef pointer_type;
-  static LLVMTypeRef int32_type;
-  static bool types_defined;
-  if(!types_defined) {
-    pointer_type = hvm_jit_get_llvm_pointer_type();
-    int32_type   = LLVMInt32Type();
-    types_defined = true;
-  }
-  
   LLVMContextRef context = hvm_get_llvm_context();
   // Create the basic block for our bailout code
   LLVMBasicBlockRef basic_block = LLVMAppendBasicBlockInContext(context, parent_func, NULL);
@@ -676,7 +637,9 @@ void hvm_jit_sort_trace(hvm_call_trace *trace) {
 
 void hvm_jit_compile_trace(hvm_vm *vm, hvm_call_trace *trace) {
   LLVMContextRef context = hvm_get_llvm_context();
-  LLVMModuleRef  module = hvm_get_llvm_module();
+  LLVMModuleRef  module  = hvm_get_llvm_module();
+  // Make sure our constants and such are already defined
+  hvm_jit_define_constants();
   // Builder that we'll write the instructions from our trace into
   LLVMBuilderRef builder = LLVMCreateBuilderInContext(context);
 
