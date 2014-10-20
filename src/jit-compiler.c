@@ -196,6 +196,51 @@ unsigned int hvm_jit_get_trace_index_for_ip(hvm_call_trace *trace, uint64_t ip, 
   return 0;
 }
 
+
+LLVMValueRef hvm_jit_compile_value_is_falsey(LLVMBuilderRef builder, LLVMValueRef val_ref) {
+  static LLVMTypeRef  obj_type_enum_size;
+  static LLVMValueRef const_hvm_null;
+  static LLVMValueRef const_hvm_integer;
+  static LLVMTypeRef  int32_type;
+  static LLVMTypeRef  int64_type;
+  static LLVMValueRef i32_zero;
+  static LLVMValueRef i32_one;
+  static LLVMValueRef i64_zero;
+  static bool defined;
+  if(!defined) {
+    obj_type_enum_size = LLVMIntType(sizeof(hvm_obj_type) * 8);
+    const_hvm_null     = LLVMConstInt(obj_type_enum_size, HVM_NULL, false);
+    const_hvm_integer  = LLVMConstInt(obj_type_enum_size, HVM_INTEGER, false);
+    int32_type = LLVMInt32Type();
+    int64_type = LLVMInt64Type();
+    i32_zero   = LLVMConstInt(int32_type, 0, true);
+    i32_one    = LLVMConstInt(int32_type, 1, true);
+    i64_zero   = LLVMConstInt(int64_type, 0, true);
+    defined = true;
+  }
+
+  // Get a pointer the the .type of the object ref struct (first 0 index
+  // is to get the first value pointed at, the second 0 index is to get
+  // the first item in the struct). Then load it into an integer value.
+  LLVMValueRef val_type_ptr = LLVMBuildGEP(builder, val_ref, (LLVMValueRef[]){i32_zero, i32_zero}, 2, NULL);
+  LLVMValueRef val_type     = LLVMBuildLoad(builder, val_type_ptr, NULL);
+  // Get the .data of the object as an i64:
+  LLVMValueRef val_data_ptr = LLVMBuildGEP(builder, val_ref, (LLVMValueRef[]){i32_zero, i32_one}, 2, NULL);
+  LLVMValueRef val_data     = LLVMBuildLoad(builder, val_data_ptr, NULL);
+
+  // Left side of the falsiness test
+  LLVMValueRef val_is_null      = LLVMBuildICmp(builder, LLVMIntEQ, val_type, const_hvm_null, NULL);
+  // Right side of the test (check if integer and i64-value is zero)
+  LLVMValueRef val_is_int       = LLVMBuildICmp(builder, LLVMIntEQ, val_type, const_hvm_integer, NULL);
+  LLVMValueRef val_data_is_zero = LLVMBuildICmp(builder, LLVMIntEQ, val_data, i64_zero, NULL);
+  LLVMValueRef val_is_zero_int  = LLVMBuildAnd(builder, val_is_int, val_data_is_zero, NULL);
+
+  // Final is-falsey computation
+  LLVMValueRef falsey = LLVMBuildOr(builder, val_is_null, val_is_zero_int, NULL);
+  return falsey;
+}
+
+
 #define JIT_SAVE_DATA_ITEM_AND_VALUE(REG, DATA_ITEM, VALUE) \
   if(REG <= 127) { \
     general_reg_data_sources[REG] = DATA_ITEM; \
@@ -219,6 +264,7 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
 
   byte reg, reg_array, reg_index, reg_value, reg_symbol;
   unsigned int type;
+  uint64_t ip;
   hvm_jit_block *jit_block;
   LLVMValueRef value, value_array, value_index, value_symbol, value_returned, value1, value2;
 
@@ -233,16 +279,7 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
 
   // Set up our generic pointer type (in the 0 address space)
   LLVMTypeRef pointer_type = hvm_jit_get_llvm_pointer_type();
-  LLVMTypeRef int32_type   = LLVMInt32Type();
   LLVMTypeRef int64_type   = LLVMInt64Type();
-  // Set up some basic values that we'll be using a fair amount
-  LLVMValueRef i32_zero    = LLVMConstInt(int32_type, 0, true);
-  LLVMValueRef i32_one     = LLVMConstInt(int32_type, 1, true);
-  LLVMValueRef i64_zero    = LLVMConstInt(int64_type, 0, true);
-  // Get values for HVM_NULL and HVM_INTEGER
-  LLVMTypeRef  obj_type_enum_size = LLVMIntType(sizeof(hvm_obj_type) * 8);
-  LLVMValueRef const_hvm_null     = LLVMConstInt(obj_type_enum_size, HVM_NULL, false);
-  LLVMValueRef const_hvm_integer  = LLVMConstInt(obj_type_enum_size, HVM_INTEGER, false);
 
   for(i = 0; i < trace->sequence_length; i++) {
     hvm_compile_sequence_data *data_item  = &data[i];
@@ -369,26 +406,11 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         // type in the LLVM IR.
         value1               = general_reg_values[trace_item->item_if.register_value];
         LLVMValueRef val_ref = LLVMBuildPointerCast(builder, value1, hvm_jit_obj_ref_llvm_type(), NULL);
-        // Get a pointer the the .type of the object ref struct (first 0 index
-        // is to get the first value pointed at, the second 0 index is to get
-        // the first item in the struct). Then load it into an integer value.
-        LLVMValueRef val_type_ptr = LLVMBuildGEP(builder, val_ref, (LLVMValueRef[]){i32_zero, i32_zero}, 2, NULL);
-        LLVMValueRef val_type     = LLVMBuildLoad(builder, val_type_ptr, NULL);
-        // Get the .data of the object as an i64:
-        LLVMValueRef val_data_ptr = LLVMBuildGEP(builder, val_ref, (LLVMValueRef[]){i32_zero, i32_one}, 2, NULL);
-        LLVMValueRef val_data     = LLVMBuildLoad(builder, val_data_ptr, NULL);
-
-        // Left side of the falsiness test
-        LLVMValueRef val_is_null      = LLVMBuildICmp(builder, LLVMIntEQ, val_type, const_hvm_null, NULL);
-        // Right side of the test (check if integer and i64-value is zero)
-        LLVMValueRef val_is_int       = LLVMBuildICmp(builder, LLVMIntEQ, val_type, const_hvm_integer, NULL);
-        LLVMValueRef val_data_is_zero = LLVMBuildICmp(builder, LLVMIntEQ, val_data, i64_zero, NULL);
-        LLVMValueRef val_is_zero_int  = LLVMBuildAnd(builder, val_is_int, val_data_is_zero, NULL);
-        // Final is-falsey computation and conversion to inverse (is-truthy)
-        LLVMValueRef falsey = LLVMBuildOr(builder, val_is_null, val_is_zero_int, NULL);
+        // Expects `hvm_obj_ref` pointer and should return a bool LLVM value ref
+        LLVMValueRef falsey = hvm_jit_compile_value_is_falsey(builder, val_ref);
+        // Invert for our truthy test
         LLVMValueRef truthy = LLVMBuildNot(builder, falsey, NULL);
 
-        uint64_t ip;
         // Get the TRUTHY block to branch to or set up a bailout
         LLVMBasicBlockRef truthy_block;
         if(data_item->item_if.truthy_block != NULL) {
@@ -632,7 +654,9 @@ void hvm_jit_compile_identify_blocks(hvm_call_trace *trace, hvm_compile_bundle *
         block = hvm_jit_compile_find_or_insert_block(parent_func, bundle, i, ip);
         data_item->item_goto.destination_block = block;
         break;
+
       default:
+        // Don't do anything for other items
         continue;
     }
   }
