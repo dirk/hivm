@@ -247,7 +247,7 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
     general_reg_values[i]       = NULL;
   }
 
-  byte reg, reg_array, reg_index, reg_value, reg_symbol;
+  byte reg, reg_array, reg_index, reg_value, reg_symbol, reg_result;
   unsigned int type;
   uint64_t ip;
   hvm_jit_block *jit_block;
@@ -344,6 +344,7 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
 
       case HVM_TRACE_SEQUENCE_ITEM_INVOKEPRIMITIVE:
         data_item->invokeprimitive.type = HVM_COMPILE_DATA_INVOKEPRIMITIVE;
+        reg_result = trace_item->invokeprimitive.register_return;
         // Get the source value information
         reg_symbol = trace_item->invokeprimitive.register_symbol;
         value_symbol = general_reg_values[reg_symbol];
@@ -353,11 +354,13 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         // Build the call to `hvm_vm_call_primitive`.
         func = hvm_jit_vm_call_primitive_llvm_value(bundle);
         LLVMValueRef invokeprimitive_args[2] = {value_vm, value_symbol};
-        LLVMBuildCall(builder, func, invokeprimitive_args, 2, "invokeprimitive");
+        value_returned = LLVMBuildCall(builder, func, invokeprimitive_args, 2, "invokeprimitive");
+        JIT_SAVE_DATA_ITEM_AND_VALUE(reg_result, data_item, value_returned);
         break;
 
       case HVM_TRACE_SEQUENCE_ITEM_ADD:
         data_item->add.type = HVM_COMPILE_DATA_ADD;
+        reg_result = trace_item->add.register_result;
         // Get the source values for the operation
         value1 = general_reg_values[trace_item->add.register_operand1];
         value2 = general_reg_values[trace_item->add.register_operand2];
@@ -366,7 +369,8 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         // Build our add operation
         func = hvm_jit_obj_int_add_llvm_value(bundle);
         LLVMValueRef add_args[2] = {value1, value2};
-        LLVMBuildCall(builder, func, add_args, 2, "add");
+        value_returned = LLVMBuildCall(builder, func, add_args, 2, "add");
+        JIT_SAVE_DATA_ITEM_AND_VALUE(reg_result, data_item, value_returned);
         break;
 
       case HVM_TRACE_SEQUENCE_ITEM_GOTO:
