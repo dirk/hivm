@@ -247,7 +247,7 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
     general_reg_values[i]       = NULL;
   }
 
-  byte reg, reg_array, reg_index, reg_value, reg_symbol, reg_result;
+  byte reg, reg_array, reg_index, reg_value, reg_symbol, reg_result, reg_source;
   unsigned int type;
   uint64_t ip;
   hvm_jit_block *jit_block;
@@ -276,6 +276,15 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
 
     // Do stuff with the item based upon its type.
     switch(trace_item->head.type) {
+      case HVM_TRACE_SEQUENCE_ITEM_MOVE:
+        data_item->head.type = HVM_COMPILE_DATA_MOVE;
+        reg_source = trace_item->move.register_source;
+        reg        = trace_item->move.register_dest;
+        // Fetch the value from one and put it in the other
+        value = general_reg_values[reg_source];
+        JIT_SAVE_DATA_ITEM_AND_VALUE(reg, data_item, value);
+        break;
+
       case HVM_TRACE_SEQUENCE_ITEM_SETSYMBOL:
         data_item->setsymbol.type = HVM_COMPILE_DATA_SETSYMBOL;
         reg = trace_item->setsymbol.reg;
