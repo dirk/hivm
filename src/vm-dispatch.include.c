@@ -429,7 +429,8 @@ EXECUTE:
       else if(instr == HVM_OP_GT)  { a = hvm_obj_int_gt(b, c); }
       else if(instr == HVM_OP_LTE) { a = hvm_obj_int_lte(b, c); }
       else if(instr == HVM_OP_GTE) { a = hvm_obj_int_gte(b, c); }
-      else if(instr == HVM_OP_EQ) { a = hvm_obj_int_eq(b, c); }
+      else if(instr == HVM_OP_EQ)  { a = hvm_obj_int_eq(b, c); }
+      // TODO: Check if those comparison functions set an exception?
       if(a == NULL) {
         hvm_exception *exc = hvm_new_operand_not_integer_exception();
         vm->exception = exc;
