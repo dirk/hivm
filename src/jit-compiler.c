@@ -154,6 +154,17 @@ LLVMValueRef hvm_jit_obj_int_eq_llvm_value(hvm_compile_bundle *bundle) {
   return func;
 }
 
+LLVMValueRef hvm_jit_obj_int_gt_llvm_value(hvm_compile_bundle *bundle) {
+  STATIC_VALUE(LLVMValueRef, func);
+  UNPACK_BUNDLE(bundle);
+  LLVMTypeRef param_types[2] = {pointer_type, pointer_type};
+  LLVMTypeRef func_type      = LLVMFunctionType(pointer_type, param_types, 2, false);
+  // Build and register
+  func = LLVMAddFunction(module, "hvm_obj_int_gt", func_type);
+  LLVMAddGlobalMapping(engine, func, &hvm_obj_int_gt);
+  return func;
+}
+
 LLVMValueRef hvm_jit_obj_is_truthy_llvm_value(hvm_compile_bundle *bundle) {
   STATIC_VALUE(LLVMValueRef, func);
   UNPACK_BUNDLE(bundle);
@@ -466,6 +477,26 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         jit_block = data_item->item_goto.destination_block;
         // Build the branch instruction to this block
         LLVMBuildBr(builder, jit_block->basic_block);
+        break;
+
+      case HVM_TRACE_SEQUENCE_ITEM_GT:
+        // Extract the registers and values
+        reg_result = trace_item->add.register_result;
+        value1     = general_reg_values[trace_item->add.register_operand1];
+        value2     = general_reg_values[trace_item->add.register_operand2];
+        type       = trace_item->head.type;
+        // Save the operation type and lookup the comparison function
+        if(type == HVM_TRACE_SEQUENCE_ITEM_GT) {
+          data_item->head.type = HVM_COMPILE_DATA_GT;  
+          func = hvm_jit_obj_int_gt_llvm_value(bundle);
+        } else {
+          assert(false);
+        }
+        // Call our comparator and store the result
+        LLVMValueRef comparison_args[2] = {value1, value2};
+        value_returned = LLVMBuildCall(builder, func, comparison_args, 2, NULL);
+        // TODO: Check for exception set by primitive or NULL return from it
+        JIT_SAVE_DATA_ITEM_AND_VALUE(reg_result, data_item, value_returned);
         break;
 
       case HVM_TRACE_SEQUENCE_ITEM_IF:
