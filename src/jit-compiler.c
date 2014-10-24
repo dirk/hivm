@@ -80,6 +80,13 @@ LLVMModuleRef hvm_get_llvm_module() {
     return NAME; \
   }
 
+#define ADD_FUNCTION(FUNC, RETURN_TYPE, PARAM_TYPES, NUM_PARAMS, EXT_FUNCTION) \
+  { \
+    LLVMTypeRef func_type = LLVMFunctionType(RETURN_TYPE, PARAM_TYPES, NUM_PARAMS, false); \
+    FUNC = LLVMAddFunction(module, #EXT_FUNCTION, func_type); \
+    LLVMAddGlobalMapping(engine, func, &EXT_FUNCTION); \
+  }
+
 LLVMValueRef hvm_jit_obj_array_get_llvm_value(hvm_compile_bundle *bundle) {
   STATIC_VALUE(LLVMValueRef, func);
   UNPACK_BUNDLE(bundle);
@@ -99,13 +106,8 @@ LLVMValueRef hvm_jit_obj_array_get_llvm_value(hvm_compile_bundle *bundle) {
 LLVMValueRef hvm_jit_obj_array_set_llvm_value(hvm_compile_bundle *bundle) {
   STATIC_VALUE(LLVMValueRef, func);
   UNPACK_BUNDLE(bundle);
-  // Set up our parameters and return
-  LLVMTypeRef return_type    = void_type;
   LLVMTypeRef param_types[3] = {pointer_type, pointer_type, pointer_type};
-  LLVMTypeRef func_type      = LLVMFunctionType(return_type, param_types, 3, false);
-  // Build the function and register it
-  func = LLVMAddFunction(module, "hvm_obj_array_set", func_type);
-  LLVMAddGlobalMapping(engine, func, &hvm_obj_array_set);
+  ADD_FUNCTION(func, void_type, param_types, 3, hvm_obj_array_set);
   return func;
 }
 
