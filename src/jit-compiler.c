@@ -80,6 +80,7 @@ LLVMModuleRef hvm_get_llvm_module() {
     return NAME; \
   }
 
+// NOTE: Last argument to LLVMFunctionType tells LLVM it's non-variadic.
 #define ADD_FUNCTION(FUNC, EXT_FUNCTION, RETURN_TYPE, NUM_PARAMS, PARAM_TYPES...) \
   { \
     LLVMTypeRef param_types[] = {PARAM_TYPES}; \
@@ -91,16 +92,7 @@ LLVMModuleRef hvm_get_llvm_module() {
 LLVMValueRef hvm_jit_obj_array_get_llvm_value(hvm_compile_bundle *bundle) {
   STATIC_VALUE(LLVMValueRef, func);
   UNPACK_BUNDLE(bundle);
-  LLVMTypeRef return_type    = pointer_type;
-  LLVMTypeRef param_types[2] = {pointer_type, pointer_type};
-  // Last argument tells LLVM it's non-variadic
-  LLVMTypeRef func_type      = LLVMFunctionType(return_type, param_types, 2, false);
-  // LLVMAddFunction calls the following LLVM C++:
-  //   Function::Create(functiontype, GlobalValue::ExternalLinkage, name, module)
-  func = LLVMAddFunction(module, "hvm_obj_array_get", func_type);
-  // Then register our function pointer as a global external linkage in
-  // the execution engine.
-  LLVMAddGlobalMapping(engine, func, &hvm_obj_array_get);
+  ADD_FUNCTION(func, hvm_obj_array_get, pointer_type, 2, pointer_type, pointer_type);
   return func;
 }
 
@@ -114,72 +106,51 @@ LLVMValueRef hvm_jit_obj_array_set_llvm_value(hvm_compile_bundle *bundle) {
 LLVMValueRef hvm_jit_obj_array_len_llvm_value(hvm_compile_bundle *bundle) {
   STATIC_VALUE(LLVMValueRef, func);
   UNPACK_BUNDLE(bundle);
-  LLVMTypeRef param_types[1] = {pointer_type};
-  LLVMTypeRef func_type      = LLVMFunctionType(pointer_type, param_types, 1, false);
-  // Build and register
-  func = LLVMAddFunction(module, "hvm_obj_array_len", func_type);
-  LLVMAddGlobalMapping(engine, func, &hvm_obj_array_len);
+  ADD_FUNCTION(func, hvm_obj_array_len, pointer_type, 1, pointer_type);  
   return func;
 }
 
 LLVMValueRef hvm_jit_vm_call_primitive_llvm_value(hvm_compile_bundle *bundle) {
   STATIC_VALUE(LLVMValueRef, func);
   UNPACK_BUNDLE(bundle);
-  LLVMTypeRef int64_type     = LLVMInt64Type();
-  LLVMTypeRef param_types[2] = {pointer_type, int64_type};
-  LLVMTypeRef func_type      = LLVMFunctionType(pointer_type, param_types, 2, false);
-  // Build and register
-  func = LLVMAddFunction(module, "hvm_vm_call_primitive", func_type);
-  LLVMAddGlobalMapping(engine, func, &hvm_vm_call_primitive);
+  // (hvm_vm*, hvm_obj_ref*) -> hvm_obj_ref*
+  ADD_FUNCTION(func, hvm_vm_call_primitive, pointer_type, 2, pointer_type, pointer_type);
   return func;
 }
 
 LLVMValueRef hvm_jit_obj_int_add_llvm_value(hvm_compile_bundle *bundle) {
   STATIC_VALUE(LLVMValueRef, func);
   UNPACK_BUNDLE(bundle);
-  LLVMTypeRef param_types[2] = {pointer_type, pointer_type};
-  LLVMTypeRef func_type      = LLVMFunctionType(pointer_type, param_types, 2, false);
-  // Build and register
-  func = LLVMAddFunction(module, "hvm_obj_int_add", func_type);
-  LLVMAddGlobalMapping(engine, func, &hvm_obj_int_add);
+  ADD_FUNCTION(func, hvm_obj_int_add, pointer_type, 2, pointer_type, pointer_type);
   return func;
 }
 
 LLVMValueRef hvm_jit_obj_int_eq_llvm_value(hvm_compile_bundle *bundle) {
   STATIC_VALUE(LLVMValueRef, func);
   UNPACK_BUNDLE(bundle);
-  LLVMTypeRef param_types[2] = {pointer_type, pointer_type};
-  LLVMTypeRef func_type      = LLVMFunctionType(pointer_type, param_types, 2, false);
-  // Build and register
-  func = LLVMAddFunction(module, "hvm_obj_int_eq", func_type);
-  LLVMAddGlobalMapping(engine, func, &hvm_obj_int_eq);
+  ADD_FUNCTION(func, hvm_obj_int_eq, pointer_type, 2, pointer_type, pointer_type);
   return func;
 }
 
 LLVMValueRef hvm_jit_obj_int_gt_llvm_value(hvm_compile_bundle *bundle) {
   STATIC_VALUE(LLVMValueRef, func);
   UNPACK_BUNDLE(bundle);
-  LLVMTypeRef param_types[2] = {pointer_type, pointer_type};
-  LLVMTypeRef func_type      = LLVMFunctionType(pointer_type, param_types, 2, false);
-  // Build and register
-  func = LLVMAddFunction(module, "hvm_obj_int_gt", func_type);
-  LLVMAddGlobalMapping(engine, func, &hvm_obj_int_gt);
+  ADD_FUNCTION(func, hvm_obj_int_gt, pointer_type, 2, pointer_type, pointer_type);
   return func;
 }
 
 LLVMValueRef hvm_jit_obj_is_truthy_llvm_value(hvm_compile_bundle *bundle) {
   STATIC_VALUE(LLVMValueRef, func);
   UNPACK_BUNDLE(bundle);
-  LLVMTypeRef param_types[1] = {pointer_type};
-  LLVMTypeRef func_type      = LLVMFunctionType(byte_type, param_types, 1, false);
-  func = LLVMAddFunction(module, "hvm_obj_is_truthy", func_type);
-  LLVMAddGlobalMapping(engine, func, &hvm_obj_is_truthy);
+  // (hvm_obj_ref*) -> byte/bool
+  ADD_FUNCTION(func, hvm_obj_is_truthy, byte_type, 1, pointer_type);
   return func;
 }
 
 LLVMValueRef hvm_jit_new_obj_int_llvm_value(hvm_compile_bundle *bundle) {
   STATIC_VALUE(LLVMValueRef, func);
   UNPACK_BUNDLE(bundle);
+  // () -> hvm_obj_ref*
   LLVMTypeRef func_type = LLVMFunctionType(pointer_type, NULL, 0, false);
   func = LLVMAddFunction(module, "hvm_new_obj_int", func_type);
   LLVMAddGlobalMapping(engine, func, &hvm_new_obj_int);
