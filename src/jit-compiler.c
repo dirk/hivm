@@ -787,6 +787,20 @@ void hvm_jit_compile_identify_blocks(hvm_call_trace *trace, hvm_compile_bundle *
   }
 }
 
+hvm_jit_native_function hvm_jit_compile_function(hvm_compile_bundle *bundle) {
+  LLVMExecutionEngineRef engine = hvm_shared_llvm_engine;
+  LLVMPassManagerRef     pass   = hvm_shared_llvm_pass_manager;
+  // Get the function and run the pass manager on it
+  LLVMValueRef function = bundle->llvm_function;
+  LLVMRunFunctionPassManager(pass, function);
+  void *vfp = LLVMGetPointerToGlobal(engine, function);
+  // Cast it properly and return
+  hvm_jit_native_function fp = vfp;
+  return fp;
+}
+
+
+
 int hvm_trace_item_comparator(const void *va, const void *vb) {
   hvm_trace_sequence_item *a = (hvm_trace_sequence_item*)va;
   hvm_trace_sequence_item *b = (hvm_trace_sequence_item*)vb;
@@ -853,6 +867,7 @@ void hvm_jit_compile_trace(hvm_vm *vm, hvm_call_trace *trace) {
 
   // Use all of the above and the trace itself to generate code and compile to
   // an optimized native representation.
+  hvm_jit_compile_function(&bundle);
 
   free(data);
 }
