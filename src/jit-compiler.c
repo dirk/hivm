@@ -7,6 +7,7 @@
 
 #include <llvm-c/Core.h>
 #include <llvm-c/ExecutionEngine.h>
+#include <llvm-c/Transforms/Scalar.h>
 
 #include "vm.h"
 #include "object.h"
@@ -33,9 +34,13 @@ static LLVMValueRef i64_zero;
 static LLVMValueRef const_hvm_null;
 static LLVMValueRef const_hvm_integer;
 
+// Setting up the internals
+static bool llvm_setup;
 // Reuse our compilation context and module through program lifetime
-static LLVMContextRef hvm_shared_llvm_context;
-static LLVMModuleRef  hvm_shared_llvm_module;
+static LLVMContextRef         hvm_shared_llvm_context;
+static LLVMModuleRef          hvm_shared_llvm_module;
+static LLVMExecutionEngineRef hvm_shared_llvm_engine;
+static LLVMPassManagerRef     hvm_shared_llvm_pass_manager;
 
 void hvm_jit_define_constants() {
   if(constants_defined) {
@@ -57,18 +62,56 @@ void hvm_jit_define_constants() {
   constants_defined = true;
 }
 
-LLVMContextRef hvm_get_llvm_context() {
-  if(hvm_shared_llvm_context == NULL) {
-    // Set up our context and module
-    hvm_shared_llvm_context = LLVMContextCreate();
-    hvm_shared_llvm_module  = LLVMModuleCreateWithNameInContext("hvm", hvm_shared_llvm_context);
+void hvm_jit_setup_llvm() {
+  if(llvm_setup) {
+    return;// Don't re-setup our LLVM stuff
   }
-  return hvm_shared_llvm_context;
+  char *error;
+  LLVMBool status;
+  LLVMPassManagerRef pass;
+  // Set up our context and module
+  hvm_shared_llvm_context = LLVMContextCreate();
+  hvm_shared_llvm_module  = LLVMModuleCreateWithNameInContext("hvm", hvm_shared_llvm_context);
+  // Set up compilation to our current native target
+  LLVMInitializeNativeTarget();
+  // Set up the options for the JIT compiler
+  struct LLVMMCJITCompilerOptions opts;
+  LLVMInitializeMCJITCompilerOptions(&opts, sizeof(opts));
+  // Set up an engine
+  status = LLVMCreateMCJITCompilerForModule(&hvm_shared_llvm_engine, hvm_shared_llvm_module, &opts, sizeof(opts), &error);
+  if(status != 0) {
+    fprintf(stderr, "Error instantiating execution engine: %s\n", error);
+    assert(false);
+  }
+  // Set up our pass manager
+  hvm_shared_llvm_pass_manager = LLVMCreateFunctionPassManagerForModule(hvm_shared_llvm_module);
+  pass = hvm_shared_llvm_pass_manager;// Save our fingers!
+  LLVMAddTargetData(LLVMGetExecutionEngineTargetData(hvm_shared_llvm_engine), pass);
+  // Constant propagation simplifies/removes-unnecessary computations of
+  // constant values.
+  LLVMAddConstantPropagationPass(pass);
+  // Does simple "peephole" algebraic simplifications.
+  LLVMAddInstructionCombiningPass(pass);
+  // This pass reassociates commutative expressions to make life easier for
+  // the next passes. Example from LLVM docs:
+  //   4 + (x + 5) -> x + (4 + 5)
+  LLVMAddReassociatePass(pass);
+  // Promotes memory references to register references where possible to
+  // avoid unnecessary load/stores.
+  LLVMAddPromoteMemoryToRegisterPass(pass);
+  // Provide basic AliasAnalysis support for the GVN pass.
+  LLVMAddBasicAliasAnalysisPass(pass);
+  // Do global value numbering to eliminate fully redundant instructions and
+  // dead lods.
+  LLVMAddGVNPass(pass);
+  // Simplify control flow graph to remove dead code, merge basic blocks, etc.
+  LLVMAddCFGSimplificationPass(pass);
+
+  // Now that we've added all our passes we can initialize the FPM so that it
+  // will be ready to run on values in our module.
+  LLVMInitializeFunctionPassManager(pass);
 }
-LLVMModuleRef hvm_get_llvm_module() {
-  assert(hvm_shared_llvm_module != NULL);
-  return hvm_shared_llvm_module;
-}
+
 
 #define UNPACK_BUNDLE(BUNDLE) \
   LLVMModuleRef module          = BUNDLE->llvm_module; \
@@ -185,8 +228,7 @@ hvm_jit_block *hvm_jit_get_block_by_ip(hvm_compile_bundle *bundle, uint64_t ip) 
 
 LLVMTypeRef hvm_jit_obj_ref_llvm_type() {
   STATIC_VALUE(LLVMTypeRef, strct);
-  LLVMContextRef context = hvm_get_llvm_context();
-  strct = LLVMStructCreateNamed(context, "hvm_obj_ref");
+  strct = LLVMStructCreateNamed(hvm_shared_llvm_context, "hvm_obj_ref");
   LLVMTypeRef type  = LLVMIntType(sizeof(hvm_obj_type) * 8);
   LLVMTypeRef data  = LLVMIntType(sizeof(union hvm_obj_ref_data) * 8);
   LLVMTypeRef flags = LLVMIntType(sizeof(byte) * 8);
@@ -199,8 +241,7 @@ LLVMTypeRef hvm_jit_obj_ref_llvm_type() {
 
 LLVMTypeRef hvm_jit_exit_bailout_llvm_type() {
   STATIC_VALUE(LLVMTypeRef, strct);
-  LLVMContextRef context = hvm_get_llvm_context();
-  strct = LLVMStructCreateNamed(context, "hvm_jit_exit_bailout");
+  strct = LLVMStructCreateNamed(hvm_shared_llvm_context, "hvm_jit_exit_bailout");
   LLVMTypeRef status      = LLVMIntType(sizeof(hvm_jit_exit_status) * 8);
   LLVMTypeRef destination = int64_type;
   LLVMTypeRef body[2]     = {status, destination};
@@ -557,6 +598,7 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
       default:
         type = trace_item->head.type;
         fprintf(stderr, "jit-compiler: Don't know what to do with item type %d\n", type);
+        assert(false);
         break;
     }
   }
@@ -584,9 +626,8 @@ void hvm_jit_build_bailout_return_to_ip(LLVMBuilderRef builder, uint64_t ip) {
 
 
 LLVMBasicBlockRef hvm_jit_build_bailout_block(hvm_vm *vm, LLVMBuilderRef builder, LLVMValueRef parent_func, LLVMValueRef *general_reg_values, uint64_t ip) {
-  LLVMContextRef context = hvm_get_llvm_context();
   // Create the basic block for our bailout code
-  LLVMBasicBlockRef basic_block = LLVMAppendBasicBlockInContext(context, parent_func, NULL);
+  LLVMBasicBlockRef basic_block = LLVMAppendBasicBlockInContext(hvm_shared_llvm_context, parent_func, NULL);
   LLVMPositionBuilderAtEnd(builder, basic_block);
 
   // Get the pointer to the VM registers
@@ -621,7 +662,7 @@ LLVMBasicBlockRef hvm_jit_build_bailout_block(hvm_vm *vm, LLVMBuilderRef builder
 hvm_jit_block *hvm_jit_compile_find_or_insert_block(LLVMValueRef parent_func, hvm_compile_bundle *bundle, unsigned int index, uint64_t ip) {
   hvm_jit_block *blocks   = bundle->blocks;
   unsigned int num_blocks = bundle->blocks_length;
-  LLVMContextRef context  = hvm_get_llvm_context();
+  LLVMContextRef context  = hvm_shared_llvm_context;
   // Block to be operated upon
   hvm_jit_block *block;
 
@@ -689,7 +730,7 @@ void hvm_jit_compile_identify_blocks(hvm_call_trace *trace, hvm_compile_bundle *
 
   // Unpack the bundle and get the context
   LLVMBuilderRef builder = bundle->llvm_builder;
-  LLVMContextRef context = hvm_get_llvm_context();
+  LLVMContextRef context = hvm_shared_llvm_context;
   // Get the top-level basic block and its parent function
   LLVMBasicBlockRef insert_block = LLVMGetInsertBlock(builder);
   LLVMValueRef      parent_func  = LLVMGetBasicBlockParent(insert_block);
@@ -762,8 +803,11 @@ void hvm_jit_sort_trace(hvm_call_trace *trace) {
 }
 
 void hvm_jit_compile_trace(hvm_vm *vm, hvm_call_trace *trace) {
-  LLVMContextRef context = hvm_get_llvm_context();
-  LLVMModuleRef  module  = hvm_get_llvm_module();
+  // Make sure our LLVM context, module, engine, etc. are available
+  hvm_jit_setup_llvm();
+  LLVMContextRef         context = hvm_shared_llvm_context;
+  LLVMModuleRef          module  = hvm_shared_llvm_module;
+  LLVMExecutionEngineRef engine  = hvm_shared_llvm_engine;
   // Make sure our constants and such are already defined
   hvm_jit_define_constants();
   // Builder that we'll write the instructions from our trace into
@@ -774,8 +818,9 @@ void hvm_jit_compile_trace(hvm_vm *vm, hvm_call_trace *trace) {
   // Establish a bundle for all of our stuff related to this compilation.
   hvm_compile_bundle bundle = {
     .data = data,
-    .llvm_module = module,
-    .llvm_builder = builder
+    .llvm_module  = module,
+    .llvm_builder = builder,
+    .llvm_engine  = engine
   };
 
   // Eventually going to run this as a hopefully-two-pass compilation. For now
