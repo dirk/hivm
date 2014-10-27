@@ -180,6 +180,6 @@ typedef void* LLVMBuilderRef;
 typedef void* LLVMValueRef;
 #endif
 
-LLVMBasicBlockRef hvm_jit_build_bailout_block(hvm_vm*, LLVMBuilderRef, LLVMValueRef, LLVMValueRef*, uint64_t);
+LLVMBasicBlockRef hvm_jit_build_bailout_block(hvm_vm*, LLVMBuilderRef, LLVMValueRef parent_func, LLVMValueRef exit_value, LLVMValueRef*, uint64_t);
 
 #endif

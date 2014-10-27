@@ -329,6 +329,11 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
   LLVMBuilderRef builder = bundle->llvm_builder;
   // Get the top-level basic block and its parent function
   LLVMValueRef   parent_func = bundle->llvm_function;
+  // Extract our pointer to `hvm_jit_exit` struct from the function
+  // parameters so we can use it later.
+  LLVMValueRef   exit_value  = LLVMGetParam(parent_func, 0);
+  // And cast it properly:
+  exit_value = LLVMConstPointerCast(exit_value, hvm_jit_obj_ref_llvm_type());
 
   for(i = 0; i < trace->sequence_length; i++) {
     hvm_compile_sequence_data *data_item  = &data[i];
@@ -543,7 +548,7 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
           truthy_block = data_item->item_if.truthy_block->basic_block;
         } else {
           ip = trace_item->item_if.destination;
-          truthy_block = hvm_jit_build_bailout_block(vm, builder, parent_func, general_reg_values, ip);
+          truthy_block = hvm_jit_build_bailout_block(vm, builder, parent_func, exit_value, general_reg_values, ip);
         }
         // Same for the FALSEY block
         LLVMBasicBlockRef falsey_block;
@@ -552,7 +557,7 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         } else {
           // Falsey just continues past the instruction
           ip = trace_item->head.ip + 10;
-          falsey_block = hvm_jit_build_bailout_block(vm, builder, parent_func, general_reg_values, ip);
+          falsey_block = hvm_jit_build_bailout_block(vm, builder, parent_func, exit_value, general_reg_values, ip);
         }
         // And finally actually do the branch with those blocks
         LLVMBuildCondBr(builder, truthy, truthy_block, falsey_block);
@@ -562,21 +567,16 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         data_item->head.type = HVM_COMPILE_DATA_RETURN;
         reg   = trace_item->item_return.register_return;
         value = general_reg_values[reg];
-        LLVMTypeRef  return_type  = hvm_jit_exit_return_llvm_type();
-        LLVMValueRef return_value = LLVMBuildAlloca(builder, return_type, NULL);
         // Set up the status
         LLVMTypeRef  status_type  = LLVMIntType(sizeof(hvm_jit_exit_status) * 8);
         LLVMValueRef status_value = LLVMConstInt(status_type, HVM_JIT_EXIT_RETURN, false);
         // Pointers into the struct
-        LLVMValueRef status_ptr   = LLVMBuildGEP(builder, return_value, (LLVMValueRef[]){i32_zero, LLVMConstInt(int32_type, 0, true)}, 2, NULL);
-        LLVMValueRef value_ptr    = LLVMBuildGEP(builder, return_value, (LLVMValueRef[]){i32_zero, LLVMConstInt(int32_type, 1, true)}, 2, NULL);
+        LLVMValueRef status_ptr   = LLVMBuildGEP(builder, exit_value, (LLVMValueRef[]){i32_zero, LLVMConstInt(int32_type, 0, true)}, 2, NULL);
+        LLVMValueRef value_ptr    = LLVMBuildGEP(builder, exit_value, (LLVMValueRef[]){i32_zero, LLVMConstInt(int32_type, 1, true)}, 2, NULL);
         // Set the status and return value into the struct
         LLVMBuildStore(builder, status_value, status_ptr);
         LLVMBuildStore(builder, value, value_ptr);
-        // Dereference the struct and return it
-        LLVMValueRef return_ptr   = LLVMBuildGEP(builder,  return_value, (LLVMValueRef[]){i32_zero}, 1, NULL);
-        LLVMValueRef return_strct = LLVMBuildLoad(builder, return_ptr, NULL);
-        LLVMBuildRet(builder, return_strct);
+        LLVMBuildRet(builder, LLVMConstNull(void_type));
         break;
 
       case HVM_TRACE_SEQUENCE_ITEM_LITINTEGER:
@@ -603,28 +603,23 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
   }
 }
 
-void hvm_jit_build_bailout_return_to_ip(LLVMBuilderRef builder, uint64_t ip) {
-  // Get the bailout type and allocate the structure in the stack frame
-  LLVMTypeRef bailout_type   = hvm_jit_exit_bailout_llvm_type();
-  LLVMValueRef bailout_value = LLVMBuildAlloca(builder, bailout_type, NULL);
+void hvm_jit_build_bailout_return_to_ip(LLVMBuilderRef builder, LLVMValueRef exit_value, uint64_t ip) {
   // Initialize the values for the bailout struct (both unsigned)
   LLVMTypeRef  status_type  = LLVMIntType(sizeof(hvm_jit_exit_status) * 8);
   LLVMValueRef status_value = LLVMConstInt(status_type, HVM_JIT_EXIT_BAILOUT, false);
   LLVMValueRef dest_value   = LLVMConstInt(int64_type, ip, false);
   // Get the pointers to the struct elements
-  LLVMValueRef status_ptr   = LLVMBuildGEP(builder, bailout_value, (LLVMValueRef[]){i32_zero, LLVMConstInt(int32_type, 0, true)}, 2, NULL);
-  LLVMValueRef dest_ptr     = LLVMBuildGEP(builder, bailout_value, (LLVMValueRef[]){i32_zero, LLVMConstInt(int32_type, 1, true)}, 2, NULL);
+  LLVMValueRef status_ptr   = LLVMBuildGEP(builder, exit_value, (LLVMValueRef[]){i32_zero, LLVMConstInt(int32_type, 0, true)}, 2, NULL);
+  LLVMValueRef dest_ptr     = LLVMBuildGEP(builder, exit_value, (LLVMValueRef[]){i32_zero, LLVMConstInt(int32_type, 1, true)}, 2, NULL);
   // And store the actual values in them
   LLVMBuildStore(builder, status_value, status_ptr);
   LLVMBuildStore(builder, dest_value,   dest_ptr);
   // Then dereference the whole struct so we can return it
-  LLVMValueRef bailout_ptr   = LLVMBuildGEP(builder, bailout_value, (LLVMValueRef[]){i32_zero}, 1, NULL);
-  LLVMValueRef bailout_strct = LLVMBuildLoad(builder, bailout_ptr, NULL);
-  LLVMBuildRet(builder, bailout_strct);
+  LLVMBuildRet(builder, LLVMConstNull(void_type));
 }
 
 
-LLVMBasicBlockRef hvm_jit_build_bailout_block(hvm_vm *vm, LLVMBuilderRef builder, LLVMValueRef parent_func, LLVMValueRef *general_reg_values, uint64_t ip) {
+LLVMBasicBlockRef hvm_jit_build_bailout_block(hvm_vm *vm, LLVMBuilderRef builder, LLVMValueRef parent_func, LLVMValueRef exit_value, LLVMValueRef *general_reg_values, uint64_t ip) {
   // Create the basic block for our bailout code
   LLVMBasicBlockRef basic_block = LLVMAppendBasicBlockInContext(hvm_shared_llvm_context, parent_func, NULL);
   LLVMPositionBuilderAtEnd(builder, basic_block);
@@ -652,7 +647,7 @@ LLVMBasicBlockRef hvm_jit_build_bailout_block(hvm_vm *vm, LLVMBuilderRef builder
 
   // Build the return of the `hvm_jit_exit` structure-union from the JIT code
   // segment/function.
-  hvm_jit_build_bailout_return_to_ip(builder, ip);
+  hvm_jit_build_bailout_return_to_ip(builder, exit_value, ip);
 
   return basic_block;
 }
@@ -787,19 +782,6 @@ void hvm_jit_compile_identify_blocks(hvm_call_trace *trace, hvm_compile_bundle *
   }
 }
 
-hvm_jit_native_function hvm_jit_compile_function(hvm_compile_bundle *bundle) {
-  LLVMExecutionEngineRef engine = hvm_shared_llvm_engine;
-  LLVMPassManagerRef     pass   = hvm_shared_llvm_pass_manager;
-  // Get the function and run the pass manager on it
-  LLVMValueRef function = bundle->llvm_function;
-  LLVMRunFunctionPassManager(pass, function);
-  void *vfp = LLVMGetPointerToGlobal(engine, function);
-  // Cast it properly and return
-  hvm_jit_native_function fp = vfp;
-  return fp;
-}
-
-
 
 int hvm_trace_item_comparator(const void *va, const void *vb) {
   hvm_trace_sequence_item *a = (hvm_trace_sequence_item*)va;
@@ -865,9 +847,11 @@ void hvm_jit_compile_trace(hvm_vm *vm, hvm_call_trace *trace) {
   // Identify potential guard points to be checked before/during/after
   // execution.
 
-  // Use all of the above and the trace itself to generate code and compile to
-  // an optimized native representation.
-  hvm_jit_compile_function(&bundle);
+  // Set up the memory for our exit information.
+  hvm_jit_exit *result = malloc(sizeof(hvm_jit_exit));
+  // Run the optimized native function.
+  LLVMGenericValueRef args[] = {LLVMCreateGenericValueOfPointer(result)};
+  LLVMRunFunction(engine, function, 1, args);
 
   free(data);
 }
