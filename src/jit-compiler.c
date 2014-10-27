@@ -808,7 +808,10 @@ void hvm_jit_compile_trace(hvm_vm *vm, hvm_call_trace *trace) {
   // Make sure our constants and such are already defined
   hvm_jit_define_constants();
 
-  char *function_name = "hvm_jit_function";
+  // Build the name for our function
+  char *function_name = malloc(sizeof(char) * 64);
+  function_name[0]    = '\0';
+  sprintf(function_name, "hvm_jit_function_%p", trace);
 
   LLVMTypeRef  return_type   = LLVMArrayType(LLVMInt8TypeInContext(context), sizeof(hvm_jit_exit));
   LLVMTypeRef  function_type = LLVMFunctionType(return_type, 0, 0, false);
