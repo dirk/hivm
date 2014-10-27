@@ -139,6 +139,7 @@ typedef struct hvm_compile_bundle {
   LLVMModuleRef          llvm_module;
   LLVMExecutionEngineRef llvm_engine;
   LLVMBuilderRef         llvm_builder;
+  LLVMValueRef           llvm_function;
 #endif
 } hvm_compile_bundle;
 

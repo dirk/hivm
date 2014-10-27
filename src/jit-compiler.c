@@ -328,8 +328,7 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
 
   LLVMBuilderRef builder = bundle->llvm_builder;
   // Get the top-level basic block and its parent function
-  LLVMBasicBlockRef insert_block = LLVMGetInsertBlock(builder);
-  LLVMValueRef      parent_func  = LLVMGetBasicBlockParent(insert_block);
+  LLVMValueRef   parent_func = bundle->llvm_function;
 
   for(i = 0; i < trace->sequence_length; i++) {
     hvm_compile_sequence_data *data_item  = &data[i];
@@ -729,11 +728,9 @@ void hvm_jit_compile_identify_blocks(hvm_call_trace *trace, hvm_compile_bundle *
   hvm_jit_block *block;
 
   // Unpack the bundle and get the context
-  LLVMBuilderRef builder = bundle->llvm_builder;
   LLVMContextRef context = hvm_shared_llvm_context;
-  // Get the top-level basic block and its parent function
-  LLVMBasicBlockRef insert_block = LLVMGetInsertBlock(builder);
-  LLVMValueRef      parent_func  = LLVMGetBasicBlockParent(insert_block);
+  // Get our parent function that we're building inside.
+  LLVMValueRef   parent_func = bundle->llvm_function;
 
   // Get the first item and set up a block based off of it for entry
   item = &trace->sequence[0];
@@ -810,6 +807,12 @@ void hvm_jit_compile_trace(hvm_vm *vm, hvm_call_trace *trace) {
   LLVMExecutionEngineRef engine  = hvm_shared_llvm_engine;
   // Make sure our constants and such are already defined
   hvm_jit_define_constants();
+
+  char *function_name = "hvm_jit_function";
+
+  LLVMTypeRef  return_type   = LLVMArrayType(LLVMInt8TypeInContext(context), sizeof(hvm_jit_exit));
+  LLVMTypeRef  function_type = LLVMFunctionType(return_type, 0, 0, false);
+  LLVMValueRef function      = LLVMAddFunction(module, function_name, function_type);
   // Builder that we'll write the instructions from our trace into
   LLVMBuilderRef builder = LLVMCreateBuilderInContext(context);
 
@@ -818,9 +821,10 @@ void hvm_jit_compile_trace(hvm_vm *vm, hvm_call_trace *trace) {
   // Establish a bundle for all of our stuff related to this compilation.
   hvm_compile_bundle bundle = {
     .data = data,
-    .llvm_module  = module,
-    .llvm_builder = builder,
-    .llvm_engine  = engine
+    .llvm_module   = module,
+    .llvm_builder  = builder,
+    .llvm_engine   = engine,
+    .llvm_function = function
   };
 
   // Eventually going to run this as a hopefully-two-pass compilation. For now
