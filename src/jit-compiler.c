@@ -202,8 +202,18 @@ LLVMTypeRef hvm_jit_exit_bailout_llvm_type() {
   LLVMContextRef context = hvm_get_llvm_context();
   strct = LLVMStructCreateNamed(context, "hvm_jit_exit_bailout");
   LLVMTypeRef status      = LLVMIntType(sizeof(hvm_jit_exit_status) * 8);
-  LLVMTypeRef destination = pointer_type;
+  LLVMTypeRef destination = int64_type;
   LLVMTypeRef body[2]     = {status, destination};
+  LLVMStructSetBody(strct, body, 2, false);
+  return strct;
+}
+
+LLVMTypeRef hvm_jit_exit_return_llvm_type() {
+  STATIC_VALUE(LLVMTypeRef, strct);
+  strct = LLVMStructCreateNamed(hvm_shared_llvm_context, "hvm_jit_exit_return");
+  LLVMTypeRef status  = LLVMIntType(sizeof(hvm_jit_exit_return) * 8);
+  LLVMTypeRef value   = pointer_type;
+  LLVMTypeRef body[2] = {status, value};
   LLVMStructSetBody(strct, body, 2, false);
   return strct;
 }
@@ -506,6 +516,27 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         }
         // And finally actually do the branch with those blocks
         LLVMBuildCondBr(builder, truthy, truthy_block, falsey_block);
+        break;
+
+      case HVM_TRACE_SEQUENCE_ITEM_RETURN:
+        data_item->head.type = HVM_COMPILE_DATA_RETURN;
+        reg   = trace_item->item_return.register_return;
+        value = general_reg_values[reg];
+        LLVMTypeRef  return_type  = hvm_jit_exit_return_llvm_type();
+        LLVMValueRef return_value = LLVMBuildAlloca(builder, return_type, NULL);
+        // Set up the status
+        LLVMTypeRef  status_type  = LLVMIntType(sizeof(hvm_jit_exit_status) * 8);
+        LLVMValueRef status_value = LLVMConstInt(status_type, HVM_JIT_EXIT_RETURN, false);
+        // Pointers into the struct
+        LLVMValueRef status_ptr   = LLVMBuildGEP(builder, return_value, (LLVMValueRef[]){i32_zero, LLVMConstInt(int32_type, 0, true)}, 2, NULL);
+        LLVMValueRef value_ptr    = LLVMBuildGEP(builder, return_value, (LLVMValueRef[]){i32_zero, LLVMConstInt(int32_type, 1, true)}, 2, NULL);
+        // Set the status and return value into the struct
+        LLVMBuildStore(builder, status_value, status_ptr);
+        LLVMBuildStore(builder, value, value_ptr);
+        // Dereference the struct and return it
+        LLVMValueRef return_ptr   = LLVMBuildGEP(builder,  return_value, (LLVMValueRef[]){i32_zero}, 1, NULL);
+        LLVMValueRef return_strct = LLVMBuildLoad(builder, return_ptr, NULL);
+        LLVMBuildRet(builder, return_strct);
         break;
 
       case HVM_TRACE_SEQUENCE_ITEM_LITINTEGER:

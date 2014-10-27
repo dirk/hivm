@@ -27,7 +27,8 @@ typedef enum {
   HVM_COMPILE_DATA_MOVE,
   HVM_COMPILE_DATA_EQ,
   HVM_COMPILE_DATA_GT,
-  HVM_COMPILE_DATA_AND
+  HVM_COMPILE_DATA_AND,
+  HVM_COMPILE_DATA_RETURN
 } hvm_compile_data_type;
 
 #define HVM_COMPILE_DATA_HEAD hvm_compile_data_type type;
@@ -142,16 +143,23 @@ typedef struct hvm_compile_bundle {
 } hvm_compile_bundle;
 
 typedef enum {
-  HVM_JIT_EXIT_BAILOUT
+  HVM_JIT_EXIT_BAILOUT,
+  HVM_JIT_EXIT_RETURN
 } hvm_jit_exit_status;
 
 typedef struct hvm_jit_exit_bailout {
-  hvm_jit_exit_status status;
-  uint64_t destination;
+  hvm_jit_exit_status  status;
+  uint64_t             destination;
 } hvm_jit_exit_bailout;
+
+typedef struct hvm_jit_exit_return {
+  hvm_jit_exit_status  status;
+  hvm_obj_ref         *value;
+} hvm_jit_exit_return;
 
 typedef union hvm_jit_exit {
   hvm_jit_exit_bailout bailout;
+  hvm_jit_exit_return  ret;
 } hvm_jit_exit;
 
 // External API
