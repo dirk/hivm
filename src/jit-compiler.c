@@ -332,8 +332,6 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
   // Extract our pointer to `hvm_jit_exit` struct from the function
   // parameters so we can use it later.
   LLVMValueRef   exit_value  = LLVMGetParam(parent_func, 0);
-  // And cast it properly:
-  exit_value = LLVMConstPointerCast(exit_value, hvm_jit_obj_ref_llvm_type());
 
   for(i = 0; i < trace->sequence_length; i++) {
     hvm_compile_sequence_data *data_item  = &data[i];
@@ -576,7 +574,7 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         // Set the status and return value into the struct
         LLVMBuildStore(builder, status_value, status_ptr);
         LLVMBuildStore(builder, value, value_ptr);
-        LLVMBuildRet(builder, LLVMConstNull(void_type));
+        LLVMBuildRetVoid(builder);
         break;
 
       case HVM_TRACE_SEQUENCE_ITEM_LITINTEGER:
@@ -615,7 +613,7 @@ void hvm_jit_build_bailout_return_to_ip(LLVMBuilderRef builder, LLVMValueRef exi
   LLVMBuildStore(builder, status_value, status_ptr);
   LLVMBuildStore(builder, dest_value,   dest_ptr);
   // Then dereference the whole struct so we can return it
-  LLVMBuildRet(builder, LLVMConstNull(void_type));
+  LLVMBuildRetVoid(builder);
 }
 
 
@@ -809,9 +807,9 @@ void hvm_jit_compile_trace(hvm_vm *vm, hvm_call_trace *trace) {
   function_name[0]    = '\0';
   sprintf(function_name, "hvm_jit_function_%p", trace);
 
-  LLVMTypeRef  return_type   = LLVMArrayType(LLVMInt8TypeInContext(context), sizeof(hvm_jit_exit));
-  LLVMTypeRef  function_type = LLVMFunctionType(return_type, 0, 0, false);
-  LLVMValueRef function      = LLVMAddFunction(module, function_name, function_type);
+  LLVMTypeRef  function_args[] = {pointer_type};
+  LLVMTypeRef  function_type   = LLVMFunctionType(void_type, function_args, 1, false);
+  LLVMValueRef function        = LLVMAddFunction(module, function_name, function_type);
   // Builder that we'll write the instructions from our trace into
   LLVMBuilderRef builder = LLVMCreateBuilderInContext(context);
 
