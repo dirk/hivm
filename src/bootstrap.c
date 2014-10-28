@@ -4,6 +4,8 @@
 #include <string.h>
 #include <assert.h>
 
+#include <glib.h>
+
 #include "vm.h"
 #include "object.h"
 #include "symbol.h"
@@ -24,6 +26,7 @@ void hvm_bootstrap_primitives(hvm_vm *vm) {
   PRIM_SET("print_char", hvm_prim_print_char);
   PRIM_SET("print_exception", hvm_prim_print_exception);
   PRIM_SET("int_to_string", hvm_prim_int_to_string);
+  PRIM_SET("array_clone", hvm_prim_array_clone);
   PRIM_SET("exit", hvm_prim_exit);
 
   PRIM_SET("gc_run", hvm_prim_gc_run);
@@ -104,6 +107,27 @@ hvm_obj_ref *hvm_prim_print_char(hvm_vm *vm) {
   char    c = (char)i;
   fputc(c, stdout);
   return hvm_const_null;
+}
+
+hvm_obj_ref *hvm_prim_array_clone(hvm_vm *vm) {
+  hvm_obj_ref *arrref = vm->param_regs[0];
+  if(!hvm_type_check("array_clone", HVM_ARRAY, arrref, vm)) { return NULL; }
+  hvm_obj_array *arr = arrref->data.v;
+  guint len = arr->array->len;
+  // Set up the new array and copy over
+  hvm_obj_array *newarr = malloc(sizeof(hvm_obj_array));
+  newarr->array = g_array_sized_new(TRUE, TRUE, sizeof(hvm_obj_ref*), len);
+  newarr->array->len = len;
+  for(guint idx = 0; idx < len; idx++) {
+    // Copy source pointer from original array into destination in new array
+    hvm_obj_ref *src   = g_array_index(arr->array, hvm_obj_ref*, idx);
+    hvm_obj_ref **dest = &g_array_index(newarr->array, hvm_obj_ref*, idx);
+    *dest = src;
+  }
+  hvm_obj_ref *newarrref = hvm_new_obj_ref();
+  newarrref->type = HVM_ARRAY;
+  newarrref->data.v = newarr;
+  return newarrref;
 }
 
 hvm_obj_ref *hvm_prim_int_to_string(hvm_vm *vm) {
