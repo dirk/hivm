@@ -158,6 +158,10 @@ typedef struct hvm_call_trace {
   unsigned int sequence_capacity;
   /// Whether or not the trace is done and ready for analysis
   bool complete;
+
+  /// Pointer to the tag in the bytecode of the caller for us to update with
+  /// the trace's index.
+  byte *caller_tag;
 } hvm_call_trace;
 
 hvm_call_trace *hvm_new_call_trace(hvm_vm *vm);

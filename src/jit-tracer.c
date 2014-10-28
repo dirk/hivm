@@ -17,6 +17,7 @@ hvm_call_trace *hvm_new_call_trace(hvm_vm *vm) {
   trace->sequence_length = 0;
   trace->sequence = malloc(sizeof(hvm_trace_sequence_item) * trace->sequence_capacity);
   trace->complete = false;
+  trace->caller_tag = NULL;
   return trace;
 }
 
@@ -93,6 +94,20 @@ void hvm_jit_call_trace_push_instruction(hvm_vm *vm, hvm_call_trace *trace) {
       item->item_return.returning_type = return_obj_ref->type;
       // Mark this trace as complete
       trace->complete = true;
+      // And register an index for it in the VM trace index
+      unsigned short next_index = vm->traces_length + 1;
+      // Make sure there's space for this trace
+      assert(next_index < (HVM_MAX_TRACES - 1));
+      vm->traces[next_index] = trace;
+      // Update the caller's tag with the index if possible
+      if(trace->caller_tag) {
+        hvm_subroutine_tag tag;
+        hvm_subroutine_read_tag(trace->caller_tag, &tag);
+        // Actually setting the index here (remember it's off-by-one so that
+        // 0 can mean not-set)
+        tag.trace_index = next_index + 1;
+        hvm_subroutine_write_tag(trace->caller_tag, &tag);
+      }
       fprintf(stderr, "trace: completed trace %p\n", trace);
       break;
 
