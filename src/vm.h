@@ -32,6 +32,12 @@ typedef uint64_t hvm_symbol_id;
 /// @relates hvm_vm
 #define HVM_STACK_SIZE 16384
 
+/// Threshold for a function to be hot and ready for tracing and compiling
+#define HVM_TRACE_THRESHOLD 2
+
+/// Maximum number of traces we can collect
+#define HVM_MAX_TRACES 65535 // 2^16
+
 extern struct hvm_obj_ref* hvm_const_null;
 
 /// Generates bytecode.
@@ -121,6 +127,10 @@ typedef struct hvm_vm {
   bool is_tracing;
   /// Special flag to tell it to *always* trace
   bool always_trace;
+  /// Array of traces that have been collected and are ready for compilation
+  struct hvm_call_trace* traces[HVM_MAX_TRACES];
+  /// Number of traces in .traces
+  unsigned short traces_length;
 } hvm_vm;
 
 /// Create a new virtual machine.
@@ -257,8 +267,8 @@ typedef enum {
 
 // Struct for subroutine tags (3 bytes)
 typedef struct hvm_subroutine_tag {
-  unsigned short heat;// 10 bits (max is 1023)
-  unsigned short unused;// 14 bits
+  unsigned short heat;// 8 bits (max is 255)
+  unsigned short trace_index;// 16 bits
 } hvm_subroutine_tag;
 
 void hvm_subroutine_read_tag(byte *tag_start, hvm_subroutine_tag *tag);

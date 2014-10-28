@@ -18,6 +18,7 @@ hvm_call_trace *hvm_new_call_trace(hvm_vm *vm) {
   trace->sequence = malloc(sizeof(hvm_trace_sequence_item) * trace->sequence_capacity);
   trace->complete = false;
   trace->caller_tag = NULL;
+  trace->compiled_function = NULL;
   return trace;
 }
 
@@ -171,7 +172,7 @@ void hvm_jit_call_trace_push_instruction(hvm_vm *vm, hvm_call_trace *trace) {
       break;
 
     default:
-      fprintf(stderr, "trace: don't know what to do with instruction: %d\n", instr);
+      fprintf(stderr, "jit-tracer: Don't know what to do with instruction: %d\n", instr);
       do_increment = false;
   }
   if(do_increment == true) {
@@ -280,6 +281,18 @@ void hvm_jit_tracer_dump_trace(hvm_vm *vm, hvm_call_trace *trace) {
         reg1 = item->litinteger.register_value;
         i64  = item->litinteger.literal_value;
         printf("$%-3d = litinteger(%lld)", reg1, i64);
+        break;
+      case HVM_TRACE_SEQUENCE_ITEM_MOVE:
+        reg1 = item->move.register_dest;
+        reg2 = item->move.register_source;
+        printf("$%-3d = $%d", reg1, reg2);
+        break;
+      case HVM_TRACE_SEQUENCE_ITEM_EQ:
+        reg1 = item->eq.register_result;
+        reg2 = item->eq.register_operand1;
+        reg3 = item->eq.register_operand2;
+        char *cmp = "==";
+        printf("$%-3d = $%-3d %s $%-3d", reg1, reg2, cmp, reg3);
         break;
       default:
         break;

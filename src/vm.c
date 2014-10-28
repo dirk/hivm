@@ -14,6 +14,7 @@
 #include "gc1.h"
 #include "debug.h"
 #include "jit-tracer.h"
+#include "jit-compiler.h"
 
 #ifndef bool
 #define bool char
@@ -80,6 +81,7 @@ hvm_vm *hvm_new_vm() {
 #endif
 
   vm->is_tracing = 0;
+  vm->traces_length = 0;
 
   return vm;
 }
@@ -351,6 +353,7 @@ ALWAYS_INLINE void hvm_vm_copy_regs(hvm_vm *vm) {
 
 void hvm_vm_run(hvm_vm *vm) {
   byte instr;
+  byte *caller_tag;
   uint32_t const_index, depth;
   uint64_t dest, sym_id;//, return_addr;
   int32_t diff;
@@ -361,6 +364,7 @@ void hvm_vm_run(hvm_vm *vm) {
   hvm_exception *exc;
   char *msg;
   hvm_subroutine_tag tag;
+  hvm_call_trace *trace;
   // Variables needed by the debugger
 #ifdef HVM_VM_DEBUG
   bool should_continue;
@@ -402,17 +406,20 @@ void _hvm_tag_write_endian(byte *tag_start, uint32_t value) {
 
 void hvm_subroutine_read_tag(byte *tag_start, hvm_subroutine_tag *tag) {
   uint32_t raw = _hvm_tag_read_endian(tag_start);
-  // Get the top 10 bits for the heat field
-  uint32_t heat = (raw & 0x00FFC000) >> 14;
+  // Get the top 8 bits for the heat field
+  uint32_t heat = (raw & 0x00FF0000) >> 16;
   tag->heat   = (unsigned short)heat;
-  tag->unused = 0;
+  // Then the bottom 16 are for the trace index
+  tag->trace_index = raw & 0x0000FFFF;
   // fprintf(stderr, "read:  tag->heat = %u\n", tag->heat);
 }
 void hvm_subroutine_write_tag(byte *tag_start, hvm_subroutine_tag *tag) {
-  // Shift the head over 14 bits so it will be in the top 10 bits
-  uint32_t heat = (uint32_t)(tag->heat) << 14;
-  // Build up the raw (with the last byte cleared out for safety)
-  uint32_t value = heat & 0x00FFFFFF;
+  // Shift the head over 16 bits so it will be in the top 8 bits
+  uint32_t heat = (uint32_t)(tag->heat) << 16;
+  // The trace index is fine in place (will be in the lower bits)
+  uint32_t trace_index = (uint32_t)(tag->trace_index);
+  // Build up the raw (with the highest byte cleared out for safety)
+  uint32_t value = (heat | trace_index) & 0x00FFFFFF;
   _hvm_tag_write_endian(tag_start, value);
   // fprintf(stderr, "write: tag->heat = %u\n", tag->heat);
   // fprintf(stderr, "raw: 0x%08X\n", raw);

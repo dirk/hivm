@@ -162,6 +162,9 @@ typedef struct hvm_call_trace {
   /// Pointer to the tag in the bytecode of the caller for us to update with
   /// the trace's index.
   byte *caller_tag;
+
+  /// Pointer to LLVMValueRef for our compiled function
+  void *compiled_function; 
 } hvm_call_trace;
 
 hvm_call_trace *hvm_new_call_trace(hvm_vm *vm);
