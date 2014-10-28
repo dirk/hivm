@@ -7,6 +7,7 @@
 
 #include <llvm-c/Core.h>
 #include <llvm-c/ExecutionEngine.h>
+#include <llvm-c/Target.h>
 #include <llvm-c/Transforms/Scalar.h>
 
 #include "vm.h"
@@ -74,6 +75,7 @@ void hvm_jit_setup_llvm() {
   hvm_shared_llvm_module  = LLVMModuleCreateWithNameInContext("hvm", hvm_shared_llvm_context);
   // Set up compilation to our current native target
   LLVMInitializeNativeTarget();
+  LLVMLinkInMCJIT();
   // Set up the options for the JIT compiler
   struct LLVMMCJITCompilerOptions opts;
   LLVMInitializeMCJITCompilerOptions(&opts, sizeof(opts));
@@ -529,8 +531,9 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         data_item->item_if.type = HVM_COMPILE_DATA_IF;
         // Building our comparison:
         //   falsey = (val->type == HVM_NULL || (val->type == HVM_INTEGER && val->data.i64 == 0))
-        // We only branch to the destination if it is not falsey (ie. truthy)
-
+        //   truthy = !falsey
+        //   if truthy then branch
+        //
         // Extract the value we'll be testing and cast it to an hvm_obj_ref
         // type in the LLVM IR.
         value1               = general_reg_values[trace_item->item_if.register_value];
@@ -539,7 +542,6 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         LLVMValueRef falsey = hvm_jit_compile_value_is_falsey(builder, val_ref);
         // Invert for our truthy test
         LLVMValueRef truthy = LLVMBuildNot(builder, falsey, NULL);
-
         // Get the TRUTHY block to branch to or set up a bailout
         LLVMBasicBlockRef truthy_block;
         if(data_item->item_if.truthy_block != NULL) {
@@ -845,11 +847,16 @@ void hvm_jit_compile_trace(hvm_vm *vm, hvm_call_trace *trace) {
   // Identify potential guard points to be checked before/during/after
   // execution.
 
+  // Save the compiled function
+  trace->compiled_function = function;
+
+  /*
   // Set up the memory for our exit information.
   hvm_jit_exit *result = malloc(sizeof(hvm_jit_exit));
   // Run the optimized native function.
   LLVMGenericValueRef args[] = {LLVMCreateGenericValueOfPointer(result)};
   LLVMRunFunction(engine, function, 1, args);
+  */
 
   free(data);
 }

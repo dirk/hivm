@@ -2,6 +2,13 @@
 #define HVM_JIT_COMPILER_H
 /// @file jit-compiler.h
 
+// Define some LLVM pointer types if LLVM isn't present to define them for us.
+#ifndef LLVM_C_CORE_H
+typedef void* LLVMBasicBlockRef;
+typedef void* LLVMBuilderRef;
+typedef void* LLVMValueRef;
+#endif
+
 typedef struct hvm_trace_compiled_frame {
 } hvm_trace_compiled_frame;
 
@@ -172,13 +179,6 @@ void hvm_jit_compile_trace(hvm_vm*, hvm_call_trace*);
 // Compiler internals
 void hvm_jit_compile_builder(hvm_vm*, hvm_call_trace*, hvm_compile_bundle*);
 hvm_jit_block *hvm_jit_compile_find_or_insert_block(LLVMValueRef, hvm_compile_bundle*, unsigned int, uint64_t);
-
-// Define some LLVM pointer types if LLVM isn't present to define them for us.
-#ifndef LLVM_C_CORE_H
-typedef void* LLVMBasicBlockRef;
-typedef void* LLVMBuilderRef;
-typedef void* LLVMValueRef;
-#endif
 
 LLVMBasicBlockRef hvm_jit_build_bailout_block(hvm_vm*, LLVMBuilderRef, LLVMValueRef parent_func, LLVMValueRef exit_value, LLVMValueRef*, uint64_t);
 
