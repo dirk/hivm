@@ -163,7 +163,7 @@ EXECUTE:
     case HVM_OP_INVOKEPRIMITIVE: // 1B OP | 1B REG | 1B REG
       AREG; BREG;
       key = _hvm_vm_register_read(vm, areg);// This is the symbol we need to look up.
-      // hvm_vm_copy_regs(vm);
+      hvm_vm_copy_regs(vm);
       // fprintf(stderr, "CALLPRIMITIVE(%lld, $%d)\n", sym_id, breg);
       // FIXME: This may need to be smartened up.
       hvm_exception *current_exc = vm->exception;// If there's a current exception
