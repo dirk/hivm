@@ -248,6 +248,16 @@ hvm_obj_ref* hvm_vm_build_closure(hvm_vm *vm) {
   return ref;
 }
 
+bool hvm_is_gen_reg(byte i) {
+  return i <= 127;
+}
+bool hvm_is_arg_reg(byte i) {
+  return i >= 130 && i < (130 + HVM_ARGUMENT_REGISTERS);
+}
+bool hvm_is_param_reg(byte i) {
+  return i >= 146 && i < (146 + HVM_ARGUMENT_REGISTERS);
+}
+
 /*
 REGISTER MAP
 0-127   = General registers (128)
@@ -258,7 +268,7 @@ REGISTER MAP
 162     = Special parameter length register
 */
 byte hvm_vm_reg_gen(byte i) {
-  assert(i <= 127);
+  assert(hvm_is_gen_reg(i));
   return i;
 }
 byte hvm_vm_reg_zero() { return 128; }

@@ -50,7 +50,7 @@ void hvm_jit_define_constants() {
   obj_type_enum_size = LLVMIntType(sizeof(hvm_obj_type) * 8);
   const_hvm_null     = LLVMConstInt(obj_type_enum_size, HVM_NULL, false);
   const_hvm_integer  = LLVMConstInt(obj_type_enum_size, HVM_INTEGER, false);
-  pointer_type       = LLVMPointerType(LLVMVoidType(), 0);
+  pointer_type       = LLVMPointerType(LLVMInt8Type(), 0);
   void_type          = LLVMVoidType();
   byte_type          = LLVMInt8TypeInContext(hvm_shared_llvm_context);
   int32_type         = LLVMInt32TypeInContext(hvm_shared_llvm_context);
@@ -324,6 +324,9 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
   hvm_jit_block *jit_block;
   LLVMValueRef value, value_array, value_index, value_symbol, value_returned, value1, value2;
 
+  // 64 bytes to play with for making strings to pass to LLVM
+  char scratch[64];
+
   hvm_compile_sequence_data *data = bundle->data;
   // Function-pointer-as-value
   LLVMValueRef func;
@@ -334,6 +337,8 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
   // Extract our pointer to `hvm_jit_exit` struct from the function
   // parameters so we can use it later.
   LLVMValueRef   exit_value  = LLVMGetParam(parent_func, 0);
+  // Get the pointer to the array of arg registers
+  LLVMValueRef   param_regs  = LLVMGetParam(parent_func, 1);
 
   for(i = 0; i < trace->sequence_length; i++) {
     hvm_compile_sequence_data *data_item  = &data[i];
@@ -353,8 +358,27 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         data_item->head.type = HVM_COMPILE_DATA_MOVE;
         reg_source = trace_item->move.register_source;
         reg        = trace_item->move.register_dest;
-        // Fetch the value from one and put it in the other
-        value = general_reg_values[reg_source];
+        if(hvm_is_gen_reg(reg_source)) {
+          // Fetch the value from one and put it in the other
+          value = general_reg_values[reg_source];
+        } else if(hvm_is_param_reg(reg_source)) {
+          // Extract it from the argument registers array
+          unsigned int idx = reg_source - 130;
+          value_index      = LLVMConstInt(int32_type, idx, true);
+          // Compute the address into the parameter registers
+          sprintf(scratch, "ptr = &params[%d]", idx);
+          LLVMValueRef ptr = LLVMBuildGEP(builder, param_regs, (LLVMValueRef[]){value_index}, 1, scratch);
+          // Then fetch it from the registers array into a value we can work with
+          sprintf(scratch, "*ptr");
+          value = LLVMBuildLoad(builder, ptr, scratch);
+          // And cast it into the proper pointer type
+          sprintf(scratch, "i8 -> *i8");
+          value = LLVMBuildIntToPtr(builder, value, pointer_type, scratch);
+        } else {
+          fprintf(stderr, "Can't handle register %d\n", reg_source);
+          // Can't handle other register types yet
+          assert(0);
+        }
         JIT_SAVE_DATA_ITEM_AND_VALUE(reg, data_item, value);
         break;
 
@@ -659,6 +683,8 @@ hvm_jit_block *hvm_jit_compile_find_or_insert_block(LLVMValueRef parent_func, hv
   LLVMContextRef context  = hvm_shared_llvm_context;
   // Block to be operated upon
   hvm_jit_block *block;
+  // For building the name of the block
+  char name[32];
 
   // TODO: Optimize this to look at the end of the blocks array to see if the
   //       IP of the block to be inserted is greater than the last block's IP.
@@ -687,9 +713,11 @@ hvm_jit_block *hvm_jit_compile_find_or_insert_block(LLVMValueRef parent_func, hv
   block = &blocks[num_blocks];
 
 set_block:
+  name[0] = '\0';
+  sprintf(name, "block_%d", index);
   block->ip          = ip;
   block->index       = index;
-  block->basic_block = LLVMAppendBasicBlockInContext(context, parent_func, NULL);
+  block->basic_block = LLVMAppendBasicBlockInContext(context, parent_func, name);
   // Update the count
   bundle->blocks_length = num_blocks + 1;
   // Return the new block
@@ -733,7 +761,7 @@ void hvm_jit_compile_identify_blocks(hvm_call_trace *trace, hvm_compile_bundle *
   hvm_jit_block *entry = &blocks[0];
   entry->ip            = item->head.ip;
   entry->index         = 0;
-  entry->basic_block   = LLVMAppendBasicBlockInContext(context, parent_func, NULL);
+  entry->basic_block   = LLVMAppendBasicBlockInContext(context, parent_func, "entry");
 
   for(unsigned int i = 0; i < trace->sequence_length; i++) {
     item = &trace->sequence[i];
@@ -809,8 +837,8 @@ void hvm_jit_compile_trace(hvm_vm *vm, hvm_call_trace *trace) {
   function_name[0]    = '\0';
   sprintf(function_name, "hvm_jit_function_%p", trace);
 
-  LLVMTypeRef  function_args[] = {pointer_type};
-  LLVMTypeRef  function_type   = LLVMFunctionType(void_type, function_args, 1, false);
+  LLVMTypeRef  function_args[] = {pointer_type, pointer_type};
+  LLVMTypeRef  function_type   = LLVMFunctionType(void_type, function_args, 2, false);
   LLVMValueRef function        = LLVMAddFunction(module, function_name, function_type);
   // Builder that we'll write the instructions from our trace into
   LLVMBuilderRef builder = LLVMCreateBuilderInContext(context);
