@@ -126,15 +126,15 @@ void define_insertion_sort(hvm_gen *gen) {
   hvm_gen_label(gen->block, "insertion_sort_end");
 
   // Print our current trace for debugging
-  hvm_gen_set_symbol(gen->block, sym, "debug_print_current_frame_trace");
-  hvm_gen_invokeprimitive(gen->block, sym, hvm_vm_reg_null());
+  // hvm_gen_set_symbol(gen->block, sym, "debug_print_current_frame_trace");
+  // hvm_gen_invokeprimitive(gen->block, sym, hvm_vm_reg_null());
 
   // Return the array
   hvm_gen_return(gen->block, arr);
 }
 
 int main(int argc, char **argv) {
-  static const unsigned int array_size = 25;
+  static const unsigned int array_size = 1000;
 
   hvm_gen *gen = hvm_new_gen();
   hvm_gen_set_file(gen, "sorting");
@@ -144,16 +144,46 @@ int main(int argc, char **argv) {
   hvm_gen_goto_label(gen->block, "program");
   // Then insert our insertion sort subroutine
   define_insertion_sort(gen);
+  
   // Main program
   hvm_gen_label(gen->block, "program");
-  byte sym = hvm_vm_reg_gen(0);
-  hvm_gen_set_symbol(gen->block, sym, array);
-  byte ar  = hvm_vm_reg_gen(1);
-  hvm_gen_getlocal(gen->block, ar, sym);// $ar = local:array
-  // Invoke insertion sort
-  hvm_gen_move(gen->block, hvm_vm_reg_arg(0), ar); // arg:0 = $ar
-  byte ret = hvm_vm_reg_gen(2);
-  hvm_gen_callsymbolic_symbol(gen->block, "insertion_sort", ret);
+  byte sym         = hvm_vm_reg_gen(0);
+  byte ret         = hvm_vm_reg_gen(1);
+  byte local_array = hvm_vm_reg_gen(2);
+  byte array_copy  = hvm_vm_reg_gen(3);
+
+  
+
+  // Do the loop to invoke insertion sort a few times
+  byte idx  = hvm_vm_reg_gen(100);
+  byte lim  = hvm_vm_reg_gen(101);
+  byte cond = hvm_vm_reg_gen(102);
+  byte i    = hvm_vm_reg_gen(103);
+  hvm_gen_litinteger(gen->block, idx, 0);
+  hvm_gen_litinteger(gen->block, lim, 10);
+  hvm_gen_label(gen->block, "loop_condition");
+  // $cond = $idx == $lim
+  hvm_gen_eq(gen->block, cond, idx, lim);
+  hvm_gen_if_label(gen->block, cond, "loop_end");
+    // Body of the loop
+    // $local_array = local:array
+    hvm_gen_set_symbol(gen->block, sym, array);
+    hvm_gen_getlocal(gen->block, local_array, sym);
+    // arg:0 = $local_array
+    hvm_gen_move(gen->block, hvm_vm_reg_arg(0), local_array);
+    // $array_copy = prim:array_clone($local_array)
+    hvm_gen_set_symbol(gen->block, sym, "array_clone");
+    hvm_gen_invokeprimitive(gen->block, sym, array_copy);
+    // arg:0 = $array_copy
+    hvm_gen_move(gen->block, hvm_vm_reg_arg(0), array_copy);
+    // $ret = #insertion_sort()
+    hvm_gen_callsymbolic_symbol(gen->block, "insertion_sort", ret);
+    // $idx = $idx + 1
+    hvm_gen_litinteger(gen->block, i, 1);
+    hvm_gen_add(gen->block, idx, idx, i);
+    hvm_gen_goto_label(gen->block, "loop_condition");
+  // End of loop
+  hvm_gen_label(gen->block, "loop_end");
   hvm_gen_die(gen->block);
 
   hvm_chunk *chunk = hvm_gen_chunk(gen);
@@ -178,6 +208,7 @@ int main(int argc, char **argv) {
 
   printf("\nDONE\n\n");
 
+  /*
   hvm_obj_ref *arrref = hvm_get_local(vm->top, hvm_symbolicate(vm->symbols, array));
   assert(arrref->type == HVM_ARRAY);
 
@@ -190,6 +221,7 @@ int main(int argc, char **argv) {
     printf("  %4u = %lld\n", i, intval->data.i64);
   }
   printf("}\n");
+  */
 
 
   // printf("\nAFTER RUNNING:\n");
