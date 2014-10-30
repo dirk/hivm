@@ -16,6 +16,10 @@
 #include "jit-tracer.h"
 #include "jit-compiler.h"
 
+// Forward declarations for a few things
+LLVMTypeRef hvm_jit_obj_ref_llvm_type();
+
+
 static bool constants_defined;
 // Static constants we'll be using
 static LLVMTypeRef  obj_type_enum_size;
@@ -23,10 +27,12 @@ static LLVMTypeRef  obj_type_enum_size;
 static LLVMTypeRef  pointer_type;
 static LLVMTypeRef  void_type;
 static LLVMTypeRef  byte_type;
-static LLVMTypeRef  int32_type;
+static LLVMTypeRef  int1_type;
 static LLVMTypeRef  int32_type;
 static LLVMTypeRef  int64_type;
 static LLVMTypeRef  int64_pointer_type;
+// Complex types
+static LLVMTypeRef obj_ref_ptr_type;
 // Some values we'll be reusing a lot
 static LLVMValueRef i32_zero;
 static LLVMValueRef i32_one;
@@ -53,12 +59,15 @@ void hvm_jit_define_constants() {
   pointer_type       = LLVMPointerType(LLVMInt8Type(), 0);
   void_type          = LLVMVoidType();
   byte_type          = LLVMInt8TypeInContext(hvm_shared_llvm_context);
+  int1_type          = LLVMInt1TypeInContext(hvm_shared_llvm_context);
   int32_type         = LLVMInt32TypeInContext(hvm_shared_llvm_context);
   int64_type         = LLVMInt64TypeInContext(hvm_shared_llvm_context);
   int64_pointer_type = LLVMPointerType(int64_type, 0);
   i32_zero           = LLVMConstInt(int32_type, 0, true);
   i32_one            = LLVMConstInt(int32_type, 1, true);
   i64_zero           = LLVMConstInt(int64_type, 0, true);
+  // More complex types
+  obj_ref_ptr_type   = LLVMPointerType(hvm_jit_obj_ref_llvm_type(), 0);
   // Mark that we've defined them so we don't redefine
   constants_defined = true;
 }
@@ -137,21 +146,21 @@ void hvm_jit_setup_llvm() {
 LLVMValueRef hvm_jit_obj_array_get_llvm_value(hvm_compile_bundle *bundle) {
   STATIC_VALUE(LLVMValueRef, func);
   UNPACK_BUNDLE(bundle);
-  ADD_FUNCTION(func, hvm_obj_array_get, pointer_type, 2, pointer_type, pointer_type);
+  ADD_FUNCTION(func, hvm_obj_array_get, obj_ref_ptr_type, 2, obj_ref_ptr_type, obj_ref_ptr_type);
   return func;
 }
 
 LLVMValueRef hvm_jit_obj_array_set_llvm_value(hvm_compile_bundle *bundle) {
   STATIC_VALUE(LLVMValueRef, func);
   UNPACK_BUNDLE(bundle);
-  ADD_FUNCTION(func, hvm_obj_array_set, void_type, 3, pointer_type, pointer_type, pointer_type);
+  ADD_FUNCTION(func, hvm_obj_array_set, void_type, 3, obj_ref_ptr_type, obj_ref_ptr_type, obj_ref_ptr_type);
   return func;
 }
 
 LLVMValueRef hvm_jit_obj_array_len_llvm_value(hvm_compile_bundle *bundle) {
   STATIC_VALUE(LLVMValueRef, func);
   UNPACK_BUNDLE(bundle);
-  ADD_FUNCTION(func, hvm_obj_array_len, pointer_type, 1, pointer_type);  
+  ADD_FUNCTION(func, hvm_obj_array_len, obj_ref_ptr_type, 1, obj_ref_ptr_type);
   return func;
 }
 
@@ -159,28 +168,28 @@ LLVMValueRef hvm_jit_vm_call_primitive_llvm_value(hvm_compile_bundle *bundle) {
   STATIC_VALUE(LLVMValueRef, func);
   UNPACK_BUNDLE(bundle);
   // (hvm_vm*, hvm_obj_ref*) -> hvm_obj_ref*
-  ADD_FUNCTION(func, hvm_vm_call_primitive, pointer_type, 2, pointer_type, pointer_type);
+  ADD_FUNCTION(func, hvm_vm_call_primitive, obj_ref_ptr_type, 2, obj_ref_ptr_type, obj_ref_ptr_type);
   return func;
 }
 
 LLVMValueRef hvm_jit_obj_int_add_llvm_value(hvm_compile_bundle *bundle) {
   STATIC_VALUE(LLVMValueRef, func);
   UNPACK_BUNDLE(bundle);
-  ADD_FUNCTION(func, hvm_obj_int_add, pointer_type, 2, pointer_type, pointer_type);
+  ADD_FUNCTION(func, hvm_obj_int_add, obj_ref_ptr_type, 2, obj_ref_ptr_type, obj_ref_ptr_type);
   return func;
 }
 
 LLVMValueRef hvm_jit_obj_int_eq_llvm_value(hvm_compile_bundle *bundle) {
   STATIC_VALUE(LLVMValueRef, func);
   UNPACK_BUNDLE(bundle);
-  ADD_FUNCTION(func, hvm_obj_int_eq, pointer_type, 2, pointer_type, pointer_type);
+  ADD_FUNCTION(func, hvm_obj_int_eq, obj_ref_ptr_type, 2, obj_ref_ptr_type, obj_ref_ptr_type);
   return func;
 }
 
 LLVMValueRef hvm_jit_obj_int_gt_llvm_value(hvm_compile_bundle *bundle) {
   STATIC_VALUE(LLVMValueRef, func);
   UNPACK_BUNDLE(bundle);
-  ADD_FUNCTION(func, hvm_obj_int_gt, pointer_type, 2, pointer_type, pointer_type);
+  ADD_FUNCTION(func, hvm_obj_int_gt, obj_ref_ptr_type, 2, obj_ref_ptr_type, obj_ref_ptr_type);
   return func;
 }
 
@@ -188,7 +197,7 @@ LLVMValueRef hvm_jit_obj_is_truthy_llvm_value(hvm_compile_bundle *bundle) {
   STATIC_VALUE(LLVMValueRef, func);
   UNPACK_BUNDLE(bundle);
   // (hvm_obj_ref*) -> byte/bool
-  ADD_FUNCTION(func, hvm_obj_is_truthy, byte_type, 1, pointer_type);
+  ADD_FUNCTION(func, hvm_obj_is_truthy, byte_type, 1, obj_ref_ptr_type);
   return func;
 }
 
@@ -254,8 +263,8 @@ LLVMTypeRef hvm_jit_exit_bailout_llvm_type() {
 LLVMTypeRef hvm_jit_exit_return_llvm_type() {
   STATIC_VALUE(LLVMTypeRef, strct);
   strct = LLVMStructCreateNamed(hvm_shared_llvm_context, "hvm_jit_exit_return");
-  LLVMTypeRef status  = LLVMIntType(sizeof(hvm_jit_exit_return) * 8);
-  LLVMTypeRef value   = pointer_type;
+  LLVMTypeRef status  = LLVMIntType(sizeof(hvm_jit_exit_status) * 8);
+  LLVMTypeRef value   = obj_ref_ptr_type;
   LLVMTypeRef body[2] = {status, value};
   LLVMStructSetBody(strct, body, 2, false);
   return strct;
@@ -278,21 +287,28 @@ LLVMValueRef hvm_jit_compile_value_is_falsey(LLVMBuilderRef builder, LLVMValueRe
   // Get a pointer the the .type of the object ref struct (first 0 index
   // is to get the first value pointed at, the second 0 index is to get
   // the first item in the struct). Then load it into an integer value.
-  LLVMValueRef val_type_ptr = LLVMBuildGEP(builder, val_ref, (LLVMValueRef[]){i32_zero, i32_zero}, 2, NULL);
-  LLVMValueRef val_type     = LLVMBuildLoad(builder, val_type_ptr, NULL);
+  LLVMValueRef val_type_ptr = LLVMBuildGEP(builder, val_ref, (LLVMValueRef[]){i32_zero, i32_zero}, 2, "val_type_ptr = &val_ref[0]->type");
+  LLVMValueRef val_type     = LLVMBuildLoad(builder, val_type_ptr, "val_type = *val_type_ptr");
   // Get the .data of the object as an i64:
-  LLVMValueRef val_data_ptr = LLVMBuildGEP(builder, val_ref, (LLVMValueRef[]){i32_zero, i32_one}, 2, NULL);
-  LLVMValueRef val_data     = LLVMBuildLoad(builder, val_data_ptr, NULL);
+  LLVMValueRef val_data_ptr = LLVMBuildGEP(builder, val_ref, (LLVMValueRef[]){i32_zero, i32_one}, 2, "val_data_ptr = &val_ref[0]->data");
+  LLVMValueRef val_data     = LLVMBuildLoad(builder, val_data_ptr, "val_data = *val_data_ptr");
+  val_data                  = LLVMBuildIntCast(builder, val_data, int64_type, "val_data = (i64)val_data");
 
   // Left side of the falsiness test
-  LLVMValueRef val_is_null      = LLVMBuildICmp(builder, LLVMIntEQ, val_type, const_hvm_null, NULL);
+  LLVMValueRef val_is_null      = LLVMBuildICmp(builder, LLVMIntEQ, val_type, const_hvm_null, "val_is_null = val_type == hvm_const_null");
   // Right side of the test (check if integer and i64-value is zero)
-  LLVMValueRef val_is_int       = LLVMBuildICmp(builder, LLVMIntEQ, val_type, const_hvm_integer, NULL);
-  LLVMValueRef val_data_is_zero = LLVMBuildICmp(builder, LLVMIntEQ, val_data, i64_zero, NULL);
-  LLVMValueRef val_is_zero_int  = LLVMBuildAnd(builder, val_is_int, val_data_is_zero, NULL);
+  LLVMValueRef val_is_int       = LLVMBuildICmp(builder, LLVMIntEQ, val_type, const_hvm_integer, "val_is_int = val_type == HVM_INTEGER");
+  LLVMValueRef val_data_is_zero = LLVMBuildICmp(builder, LLVMIntEQ, val_data, i64_zero, "val_data_is_zero = val_data == 0");
+  // Cast test results to make sure they're bools
+  val_is_int       = LLVMBuildIntCast(builder, val_is_int,       int1_type, "val_is_int = (i1)val_is_int");
+  val_data_is_zero = LLVMBuildIntCast(builder, val_data_is_zero, int1_type, "val_data_is_zero = (i1)val_data_is_zero");
+  // Then compare those bools
+  LLVMValueRef val_is_zero_int  = LLVMBuildAnd(builder, val_is_int, val_data_is_zero, "val_is_zero_int = val_is_int && val_data_is_zero");
 
   // Final is-falsey computation
-  LLVMValueRef falsey = LLVMBuildOr(builder, val_is_null, val_is_zero_int, NULL);
+  val_is_null         = LLVMBuildIntCast(builder, val_is_null,     int1_type, "val_is_null = (i1)val_is_null");
+  val_is_zero_int     = LLVMBuildIntCast(builder, val_is_zero_int, int1_type, "val_is_zero_int = (i1)val_is_zero_int");
+  LLVMValueRef falsey = LLVMBuildOr(builder, val_is_null, val_is_zero_int, "falsey = val_is_null || val_is_zero_int");
   return falsey;
 }
 
@@ -323,6 +339,7 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
   uint64_t ip;
   hvm_jit_block *jit_block;
   LLVMValueRef value, value_array, value_index, value_symbol, value_returned, value1, value2;
+  LLVMValueRef data_ptr;
 
   // 64 bytes to play with for making strings to pass to LLVM
   char scratch[64];
@@ -372,8 +389,8 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
           sprintf(scratch, "*ptr");
           value = LLVMBuildLoad(builder, ptr, scratch);
           // And cast it into the proper pointer type
-          sprintf(scratch, "i8 -> *i8");
-          value = LLVMBuildIntToPtr(builder, value, pointer_type, scratch);
+          sprintf(scratch, "i8 -> *hvm_obj_ref");
+          value = LLVMBuildIntToPtr(builder, value, obj_ref_ptr_type, scratch);
         } else {
           fprintf(stderr, "Can't handle register %d\n", reg_source);
           // Can't handle other register types yet
@@ -425,6 +442,8 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         reg2   = trace_item->eq.register_operand2;
         value1 = general_reg_values[reg1];
         value2 = general_reg_values[reg2];
+        // fprintf(stderr, "value1: $%d %s\n", reg1, LLVMPrintTypeToString(LLVMTypeOf(value1)));
+        // fprintf(stderr, "value2: $%d %s\n", reg2, LLVMPrintTypeToString(LLVMTypeOf(value2)));
         // Build the `hvm_obj_int_eq` call
         func  = hvm_jit_obj_int_eq_llvm_value(bundle);
         LLVMValueRef int_eq_args[2] = {value1, value2};
@@ -446,18 +465,21 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         value1 = LLVMBuildCall(builder, func, (LLVMValueRef[]){value1}, 1, "is_truthy");
         value2 = LLVMBuildCall(builder, func, (LLVMValueRef[]){value2}, 1, "is_truthy");
         // Then do an and comparison of those two
-        value = LLVMBuildAnd(builder, value1, value2, NULL);
+        sprintf(scratch, "value = $%-3d && $%-3d", reg1, reg2);
+        value = LLVMBuildAnd(builder, value1, value2, scratch);
+        // Convert our value to an i64.
+        value = LLVMBuildIntCast(builder, value, int64_type, "value cast -> i64");
         // And build an integer with that value
         func = hvm_jit_new_obj_int_llvm_value(bundle);
         // Going to get a pointer and cast it properly
-        value_returned = LLVMBuildCall(builder, func, NULL, 0, "new_obj_int");
-        value_returned = LLVMBuildPointerCast(builder, value_returned, hvm_jit_obj_ref_llvm_type(), NULL);
+        value_returned = LLVMBuildCall(builder, func, NULL, 0, "obj = hvm_new_obj_int()");
+        value_returned = LLVMBuildPointerCast(builder, value_returned, obj_ref_ptr_type, "vr = obj as *hvm_obj_ref");
         // Then get the pointer to the data property and set it (first 0 index
         // is to get the first value pointed at, the second 0 index is to get
         // the first item in the struct).
-        LLVMValueRef data_ptr = LLVMBuildGEP(builder, value_returned, (LLVMValueRef[]){i32_zero, i32_one}, 2, NULL);
+        data_ptr = LLVMBuildGEP(builder, value_returned, (LLVMValueRef[]){i32_zero, i32_one}, 2, "data_ptr = &vr[0]->data");
         // Convert it to the proper 64-bit integer pointer
-        data_ptr = LLVMBuildPointerCast(builder, data_ptr, int64_pointer_type, NULL);
+        data_ptr = LLVMBuildPointerCast(builder, data_ptr, int64_pointer_type, "data_ptr cast -> *i64");
         LLVMBuildStore(builder, value, data_ptr);
         JIT_SAVE_DATA_ITEM_AND_VALUE(reg, data_item, value_returned);
         break;
@@ -475,7 +497,7 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         func = hvm_jit_obj_array_set_llvm_value(bundle);
         LLVMValueRef arrayset_args[3] = {value_array, value_index, value};
         // Build the function call with the function value and arguments
-        LLVMBuildCall(builder, func, arrayset_args, 3, "arrayset");
+        LLVMBuildCall(builder, func, arrayset_args, 3, "");
         break;
 
       case HVM_TRACE_SEQUENCE_ITEM_ARRAYLEN:
@@ -488,7 +510,7 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         func = hvm_jit_obj_array_len_llvm_value(bundle);
         LLVMValueRef arraylen_args[1] = {value_array};
         // Then build the function call
-        value_returned = LLVMBuildCall(builder, func, arraylen_args, 1, "arraylen");
+        value_returned = LLVMBuildCall(builder, func, arraylen_args, 1, "hvm_obj_array_len");
         JIT_SAVE_DATA_ITEM_AND_VALUE(reg, data_item, value_returned);
         break;
 
@@ -534,8 +556,10 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
       case HVM_TRACE_SEQUENCE_ITEM_GT:
         // Extract the registers and values
         reg_result = trace_item->add.register_result;
-        value1     = general_reg_values[trace_item->add.register_operand1];
-        value2     = general_reg_values[trace_item->add.register_operand2];
+        reg1       = trace_item->add.register_operand1;
+        reg2       = trace_item->add.register_operand2;
+        value1     = general_reg_values[reg1];
+        value2     = general_reg_values[reg2];
         type       = trace_item->head.type;
         // Save the operation type and lookup the comparison function
         if(type == HVM_TRACE_SEQUENCE_ITEM_GT) {
@@ -546,7 +570,8 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         }
         // Call our comparator and store the result
         LLVMValueRef comparison_args[2] = {value1, value2};
-        value_returned = LLVMBuildCall(builder, func, comparison_args, 2, NULL);
+        sprintf(scratch, "$%-3d = $%-3d > $%-3d", reg_result, reg1, reg2);
+        value_returned = LLVMBuildCall(builder, func, comparison_args, 2, scratch);
         // TODO: Check for exception set by primitive or NULL return from it
         JIT_SAVE_DATA_ITEM_AND_VALUE(reg_result, data_item, value_returned);
         break;
@@ -560,12 +585,13 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         //
         // Extract the value we'll be testing and cast it to an hvm_obj_ref
         // type in the LLVM IR.
-        value1               = general_reg_values[trace_item->item_if.register_value];
-        LLVMValueRef val_ref = LLVMBuildPointerCast(builder, value1, hvm_jit_obj_ref_llvm_type(), NULL);
+        reg1   = trace_item->item_if.register_value;
+        value1 = general_reg_values[reg1];
+        LLVMValueRef val_ref = LLVMBuildPointerCast(builder, value1, obj_ref_ptr_type, "val_ref cast -> *hvm_obj_ref");
         // Expects `hvm_obj_ref` pointer and should return a bool LLVM value ref
         LLVMValueRef falsey = hvm_jit_compile_value_is_falsey(builder, val_ref);
         // Invert for our truthy test
-        LLVMValueRef truthy = LLVMBuildNot(builder, falsey, NULL);
+        LLVMValueRef truthy = LLVMBuildNot(builder, falsey, "truthy = !falsey");
         // Get the TRUTHY block to branch to or set up a bailout
         LLVMBasicBlockRef truthy_block;
         if(data_item->item_if.truthy_block != NULL) {
@@ -594,9 +620,12 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         // Set up the status
         LLVMTypeRef  status_type  = LLVMIntType(sizeof(hvm_jit_exit_status) * 8);
         LLVMValueRef status_value = LLVMConstInt(status_type, HVM_JIT_EXIT_RETURN, false);
+        // Cast exit value to exit return
+        LLVMTypeRef  er_ptr_type  = LLVMPointerType(hvm_jit_exit_return_llvm_type(), 0);
+        LLVMValueRef exit_return  = LLVMBuildPointerCast(builder, exit_value, er_ptr_type, "exit_value cast -> *hvm_jit_exit_return");
         // Pointers into the struct
-        LLVMValueRef status_ptr   = LLVMBuildGEP(builder, exit_value, (LLVMValueRef[]){i32_zero, LLVMConstInt(int32_type, 0, true)}, 2, NULL);
-        LLVMValueRef value_ptr    = LLVMBuildGEP(builder, exit_value, (LLVMValueRef[]){i32_zero, LLVMConstInt(int32_type, 1, true)}, 2, NULL);
+        LLVMValueRef status_ptr   = LLVMBuildGEP(builder, exit_return, (LLVMValueRef[]){i32_zero, i32_zero}, 2, "status_ptr = &exit_value[0]->status");
+        LLVMValueRef value_ptr    = LLVMBuildGEP(builder, exit_return, (LLVMValueRef[]){i32_zero, i32_one},  2, "value_ptr  = &exit_value[0]->value");
         // Set the status and return value into the struct
         LLVMBuildStore(builder, status_value, status_ptr);
         LLVMBuildStore(builder, value, value_ptr);
@@ -611,11 +640,23 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         //       argument to LLVMConstInt should make sure LLVM knows it's
         //       actually signed.
         value = LLVMConstInt(int64_type, (unsigned long long)trace_item->litinteger.literal_value, true);
+        // Get a new object ref with integer type
+        func = hvm_jit_new_obj_int_llvm_value(bundle);        
+        // Going to get a pointer and cast it properly
+        value_returned = LLVMBuildCall(builder, func, NULL, 0, "value_returned = hvm_new_obj_int()");
+        value_returned = LLVMBuildPointerCast(builder, value_returned, obj_ref_ptr_type, "value_returned cast *i8 -> *hvm_obj_ref");
+        // Then get the pointer to the data property and set it (index 0 to get
+        // 1st item pointed at, second index 0 to get 1st item in the struct).
+        data_ptr = LLVMBuildGEP(builder, value_returned, (LLVMValueRef[]){i32_zero, i32_one}, 2, "data_ptr = &value_returned[0]->data");
+        // Convert it to the proper 64-bit integer pointer
+        data_ptr = LLVMBuildPointerCast(builder, data_ptr, int64_pointer_type, "data_ptr cast -> *i64");
+        // And store our literal value in it
+        LLVMBuildStore(builder, value, data_ptr);
         // Save that value into the data and the "register"
-        data_item->litinteger.value = value;
+        data_item->litinteger.value = value_returned;
         data_item->litinteger.reg   = reg;
         // Then save the value into the "registers"
-        JIT_SAVE_DATA_ITEM_AND_VALUE(reg, data_item, value);
+        JIT_SAVE_DATA_ITEM_AND_VALUE(reg, data_item, value_returned);
         break;
 
       default:
@@ -769,7 +810,7 @@ void hvm_jit_compile_identify_blocks(hvm_call_trace *trace, hvm_compile_bundle *
     data_item = &bundle->data[i];
 
     switch(item->head.type) {
-      case HVM_OP_IF:
+      case HVM_TRACE_SEQUENCE_ITEM_IF:
         // Handle the truthy destination
         ip = item->item_if.destination;
         if(hvm_jit_trace_contains_ip(trace, ip)) {
@@ -796,7 +837,7 @@ void hvm_jit_compile_identify_blocks(hvm_call_trace *trace, hvm_compile_bundle *
         }
         break;
 
-      case HVM_OP_GOTO:
+      case HVM_TRACE_SEQUENCE_ITEM_GOTO:
         ip = item->item_goto.destination;
         assert(hvm_jit_trace_contains_ip(trace, ip));// TODO: Generate bailout
         block = hvm_jit_compile_find_or_insert_block(parent_func, bundle, i, ip);
