@@ -53,16 +53,16 @@ void hvm_jit_define_constants() {
   if(constants_defined) {
     return;// Don't redefine!
   }
-  obj_type_enum_size = LLVMIntType(sizeof(hvm_obj_type) * 8);
+  obj_type_enum_size = LLVMIntTypeInContext(hvm_shared_llvm_context, sizeof(hvm_obj_type) * 8);
   const_hvm_null     = LLVMConstInt(obj_type_enum_size, HVM_NULL, false);
   const_hvm_integer  = LLVMConstInt(obj_type_enum_size, HVM_INTEGER, false);
-  pointer_type       = LLVMPointerType(LLVMInt8Type(), 0);
-  void_type          = LLVMVoidType();
+  void_type          = LLVMVoidTypeInContext(hvm_shared_llvm_context);
   byte_type          = LLVMInt8TypeInContext(hvm_shared_llvm_context);
   int1_type          = LLVMInt1TypeInContext(hvm_shared_llvm_context);
   int32_type         = LLVMInt32TypeInContext(hvm_shared_llvm_context);
   int64_type         = LLVMInt64TypeInContext(hvm_shared_llvm_context);
   int64_pointer_type = LLVMPointerType(int64_type, 0);
+  pointer_type       = LLVMPointerType(LLVMInt8TypeInContext(hvm_shared_llvm_context), 0);
   i32_zero           = LLVMConstInt(int32_type, 0, true);
   i32_one            = LLVMConstInt(int32_type, 1, true);
   i64_zero           = LLVMConstInt(int64_type, 0, true);
@@ -83,7 +83,8 @@ void hvm_jit_setup_llvm() {
   hvm_shared_llvm_context = LLVMContextCreate();
   hvm_shared_llvm_module  = LLVMModuleCreateWithNameInContext("hvm", hvm_shared_llvm_context);
   // Set up compilation to our current native target
-  LLVMInitializeNativeTarget();
+  assert(LLVMInitializeNativeTarget() == 0);
+  assert(LLVMInitializeNativeAsmPrinter() == 0);
   LLVMLinkInMCJIT();
   // Set up the options for the JIT compiler
   struct LLVMMCJITCompilerOptions opts;
@@ -211,14 +212,14 @@ LLVMValueRef hvm_jit_new_obj_int_llvm_value(hvm_compile_bundle *bundle) {
   return func;
 }
 
-hvm_jit_block *hvm_jit_get_current_block(hvm_compile_bundle *bundle, unsigned int index) {
+hvm_jit_block *hvm_jit_get_current_block(hvm_compile_bundle *bundle, uint64_t ip) {
   // Track the previous block since that's what we'll actually be returning
   hvm_jit_block *prev = &bundle->blocks[0];
 
   for(unsigned int i = 0; i < bundle->blocks_length; i++) {
     hvm_jit_block *block = &bundle->blocks[i];
     // Return the previous block if we've run over
-    if(block->index > index) {
+    if(block->ip > ip) {
       return prev;
     }
     prev = block;
@@ -364,7 +365,7 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
     // uint64_t current_ip = trace_item->head.ip;
 
     // TODO: Refactor this to be faster!
-    hvm_jit_block    *current_block       = hvm_jit_get_current_block(bundle, i);
+    hvm_jit_block    *current_block       = hvm_jit_get_current_block(bundle, trace_item->head.ip);
     LLVMBasicBlockRef current_basic_block = current_block->basic_block;
     // Make sure our builder is in the right place
     LLVMPositionBuilderAtEnd(builder, current_basic_block);
@@ -551,7 +552,7 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         jit_block = data_item->item_goto.destination_block;
         // Build the branch instruction to this block
         LLVMBuildBr(builder, jit_block->basic_block);
-        break;
+        continue;// Skip continuation checks
 
       case HVM_TRACE_SEQUENCE_ITEM_GT:
         // Extract the registers and values
@@ -611,7 +612,7 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         }
         // And finally actually do the branch with those blocks
         LLVMBuildCondBr(builder, truthy, truthy_block, falsey_block);
-        break;
+        continue;// Skip continuation checks
 
       case HVM_TRACE_SEQUENCE_ITEM_RETURN:
         data_item->head.type = HVM_COMPILE_DATA_RETURN;
@@ -630,7 +631,7 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         LLVMBuildStore(builder, status_value, status_ptr);
         LLVMBuildStore(builder, value, value_ptr);
         LLVMBuildRetVoid(builder);
-        break;
+        continue;
 
       case HVM_TRACE_SEQUENCE_ITEM_LITINTEGER:
         data_item->head.type = HVM_COMPILE_DATA_LITINTEGER;
@@ -664,8 +665,21 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         fprintf(stderr, "jit-compiler: Don't know what to do with item type %d\n", type);
         assert(false);
         break;
-    }
-  }
+    }//switch
+
+    // See if we need to check for a next-block continuation
+    if((i + 1) < trace->sequence_length) {
+      uint64_t          next_ip    = (&trace->sequence[i + 1])->head.ip;
+      hvm_jit_block    *next_block = hvm_jit_get_current_block(bundle, next_ip);
+      LLVMBasicBlockRef next_basic_block = next_block->basic_block;
+      // See if we're at the end of our current block
+      if(current_basic_block != next_basic_block) {
+        // If we are then set up a continuation to the next block
+        LLVMBuildBr(builder, next_basic_block);
+      }
+    }//if
+
+  }//for
 }
 
 void hvm_jit_build_bailout_return_to_ip(LLVMBuilderRef builder, LLVMValueRef exit_value, uint64_t ip) {
@@ -739,7 +753,7 @@ hvm_jit_block *hvm_jit_compile_find_or_insert_block(LLVMValueRef parent_func, hv
     }
     // If the given IP is greater than this block, then shift blocks
     // backwards and insert this block.
-    if(ip > block->ip) {
+    if(ip < block->ip) {
       // Shuffle blocks backwards from the tail
       for(unsigned int n = num_blocks; n > i; n--) {
         struct hvm_jit_block *dest = &blocks[n];
@@ -755,7 +769,7 @@ hvm_jit_block *hvm_jit_compile_find_or_insert_block(LLVMValueRef parent_func, hv
 
 set_block:
   name[0] = '\0';
-  sprintf(name, "block_%d", index);
+  sprintf(name, "block_0x%08llX", ip);
   block->ip          = ip;
   block->index       = index;
   block->basic_block = LLVMAppendBasicBlockInContext(context, parent_func, name);
@@ -796,13 +810,16 @@ void hvm_jit_compile_identify_blocks(hvm_call_trace *trace, hvm_compile_bundle *
   // Get our parent function that we're building inside.
   LLVMValueRef   parent_func = bundle->llvm_function;
 
+  char scratch[40];
+
   // Get the first item and set up a block based off of it for entry
   item = &trace->sequence[0];
   // Set up a block for our entry point
   hvm_jit_block *entry = &blocks[0];
   entry->ip            = item->head.ip;
   entry->index         = 0;
-  entry->basic_block   = LLVMAppendBasicBlockInContext(context, parent_func, "entry");
+  sprintf(scratch, "entry_0x%08llX", entry->ip);
+  entry->basic_block   = LLVMAppendBasicBlockInContext(context, parent_func, scratch);
 
   for(unsigned int i = 0; i < trace->sequence_length; i++) {
     item = &trace->sequence[i];
@@ -878,7 +895,10 @@ void hvm_jit_compile_trace(hvm_vm *vm, hvm_call_trace *trace) {
   function_name[0]    = '\0';
   sprintf(function_name, "hvm_jit_function_%p", trace);
 
-  LLVMTypeRef  function_args[] = {pointer_type, pointer_type};
+  LLVMTypeRef  function_args[] = {
+    pointer_type,// hvm_jit_exit*
+    pointer_type // hvm_obj_ref*[]
+  };
   LLVMTypeRef  function_type   = LLVMFunctionType(void_type, function_args, 2, false);
   LLVMValueRef function        = LLVMAddFunction(module, function_name, function_type);
   // Builder that we'll write the instructions from our trace into
@@ -916,16 +936,26 @@ void hvm_jit_compile_trace(hvm_vm *vm, hvm_call_trace *trace) {
   // Identify potential guard points to be checked before/during/after
   // execution.
 
+  // LLVMDumpModule(module);
+
   // Save the compiled function
   trace->compiled_function = function;
 
-  /*
+  free(data);
+}
+
+hvm_jit_exit *hvm_jit_run_compiled_trace(hvm_vm *vm, hvm_call_trace *trace) {
+  LLVMExecutionEngineRef engine = hvm_shared_llvm_engine;
+  LLVMValueRef function         = trace->compiled_function;
   // Set up the memory for our exit information.
   hvm_jit_exit *result = malloc(sizeof(hvm_jit_exit));
   // Run the optimized native function.
-  LLVMGenericValueRef args[] = {LLVMCreateGenericValueOfPointer(result)};
+  LLVMGenericValueRef args[] = {
+    LLVMCreateGenericValueOfPointer(result),
+    LLVMCreateGenericValueOfPointer(vm->param_regs)
+  };
+  // Run the native function
   LLVMRunFunction(engine, function, 1, args);
-  */
-
-  free(data);
+  // Return the result
+  return result;
 }
