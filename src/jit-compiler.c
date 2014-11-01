@@ -22,7 +22,7 @@ LLVMTypeRef hvm_jit_obj_ref_llvm_type();
 
 static bool constants_defined;
 // Static constants we'll be using
-static LLVMTypeRef  obj_type_enum_size;
+static LLVMTypeRef  obj_type_enum_type;
 // Types
 static LLVMTypeRef  pointer_type;
 static LLVMTypeRef  void_type;
@@ -53,9 +53,9 @@ void hvm_jit_define_constants() {
   if(constants_defined) {
     return;// Don't redefine!
   }
-  obj_type_enum_size = LLVMIntTypeInContext(hvm_shared_llvm_context, sizeof(hvm_obj_type) * 8);
-  const_hvm_null     = LLVMConstInt(obj_type_enum_size, HVM_NULL, false);
-  const_hvm_integer  = LLVMConstInt(obj_type_enum_size, HVM_INTEGER, false);
+  obj_type_enum_type = LLVMIntTypeInContext(hvm_shared_llvm_context, sizeof(hvm_obj_type) * 8);
+  const_hvm_null     = LLVMConstInt(obj_type_enum_type, HVM_NULL, false);
+  const_hvm_integer  = LLVMConstInt(obj_type_enum_type, HVM_INTEGER, false);
   void_type          = LLVMVoidTypeInContext(hvm_shared_llvm_context);
   byte_type          = LLVMInt8TypeInContext(hvm_shared_llvm_context);
   int1_type          = LLVMInt1TypeInContext(hvm_shared_llvm_context);
@@ -290,11 +290,14 @@ LLVMValueRef hvm_jit_compile_value_is_falsey(LLVMBuilderRef builder, LLVMValueRe
   // the first item in the struct). Then load it into an integer value.
   LLVMValueRef val_type_ptr = LLVMBuildGEP(builder, val_ref, (LLVMValueRef[]){i32_zero, i32_zero}, 2, "val_type_ptr = &val_ref[0]->type");
   LLVMValueRef val_type     = LLVMBuildLoad(builder, val_type_ptr, "val_type = *val_type_ptr");
+  val_type                  = LLVMBuildIntCast(builder, val_type, obj_type_enum_type, "val_type");
   // Get the .data of the object as an i64:
   LLVMValueRef val_data_ptr = LLVMBuildGEP(builder, val_ref, (LLVMValueRef[]){i32_zero, i32_one}, 2, "val_data_ptr = &val_ref[0]->data");
   LLVMValueRef val_data     = LLVMBuildLoad(builder, val_data_ptr, "val_data = *val_data_ptr");
   val_data                  = LLVMBuildIntCast(builder, val_data, int64_type, "val_data = (i64)val_data");
 
+  // fprintf(stderr, "val_ref: %p %s\n", LLVMTypeOf(val_type), LLVMPrintTypeToString(LLVMTypeOf(val_type)));
+  // fprintf(stderr, "const_hvm_null: %p %s\n", LLVMTypeOf(const_hvm_null), LLVMPrintTypeToString(LLVMTypeOf(const_hvm_null)));
   // Left side of the falsiness test
   LLVMValueRef val_is_null      = LLVMBuildICmp(builder, LLVMIntEQ, val_type, const_hvm_null, "val_is_null = val_type == hvm_const_null");
   // Right side of the test (check if integer and i64-value is zero)
@@ -955,7 +958,7 @@ hvm_jit_exit *hvm_jit_run_compiled_trace(hvm_vm *vm, hvm_call_trace *trace) {
     LLVMCreateGenericValueOfPointer(vm->param_regs)
   };
   // Run the native function
-  LLVMRunFunction(engine, function, 1, args);
+  LLVMRunFunction(engine, function, 2, args);
   // Return the result
   return result;
 }
