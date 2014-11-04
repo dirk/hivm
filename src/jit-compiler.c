@@ -952,13 +952,11 @@ hvm_jit_exit *hvm_jit_run_compiled_trace(hvm_vm *vm, hvm_call_trace *trace) {
   LLVMValueRef function         = trace->compiled_function;
   // Set up the memory for our exit information.
   hvm_jit_exit *result = malloc(sizeof(hvm_jit_exit));
-  // Run the optimized native function.
-  LLVMGenericValueRef args[] = {
-    LLVMCreateGenericValueOfPointer(result),
-    LLVMCreateGenericValueOfPointer(vm->param_regs)
-  };
-  // Run the native function
-  LLVMRunFunction(engine, function, 2, args);
+  // Get a pointer to the JIT-compiled native code
+  void *vfp = LLVMGetPointerToGlobal(engine, function);
+  // Cast it to the correct function pointer type and call the code
+  hvm_jit_native_function fp = (hvm_jit_native_function)vfp;
+  fp(result, vm->param_regs);
   // Return the result
   return result;
 }

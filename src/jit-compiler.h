@@ -171,7 +171,7 @@ typedef union hvm_jit_exit {
 } hvm_jit_exit;
 
 
-typedef void (*hvm_jit_native_function)();
+typedef void (*hvm_jit_native_function)(hvm_jit_exit*, hvm_obj_ref**);
 
 // External API
 void hvm_jit_compile_trace(hvm_vm*, hvm_call_trace*);
