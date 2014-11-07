@@ -384,17 +384,12 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
           value = general_reg_values[reg_source];
         } else if(hvm_is_param_reg(reg_source)) {
           // Extract it from the argument registers array
-          unsigned int idx = reg_source - 130;
+          unsigned int idx = reg_source - 146;
           value_index      = LLVMConstInt(int32_type, idx, true);
-          // Compute the address into the parameter registers
-          sprintf(scratch, "ptr = &params[%d]", idx);
-          LLVMValueRef ptr = LLVMBuildGEP(builder, param_regs, (LLVMValueRef[]){value_index}, 1, scratch);
-          // Then fetch it from the registers array into a value we can work with
-          sprintf(scratch, "*ptr");
-          value = LLVMBuildLoad(builder, ptr, scratch);
-          // And cast it into the proper pointer type
-          sprintf(scratch, "i8 -> *hvm_obj_ref");
-          value = LLVMBuildIntToPtr(builder, value, obj_ref_ptr_type, scratch);
+          // Fetch the parameter pointer from the parameter registers array
+          value = LLVMBuildExtractValue(builder, param_regs, idx, "param");
+          // Cast it from a simple *i8 pointer to a object reference pointer
+          value = LLVMBuildPointerCast(builder, value, obj_ref_ptr_type, "param_obj_ref");
         } else {
           fprintf(stderr, "Can't handle register %d\n", reg_source);
           // Can't handle other register types yet
