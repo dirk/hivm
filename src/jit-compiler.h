@@ -15,8 +15,6 @@ typedef struct hvm_trace_compiled_frame {
 typedef struct hvm_jit_block {
   // The IP in the VM
   uint64_t ip;
-  // The original index in the trace sequence that the block is for.
-  unsigned int index;
   // The LLVM BasicBlock itself
   LLVMBasicBlockRef basic_block;
 } hvm_jit_block;
@@ -170,8 +168,9 @@ typedef union hvm_jit_exit {
   hvm_jit_exit_return  ret;
 } hvm_jit_exit;
 
-
-typedef void (*hvm_jit_native_function)(hvm_jit_exit*, hvm_obj_ref**);
+// Second argument is the pointer to the first element of the parameter
+// registers array.
+typedef void (*hvm_jit_native_function)(hvm_jit_exit*, hvm_obj_ref*);
 
 // External API
 void hvm_jit_compile_trace(hvm_vm*, hvm_call_trace*);
@@ -179,7 +178,7 @@ hvm_jit_exit* hvm_jit_run_compiled_trace(hvm_vm*, hvm_call_trace*);
 
 // Compiler internals
 void hvm_jit_compile_builder(hvm_vm*, hvm_call_trace*, hvm_compile_bundle*);
-hvm_jit_block* hvm_jit_compile_find_or_insert_block(LLVMValueRef, hvm_compile_bundle*, unsigned int, uint64_t);
+hvm_jit_block* hvm_jit_compile_find_or_insert_block(LLVMValueRef, hvm_compile_bundle*, uint64_t);
 
 LLVMBasicBlockRef hvm_jit_build_bailout_block(hvm_vm*, LLVMBuilderRef, LLVMValueRef parent_func, LLVMValueRef exit_value, LLVMValueRef*, uint64_t);
 
