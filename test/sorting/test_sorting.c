@@ -203,6 +203,10 @@ int main(int argc, char **argv) {
 
   //hvm_debug_begin(vm);
 
+  // char buff[256];
+  // printf("Press ENTER to continue...\n");
+  // fgets(buff, 256, stdin);
+
   printf("RUNNING...\n");
   hvm_vm_run(vm);
 

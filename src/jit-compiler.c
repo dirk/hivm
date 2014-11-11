@@ -212,6 +212,33 @@ LLVMValueRef hvm_jit_new_obj_int_llvm_value(hvm_compile_bundle *bundle) {
   return func;
 }
 
+LLVMValueRef hvm_jit_puts_llvm_value(hvm_compile_bundle *bundle) {
+  STATIC_VALUE(LLVMValueRef, func);
+  UNPACK_BUNDLE(bundle);
+  ADD_FUNCTION(func, puts, void_type, 1, pointer_type);
+  return func;
+}
+
+void hvm_jit_llvm_print_string(hvm_compile_bundle *bundle, LLVMBuilderRef builder, char *string) {
+  static LLVMBool dont_null_terminate = false;
+  unsigned long  length   = strlen(string);
+  LLVMContextRef context  = hvm_shared_llvm_context;
+  LLVMValueRef   string_const = LLVMConstStringInContext(context, string, (unsigned int)length, dont_null_terminate);
+  // Store the string constant we just made in the module globals.
+  char scratch[80];
+  sprintf(scratch, "print_string_%p", string);
+  LLVMValueRef string_global = LLVMAddGlobal(bundle->llvm_module, LLVMTypeOf(string_const), scratch);
+  LLVMSetLinkage(string_global, LLVMPrivateLinkage);
+  LLVMSetGlobalConstant(string_global, true);
+  LLVMSetInitializer(string_global, string_const);
+  // Now get a pointer to that string global and pass it to `puts`.
+  LLVMValueRef string_ptr = LLVMBuildInBoundsGEP(builder, string_global, (LLVMValueRef[]){i32_zero, i32_zero}, 2, "");
+  LLVMValueRef func = hvm_jit_puts_llvm_value(bundle);
+  LLVMValueRef puts_args[1] = {string_ptr};
+  // Finally call `puts`.
+  LLVMBuildCall(builder, func, puts_args, 1, "");
+}
+
 hvm_jit_block *hvm_jit_get_current_block(hvm_compile_bundle *bundle, uint64_t ip) {
   // Track the previous block since that's what we'll actually be returning
   hvm_jit_block *prev = &bundle->blocks[0];
@@ -577,6 +604,9 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
 
       case HVM_TRACE_SEQUENCE_ITEM_IF:
         data_item->item_if.type = HVM_COMPILE_DATA_IF;
+        // Log with the scratch
+        sprintf(scratch, "if %p ? ->%p : ->%p", value1, data_item->item_if.truthy_block, data_item->item_if.falsey_block);
+        hvm_jit_llvm_print_string(bundle, builder, scratch);
         // Building our comparison:
         //   falsey = (val->type == HVM_NULL || (val->type == HVM_INTEGER && val->data.i64 == 0))
         //   truthy = !falsey
