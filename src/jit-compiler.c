@@ -769,34 +769,18 @@ hvm_jit_block *hvm_jit_compile_find_or_insert_block(LLVMValueRef parent_func, hv
   // For building the name of the block
   char name[32];
 
-  // TODO: Optimize this to look at the end of the blocks array to see if the
-  //       IP of the block to be inserted is greater than the last block's IP.
-  //       If this is true then we can probably skip the search.
-
-  for(unsigned int i = 0; i < num_blocks; i++) {
+  // Look for an existing block with that IP starting from the end of the
+  // blocks array.
+  int num = (int)num_blocks;
+  for(int i = (num - 1); i >= 0; i--) {
     block = &blocks[i];
-    // Don't duplicate blocks
     if(ip == block->ip) {
       return block;
     }
-    // If the given IP is greater than this block, then shift blocks
-    // backwards and insert this block.
-    if(ip < block->ip) {
-      // Shuffle blocks backwards from the tail
-      for(unsigned int n = num_blocks; n > i; n--) {
-        struct hvm_jit_block *dest = &blocks[n];
-        struct hvm_jit_block *src  = &blocks[n - 1];
-        memcpy(dest, src, sizeof(struct hvm_jit_block));
-      }
-      // Insert the new block and return
-      goto set_block;
-    }
   }
-  // Didn't find or insert the block, so tack it onto the tail
-  block = &blocks[num_blocks];
 
-set_block:
-  name[0] = '\0';
+  // Block not found, tack it into the end
+  block = &blocks[num_blocks];
   sprintf(name, "block_0x%08llX", ip);
   block->ip          = ip;
   block->basic_block = LLVMAppendBasicBlockInContext(context, parent_func, name);
