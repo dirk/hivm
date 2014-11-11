@@ -315,31 +315,31 @@ LLVMValueRef hvm_jit_compile_value_is_falsey(LLVMBuilderRef builder, LLVMValueRe
   // Get a pointer the the .type of the object ref struct (first 0 index
   // is to get the first value pointed at, the second 0 index is to get
   // the first item in the struct). Then load it into an integer value.
-  LLVMValueRef val_type_ptr = LLVMBuildGEP(builder, val_ref, (LLVMValueRef[]){i32_zero, i32_zero}, 2, "val_type_ptr = &val_ref[0]->type");
-  LLVMValueRef val_type     = LLVMBuildLoad(builder, val_type_ptr, "val_type = *val_type_ptr");
+  LLVMValueRef val_type_ptr = LLVMBuildGEP(builder, val_ref, (LLVMValueRef[]){i32_zero, i32_zero}, 2, "val_type_ptr");
+  LLVMValueRef val_type     = LLVMBuildLoad(builder, val_type_ptr, "");
   val_type                  = LLVMBuildIntCast(builder, val_type, obj_type_enum_type, "val_type");
   // Get the .data of the object as an i64:
-  LLVMValueRef val_data_ptr = LLVMBuildGEP(builder, val_ref, (LLVMValueRef[]){i32_zero, i32_one}, 2, "val_data_ptr = &val_ref[0]->data");
-  LLVMValueRef val_data     = LLVMBuildLoad(builder, val_data_ptr, "val_data = *val_data_ptr");
-  val_data                  = LLVMBuildIntCast(builder, val_data, int64_type, "val_data = (i64)val_data");
+  LLVMValueRef val_data_ptr = LLVMBuildGEP(builder, val_ref, (LLVMValueRef[]){i32_zero, i32_one}, 2, "val_data_ptr");
+  LLVMValueRef val_data     = LLVMBuildLoad(builder, val_data_ptr, "");
+  val_data                  = LLVMBuildIntCast(builder, val_data, int64_type, "val_data");
 
   // fprintf(stderr, "val_ref: %p %s\n", LLVMTypeOf(val_type), LLVMPrintTypeToString(LLVMTypeOf(val_type)));
   // fprintf(stderr, "const_hvm_null: %p %s\n", LLVMTypeOf(const_hvm_null), LLVMPrintTypeToString(LLVMTypeOf(const_hvm_null)));
   // Left side of the falsiness test
-  LLVMValueRef val_is_null      = LLVMBuildICmp(builder, LLVMIntEQ, val_type, const_hvm_null, "val_is_null = val_type == hvm_const_null");
+  LLVMValueRef val_is_null      = LLVMBuildICmp(builder, LLVMIntEQ, val_type, const_hvm_null, "");
   // Right side of the test (check if integer and i64-value is zero)
-  LLVMValueRef val_is_int       = LLVMBuildICmp(builder, LLVMIntEQ, val_type, const_hvm_integer, "val_is_int = val_type == HVM_INTEGER");
-  LLVMValueRef val_data_is_zero = LLVMBuildICmp(builder, LLVMIntEQ, val_data, i64_zero, "val_data_is_zero = val_data == 0");
+  LLVMValueRef val_is_int       = LLVMBuildICmp(builder, LLVMIntEQ, val_type, const_hvm_integer, "");
+  LLVMValueRef val_data_is_zero = LLVMBuildICmp(builder, LLVMIntEQ, val_data, i64_zero, "");
   // Cast test results to make sure they're bools
-  val_is_int       = LLVMBuildIntCast(builder, val_is_int,       int1_type, "val_is_int = (i1)val_is_int");
-  val_data_is_zero = LLVMBuildIntCast(builder, val_data_is_zero, int1_type, "val_data_is_zero = (i1)val_data_is_zero");
+  val_is_int       = LLVMBuildIntCast(builder, val_is_int,       int1_type, "val_is_int");
+  val_data_is_zero = LLVMBuildIntCast(builder, val_data_is_zero, int1_type, "val_data_is_zero");
   // Then compare those bools
-  LLVMValueRef val_is_zero_int  = LLVMBuildAnd(builder, val_is_int, val_data_is_zero, "val_is_zero_int = val_is_int && val_data_is_zero");
+  LLVMValueRef val_is_zero_int  = LLVMBuildAnd(builder, val_is_int, val_data_is_zero, "");
 
   // Final is-falsey computation
-  val_is_null         = LLVMBuildIntCast(builder, val_is_null,     int1_type, "val_is_null = (i1)val_is_null");
-  val_is_zero_int     = LLVMBuildIntCast(builder, val_is_zero_int, int1_type, "val_is_zero_int = (i1)val_is_zero_int");
-  LLVMValueRef falsey = LLVMBuildOr(builder, val_is_null, val_is_zero_int, "falsey = val_is_null || val_is_zero_int");
+  val_is_null         = LLVMBuildIntCast(builder, val_is_null,     int1_type, "val_is_null");
+  val_is_zero_int     = LLVMBuildIntCast(builder, val_is_zero_int, int1_type, "val_is_zero_int");
+  LLVMValueRef falsey = LLVMBuildOr(builder, val_is_null, val_is_zero_int, "falsey");
   return falsey;
 }
 
