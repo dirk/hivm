@@ -240,26 +240,32 @@ void hvm_jit_llvm_print_string(hvm_compile_bundle *bundle, LLVMBuilderRef builde
 }
 
 hvm_jit_block *hvm_jit_get_current_block(hvm_compile_bundle *bundle, uint64_t ip) {
-  // Track the previous block since that's what we'll actually be returning
-  hvm_jit_block *prev = &bundle->blocks[0];
+  hvm_jit_block *block = bundle->blocks_head;
 
-  for(unsigned int i = 0; i < bundle->blocks_length; i++) {
-    hvm_jit_block *block = &bundle->blocks[i];
-    // Return the previous block if we've run over
-    if(block->ip > ip) {
-      return prev;
+  while(true) {
+    hvm_jit_block *next = block->next;
+    // Return this block if we've run out of blocks
+    if(next == NULL) {
+      return block;
     }
-    prev = block;
+    // Return this block if the next block's IP is greater than what
+    // we're looking for.
+    if(next->ip > ip) {
+      return block;
+    }
+    // Otherwise advance
+    block = next;
   }
-  return prev;
+  // Unreachable
+  assert(false);
+  return NULL;
 }
 
 hvm_jit_block *hvm_jit_get_block_by_ip(hvm_compile_bundle *bundle, uint64_t ip) {
-  for(unsigned int i = 0; i < bundle->blocks_length; i++) {
-    hvm_jit_block *block = &bundle->blocks[i];
-    if(block->ip == ip) {
-      return block;
-    }
+  hvm_jit_block *block = bundle->blocks_head;
+  while(block != NULL) {
+    if(block->ip == ip) { return block; }
+    block = block->next;
   }
   assert(false);
   return NULL;
@@ -822,31 +828,59 @@ LLVMBasicBlockRef hvm_jit_build_bailout_block(hvm_vm *vm, LLVMBuilderRef builder
 
 
 hvm_jit_block *hvm_jit_compile_find_or_insert_block(LLVMValueRef parent_func, hvm_compile_bundle *bundle, uint64_t ip) {
-  hvm_jit_block *blocks   = bundle->blocks;
-  unsigned int num_blocks = bundle->blocks_length;
-  LLVMContextRef context  = hvm_shared_llvm_context;
-  // Block to be operated upon
-  hvm_jit_block *block;
+  LLVMContextRef context = hvm_shared_llvm_context;
+  hvm_jit_block *block = NULL;
+  hvm_jit_block *new_block;
   // For building the name of the block
   char name[32];
 
-  // Look for an existing block with that IP starting from the end of the
-  // blocks array.
-  int num = (int)num_blocks;
-  for(int i = (num - 1); i >= 0; i--) {
-    block = &blocks[i];
+  if(bundle->blocks_head == NULL) {
+    // If there's not blocks whatsoever then create a new one and set it
+    // as the head and tail.
+    block = malloc(sizeof(hvm_jit_block));
+    block->next = NULL;
+    bundle->blocks_head = block;
+    bundle->blocks_tail = block;
+    goto block_inserted;
+  }
+
+  // Start with the first block
+  block = bundle->blocks_head;
+  while(block != NULL) {
+    // Don't duplicate blocks
     if(ip == block->ip) {
       return block;
     }
+    hvm_jit_block *next = block->next;
+
+    // If there's no more blocks then create a new one and append it
+    if(next == NULL) {
+      new_block = malloc(sizeof(hvm_jit_block));
+      new_block->next = NULL;
+      // Set the new one as the next in the list and the tail of the list
+      block->next = new_block;
+      bundle->blocks_tail = new_block;
+      block = new_block;
+      goto block_inserted;
+    }
+    // Check if we need to insert between this block and the next block
+    if(block->ip < ip && ip < next->ip) {
+      new_block = malloc(sizeof(hvm_jit_block));
+      // Set up the linkages
+      block->next = new_block;
+      new_block->next = next;
+      block = new_block;
+      goto block_inserted;
+    }
+    block = next;
   }
 
-  // Block not found, tack it into the end
-  block = &blocks[num_blocks];
+block_inserted:
   sprintf(name, "block_0x%08llX", ip);
   block->ip          = ip;
   block->basic_block = LLVMAppendBasicBlockInContext(context, parent_func, name);
   // Update the count
-  bundle->blocks_length = num_blocks + 1;
+  bundle->blocks_length += 1;
   // Return the new block
   return block;
 }
@@ -865,11 +899,6 @@ void hvm_jit_compile_identify_blocks(hvm_call_trace *trace, hvm_compile_bundle *
   // Sanity guards
   assert(trace->sequence_length > 0);
 
-  hvm_jit_block *blocks = malloc(sizeof(hvm_jit_block) * trace->sequence_length);
-  // Set up the blocks and length in the bundle
-  bundle->blocks        = blocks;
-  bundle->blocks_length = 1;// See entry point below
-
   bool found;
   uint64_t ip;
   hvm_trace_sequence_item *item;
@@ -886,10 +915,15 @@ void hvm_jit_compile_identify_blocks(hvm_call_trace *trace, hvm_compile_bundle *
   // Get the first item and set up a block based off of it for entry
   item = &trace->sequence[0];
   // Set up a block for our entry point
-  hvm_jit_block *entry = &blocks[0];
-  entry->ip            = item->head.ip;
-  sprintf(scratch, "entry_0x%08llX", entry->ip);
-  entry->basic_block   = LLVMAppendBasicBlockInContext(context, parent_func, scratch);
+  uint64_t entry_ip = item->head.ip;
+  sprintf(scratch, "entry_0x%08llX", entry_ip);
+  hvm_jit_block *entry  = malloc(sizeof(hvm_jit_block));
+  entry->next           = NULL;
+  entry->ip             = entry_ip;
+  entry->basic_block    = LLVMAppendBasicBlockInContext(context, parent_func, scratch);
+  bundle->blocks_head   = entry;
+  bundle->blocks_tail   = entry;
+  bundle->blocks_length = 1;
 
   for(unsigned int i = 0; i < trace->sequence_length; i++) {
     item = &trace->sequence[i];
@@ -982,7 +1016,10 @@ void hvm_jit_compile_trace(hvm_vm *vm, hvm_call_trace *trace) {
     .llvm_module   = module,
     .llvm_builder  = builder,
     .llvm_engine   = engine,
-    .llvm_function = function
+    .llvm_function = function,
+    .blocks_head   = NULL,
+    .blocks_tail   = NULL,
+    .blocks_length = 0
   };
 
   // Eventually going to run this as a hopefully-two-pass compilation. For now

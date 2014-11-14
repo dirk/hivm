@@ -13,10 +13,12 @@ typedef struct hvm_trace_compiled_frame {
 } hvm_trace_compiled_frame;
 
 typedef struct hvm_jit_block {
-  // The IP in the VM
+  /// IP in the VM where this block begins
   uint64_t ip;
-  // The LLVM BasicBlock itself
+  /// LLVM BasicBlock itself
   LLVMBasicBlockRef basic_block;
+  /// Next block in the linked list
+  struct hvm_jit_block *next;
 } hvm_jit_block;
 
 typedef enum {
@@ -133,8 +135,11 @@ typedef union hvm_compile_sequence_data {
 typedef struct hvm_compile_bundle {
   hvm_compile_sequence_data *data;
 
-  hvm_jit_block *blocks;
+  /// Head of linked list of blocks
+  hvm_jit_block *blocks_head;
+  hvm_jit_block *blocks_tail;
   unsigned int   blocks_length;
+
   // TODO: Keep track of registers and how they're being read and written.
   // void *llvm_module;
   // void *llvm_engine;
