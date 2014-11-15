@@ -68,6 +68,11 @@ extern unsigned char HVM_DEBUG_FLAG_HIDE_BACKTRACE;
 // One more than arg regs. Last one is $pn special reg.
 #define HVM_PARAMETER_REGISTERS 17
 
+#define HVM_REG_ZERO         128
+#define HVM_REG_NULL         129
+#define HVM_REG_ARG_OFFSET   130
+#define HVM_REG_PARAM_OFFSET 146
+
 bool hvm_is_gen_reg(byte i);
 bool hvm_is_arg_reg(byte i);
 bool hvm_is_param_reg(byte i);

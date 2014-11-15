@@ -55,6 +55,12 @@ hvm_vm *hvm_new_vm() {
   for(unsigned int i = 0; i < HVM_GENERAL_REGISTERS; i++) {
     vm->general_regs[i] = hvm_const_null;
   }
+  for(unsigned int i = 0; i < HVM_ARGUMENT_REGISTERS; i++) {
+    vm->arg_regs[i] = hvm_const_null;
+  }
+  for(unsigned int i = 0; i < HVM_PARAMETER_REGISTERS; i++) {
+    vm->param_regs[i] = hvm_const_null;
+  }
   // Constants
   vm->const_pool.next_index = 0;
   vm->const_pool.size = HVM_CONSTANT_POOL_INITIAL_SIZE;
@@ -252,10 +258,10 @@ bool hvm_is_gen_reg(byte i) {
   return i <= 127;
 }
 bool hvm_is_arg_reg(byte i) {
-  return i >= 130 && i < (130 + HVM_ARGUMENT_REGISTERS);
+  return i >= HVM_REG_ARG_OFFSET && i < (HVM_REG_ARG_OFFSET + HVM_ARGUMENT_REGISTERS);
 }
 bool hvm_is_param_reg(byte i) {
-  return i >= 146 && i < (146 + HVM_ARGUMENT_REGISTERS);
+  return i >= HVM_REG_PARAM_OFFSET && i < (HVM_REG_PARAM_OFFSET + HVM_ARGUMENT_REGISTERS);
 }
 
 /*
@@ -271,11 +277,11 @@ byte hvm_vm_reg_gen(byte i) {
   assert(hvm_is_gen_reg(i));
   return i;
 }
-byte hvm_vm_reg_zero() { return 128; }
-byte hvm_vm_reg_null() { return 129; }
+byte hvm_vm_reg_zero() { return HVM_REG_ZERO; }
+byte hvm_vm_reg_null() { return HVM_REG_NULL; }
 byte hvm_vm_reg_arg(byte i) {
   assert(i < HVM_ARGUMENT_REGISTERS);
-  return 130 + i;
+  return HVM_REG_ARG_OFFSET + i;
 }
 byte hvm_vm_reg_param(byte i) {
   assert(i < HVM_PARAMETER_REGISTERS);
