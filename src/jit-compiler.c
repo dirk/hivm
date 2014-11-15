@@ -169,7 +169,7 @@ LLVMValueRef hvm_jit_vm_call_primitive_llvm_value(hvm_compile_bundle *bundle) {
   STATIC_VALUE(LLVMValueRef, func);
   UNPACK_BUNDLE(bundle);
   // (hvm_vm*, hvm_obj_ref*) -> hvm_obj_ref*
-  ADD_FUNCTION(func, hvm_vm_call_primitive, obj_ref_ptr_type, 2, obj_ref_ptr_type, obj_ref_ptr_type);
+  ADD_FUNCTION(func, hvm_vm_call_primitive, obj_ref_ptr_type, 2, pointer_type, obj_ref_ptr_type);
   return func;
 }
 
@@ -368,7 +368,7 @@ struct hvm_jit_compile_context {
 
 LLVMValueRef hvm_jit_load_general_reg_value(struct hvm_jit_compile_context *context, LLVMBuilderRef builder, byte reg) {
   if(reg > 127) {
-    fprintf(stderr, "jit-compiler: Cannot handle write to register type %d\n", reg);
+    fprintf(stderr, "jit-compiler: Cannot handle load from register %d\n", reg);
     assert(false);
   }
   LLVMValueRef gr = context->general_regs[reg];
@@ -419,7 +419,7 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
   unsigned int type;
   uint64_t ip;
   hvm_jit_block *jit_block;
-  LLVMValueRef value, value_array, value_index, value_symbol, value_returned, value1, value2;
+  LLVMValueRef value, value_array, value_index, value_symbol, value_returned, value1, value2, value_vm;
   LLVMValueRef data_ptr;
 
   // 64 bytes to play with for making strings to pass to LLVM
@@ -470,7 +470,7 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         } else {
           fprintf(stderr, "Can't handle register %d\n", reg_source);
           // Can't handle other register types yet
-          assert(0);
+          assert(false);
         }
         // JIT_SAVE_DATA_ITEM_AND_VALUE(reg, data_item, value);
         hvm_jit_store_general_reg_value(context, builder, reg, value);
@@ -485,7 +485,8 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         // Also compile our symbol as a LLVM value
         hvm_obj_ref *ref = hvm_const_pool_get_const(&vm->const_pool, data_item->setsymbol.constant);
         // Integer constant wants an `unsigned long long`.
-        value = LLVMConstInt(pointer_type, (unsigned long long)ref, false);
+        value = LLVMConstInt(int64_type, (unsigned long long)ref, false);
+        value = LLVMBuildIntToPtr(builder, value, obj_ref_ptr_type, "sym");
         // Save our new value into the data item.
         data_item->setsymbol.value = value;
         // TODO: Call a VM function to check this
@@ -596,19 +597,20 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
 
       case HVM_TRACE_SEQUENCE_ITEM_INVOKEPRIMITIVE:
         data_item->invokeprimitive.type = HVM_COMPILE_DATA_INVOKEPRIMITIVE;
-        reg_result = trace_item->invokeprimitive.register_return;
+        reg = trace_item->invokeprimitive.register_return;
         // Get the source value information
         reg_symbol = trace_item->invokeprimitive.register_symbol;
         value_symbol = hvm_jit_load_general_reg_value(context, builder, reg_symbol);
         assert(value_symbol != NULL);
         // Make a pointer to our VM
-        LLVMValueRef value_vm = LLVMConstInt(pointer_type, (unsigned long long)vm, false);
+        value_vm = LLVMConstInt(int64_type, (unsigned long long)vm, false);
+        value_vm = LLVMBuildIntToPtr(builder, value_vm, pointer_type, "vm");
         // Build the call to `hvm_vm_call_primitive`.
         func = hvm_jit_vm_call_primitive_llvm_value(bundle);
         LLVMValueRef invokeprimitive_args[2] = {value_vm, value_symbol};
         value_returned = LLVMBuildCall(builder, func, invokeprimitive_args, 2, "result");
         // JIT_SAVE_DATA_ITEM_AND_VALUE(reg_result, data_item, value_returned);
-        hvm_jit_store_general_reg_value(context, builder, reg, value_returned);
+        hvm_jit_store_reg_value(context, builder, reg, value_returned);
         break;
 
       case HVM_TRACE_SEQUENCE_ITEM_ADD:
