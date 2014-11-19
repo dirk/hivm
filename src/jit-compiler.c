@@ -173,6 +173,14 @@ LLVMValueRef hvm_jit_vm_call_primitive_llvm_value(hvm_compile_bundle *bundle) {
   return func;
 }
 
+LLVMValueRef hvm_jit_vm_copy_regs_llvm_value(hvm_compile_bundle *bundle) {
+  STATIC_VALUE(LLVMValueRef, func);
+  UNPACK_BUNDLE(bundle);
+  // (hvm_vm*) -> void
+  ADD_FUNCTION(func, hvm_vm_copy_regs, void_type, 1, pointer_type);
+  return func;
+}
+
 LLVMValueRef hvm_jit_obj_int_add_llvm_value(hvm_compile_bundle *bundle) {
   STATIC_VALUE(LLVMValueRef, func);
   UNPACK_BUNDLE(bundle);
@@ -605,11 +613,13 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         // Make a pointer to our VM
         value_vm = LLVMConstInt(int64_type, (unsigned long long)vm, false);
         value_vm = LLVMBuildIntToPtr(builder, value_vm, pointer_type, "vm");
+        // Build and run the call to copy the registers
+        func = hvm_jit_vm_copy_regs_llvm_value(bundle);
+        LLVMBuildCall(builder, func, (LLVMValueRef[]){value_vm}, 1, "");
         // Build the call to `hvm_vm_call_primitive`.
         func = hvm_jit_vm_call_primitive_llvm_value(bundle);
         LLVMValueRef invokeprimitive_args[2] = {value_vm, value_symbol};
         value_returned = LLVMBuildCall(builder, func, invokeprimitive_args, 2, "result");
-        // JIT_SAVE_DATA_ITEM_AND_VALUE(reg_result, data_item, value_returned);
         hvm_jit_store_reg_value(context, builder, reg, value_returned);
         break;
 
