@@ -322,7 +322,7 @@ hvm_obj_ref *hvm_vm_register_read(hvm_vm *vm, byte reg) {
 }
 
 // Copy argument registers into parameter registers.
-ALWAYS_INLINE void hvm_vm_copy_regs(hvm_vm *vm) {
+void hvm_vm_copy_regs(hvm_vm *vm) {
   int64_t i;
   // Reset params
   for(i = 0; i < HVM_PARAMETER_REGISTERS; i++) { vm->param_regs[i] = NULL; }

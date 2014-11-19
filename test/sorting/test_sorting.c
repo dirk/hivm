@@ -76,6 +76,8 @@ void define_insertion_sort(hvm_gen *gen) {
   byte one  = hvm_vm_reg_gen(22);
   hvm_gen_litinteger(gen->block, one, 1);
 
+  byte i_as_string = hvm_vm_reg_gen(23);
+
   hvm_gen_move(gen->block, arr, hvm_vm_reg_param(0));
 
   // $i = 1
@@ -88,8 +90,19 @@ void define_insertion_sort(hvm_gen *gen) {
   hvm_gen_eq(gen->block, r4, i, len);
   hvm_gen_if_label(gen->block, r4, "insertion_sort_end");
   // Loop body
-    // $x = A[i]
+    // $x = A[$i]
     hvm_gen_arrayget(gen->block, x, arr, i);
+
+    // Printing $i as string
+    hvm_gen_set_symbol(gen->block, sym, "int_to_string");
+    hvm_gen_move(gen->block, hvm_vm_reg_arg(0), i);
+    hvm_gen_invokeprimitive(gen->block, sym, i_as_string);
+    hvm_gen_move(gen->block, hvm_vm_reg_arg(0), i_as_string);
+    hvm_gen_set_symbol(gen->block, sym, "print");
+    hvm_gen_invokeprimitive(gen->block, sym, hvm_vm_reg_null());
+    hvm_gen_set_string(gen->block, hvm_vm_reg_arg(0), "\n");
+    hvm_gen_invokeprimitive(gen->block, sym, hvm_vm_reg_null());
+
     // $j = $i
     hvm_gen_move(gen->block, j, i);
     // while $j > 0 and A[j-1] > A[j]
@@ -134,7 +147,7 @@ void define_insertion_sort(hvm_gen *gen) {
 }
 
 int main(int argc, char **argv) {
-  static const unsigned int array_size = 1000;
+  static const unsigned int array_size = 10;
 
   hvm_gen *gen = hvm_new_gen();
   hvm_gen_set_file(gen, "sorting");

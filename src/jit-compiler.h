@@ -27,6 +27,7 @@ typedef enum {
   HVM_COMPILE_DATA_ARRAYLEN,
   HVM_COMPILE_DATA_ADD,
   HVM_COMPILE_DATA_SETSYMBOL,
+  HVM_COMPILE_DATA_SETSTRING,
   HVM_COMPILE_DATA_INVOKEPRIMITIVE,
   HVM_COMPILE_DATA_IF,
   HVM_COMPILE_DATA_GOTO,
@@ -96,6 +97,8 @@ typedef struct hvm_compile_sequence_data_setsymbol {
   uint32_t constant;
 } hvm_compile_sequence_data_setsymbol;
 
+typedef struct hvm_compile_sequence_data_setsymbol hvm_compile_sequence_data_setstring;
+
 typedef struct hvm_compile_sequence_data_litinteger {
   HVM_COMPILE_DATA_HEAD;
   // Register that the integer will be put in
@@ -124,6 +127,7 @@ typedef union hvm_compile_sequence_data {
   hvm_compile_sequence_data_arrayget   arrayget;
   hvm_compile_sequence_data_add        add;
   hvm_compile_sequence_data_setsymbol  setsymbol;
+  hvm_compile_sequence_data_setstring  setstring;
   hvm_compile_sequence_data_if         item_if;
   hvm_compile_sequence_data_goto       item_goto;
   hvm_compile_sequence_data_litinteger litinteger;

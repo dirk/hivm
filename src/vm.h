@@ -151,6 +151,7 @@ void hvm_vm_run(hvm_vm*);
 
 void hvm_vm_load_chunk(hvm_vm *vm, void *cv);
 
+void hvm_vm_copy_regs(hvm_vm*);
 struct hvm_obj_ref *hvm_vm_register_read(hvm_vm *vm, byte reg);
 
 /// Set a constant in the VM constant table.

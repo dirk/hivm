@@ -122,6 +122,7 @@ EXECUTE:
             hvm_jit_compile_trace(vm, trace);
             fprintf(stderr, "compiled trace for %s:0x%08llX\n", sym_name, dest);
           } else {
+            fprintf(stderr, "running compiled trace for %s:0x%08llX\n", sym_name, dest);
             hvm_jit_exit *result = hvm_jit_run_compiled_trace(vm, trace);
             if(result->ret.status == HVM_JIT_EXIT_BAILOUT) {
               vm->ip = result->bailout.destination;
