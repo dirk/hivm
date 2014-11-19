@@ -625,9 +625,9 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
 
       case HVM_TRACE_SEQUENCE_ITEM_ADD:
         data_item->add.type = HVM_COMPILE_DATA_ADD;
-        reg_result = trace_item->add.register_result;
-        reg1       = trace_item->add.register_operand1;
-        reg2       = trace_item->add.register_operand2;
+        reg  = trace_item->add.register_result;
+        reg1 = trace_item->add.register_operand1;
+        reg2 = trace_item->add.register_operand2;
         // Get the source values for the operation
         value1 = hvm_jit_load_general_reg_value(context, builder, reg1);
         value2 = hvm_jit_load_general_reg_value(context, builder, reg2);
