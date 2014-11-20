@@ -162,11 +162,14 @@ typedef enum {
   HVM_JIT_EXIT_RETURN
 } hvm_jit_exit_status;
 
+/// Exited with a bailout; VM will resume execution at `destination`.
 typedef struct hvm_jit_exit_bailout {
   hvm_jit_exit_status  status;
   uint64_t             destination;
 } hvm_jit_exit_bailout;
 
+/// JITed function reached a return statement successfully. Object returned
+/// is in `value`.
 typedef struct hvm_jit_exit_return {
   hvm_jit_exit_status  status;
   hvm_obj_ref         *value;
@@ -182,13 +185,24 @@ typedef union hvm_jit_exit {
 typedef void (*hvm_jit_native_function)(hvm_jit_exit*, hvm_obj_ref*);
 
 // External API
+
+/// Compile a given trace to native function.
 void hvm_jit_compile_trace(hvm_vm*, hvm_call_trace*);
+/// Run a compiled traced.
 hvm_jit_exit* hvm_jit_run_compiled_trace(hvm_vm*, hvm_call_trace*);
 
-// Compiler internals
+/// Given a trace and a compilation bundle, actually compiles each item
+/// in the trace into the LLVM IR builder.
 void hvm_jit_compile_builder(hvm_vm*, hvm_call_trace*, hvm_compile_bundle*);
+
+/// Given a certain instruction address (that's the destination for a
+/// branch/jump somewhere in the block), finds an already-inserted LLVM IR
+/// basic-block for that address or creates-and-inserts a new one.
 hvm_jit_block* hvm_jit_compile_find_or_insert_block(LLVMValueRef, hvm_compile_bundle*, uint64_t);
 
+/// Set up a bailout from the current JIT state back to the normal VM state
+/// at the given instruction address; execution will resume at that address
+/// in the VM.
 LLVMBasicBlockRef hvm_jit_build_bailout_block(hvm_vm*, LLVMBuilderRef, LLVMValueRef parent_func, LLVMValueRef exit_value, void*, uint64_t);
 
 #endif

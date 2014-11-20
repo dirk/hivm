@@ -1099,18 +1099,6 @@ void hvm_jit_compile_trace(hvm_vm *vm, hvm_call_trace *trace) {
   // jumps/ifs/gotos/etc.
   hvm_jit_compile_identify_blocks(trace, &bundle);
 
-  /*
-  hvm_jit_block *block = bundle.blocks_head;
-  unsigned int i = 0;
-  while(block != NULL) {
-    printf("block[%2d] = %p {ip = 0x%08llX, next = %p}\n", i, block, block->ip, block->next);
-    i += 1;
-    block = block->next;
-  }
-  printf("bundle.blocks_head = %p\n", bundle.blocks_head);
-  printf("bundle.blocks_tail = %p\n", bundle.blocks_tail);
-  */
-
   // Resolve register references in instructions into concrete IR value
   // references and build the instruction sequence.
   hvm_jit_compile_builder(vm, trace, &bundle);
@@ -1125,7 +1113,7 @@ void hvm_jit_compile_trace(hvm_vm *vm, hvm_call_trace *trace) {
   // Save the compiled function
   trace->compiled_function = function;
 
-  // free(data);
+  free(data);
 }
 
 hvm_jit_exit *hvm_jit_run_compiled_trace(hvm_vm *vm, hvm_call_trace *trace) {

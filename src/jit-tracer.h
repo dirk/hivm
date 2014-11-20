@@ -167,13 +167,19 @@ typedef struct hvm_call_trace {
   void *compiled_function; 
 } hvm_call_trace;
 
+/// Allocate a new trace. The entry IP will be set to the current VM IP.
+/// The trace is initialized with an empty sequence and marked incomplete.
 hvm_call_trace *hvm_new_call_trace(hvm_vm *vm);
+/// Called by the instruction dispatch loop while in the JIT dispatcher.
 void hvm_jit_tracer_before_instruction(hvm_vm *vm);
 
-// Special hooks for annotating instructions (invoked by the JIT dispatcher)
+// Special hooks for annotating instructions (invoked by the instruction
+// execution code in the JIT dispatcher).
 void hvm_jit_tracer_annotate_invokeprimitive_returned_type(hvm_vm*, hvm_obj_ref*);
 void hvm_jit_tracer_annotate_if_branched(hvm_vm*, bool branched);
 
+/// Write the trace to STDOUT. Format is similar to that of the chunk
+/// disassembler.
 void hvm_jit_tracer_dump_trace(hvm_vm*, hvm_call_trace*);
 
 #endif
