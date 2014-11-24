@@ -13,6 +13,7 @@ $llvm_config = 'llvm-config'
 if `uname -s`.strip == 'Darwin'
   $llvm_config = "#{`brew --prefix llvm`.strip}/bin/llvm-config"
 end
+$llvm_modules = 'core analysis executionengine jit mcjit interpreter native'
 
 def cflags_for file
   basename = File.basename file
@@ -66,7 +67,7 @@ objects = [
   # Source
   'src/vm.o', 'src/object.o', 'src/symbol.o', 'src/frame.o', 'src/chunk.o',
   'src/generator.o', 'src/bootstrap.o', 'src/exception.o', 'src/gc1.o',
-  'src/jit-tracer.o', 'src/jit-compiler.o',
+  'src/jit-tracer.o', 'src/jit-compiler-llvm.o',
   # Generated source
   'src/chunk.pb-c.o'
 ]
@@ -89,6 +90,12 @@ file 'libhivm.so' => objects do |t|
   sh "#{$cc} #{t.prerequisites.join ' '} #{cflags_for t.name} -shared -o #{t.name}"
 end
 
+file "src/jit-compiler-llvm.o" => ["src/jit-compiler.o"] do |t|
+  llvm_ldflags = `#{$llvm_config} --ldflags`.strip
+  # All the LLVM modules we want
+  llvm_libs = `#{$llvm_config} --libs #{$llvm_modules}`.gsub("\n", '').strip
+  sh "ld #{t.prerequisites.first} #{llvm_libs} #{llvm_ldflags} -r -o #{t.name}"
+end
 
 file "src/chunk.pb-c.c" => ["src/chunk.proto"] do |t|
   sh "protoc-c --c_out=. #{t.prerequisites.first}"
