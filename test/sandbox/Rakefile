@@ -1,11 +1,27 @@
 
-$cflags = "-g -Wall -std=c99 ../../libhivm-db.a -I../../include #{`pkg-config --cflags glib-2.0 lua5.1`.strip} -liconv #{`pkg-config --libs glib-2.0 lua5.1`.strip}"
+
+$llvm_config = 'llvm-config'
+if `uname -s`.strip == 'Darwin'
+  $llvm_config = "#{`brew --prefix llvm`.strip}/bin/llvm-config"
+end
+
+$llvm_ldflags = `#{$llvm_config} --system-libs --cflags --ldflags --libs core analysis executionengine jit mcjit interpreter native`.gsub("\n", ' ').strip
+$llvm_cflags = `#{$llvm_config} --cflags`.strip
+
+
+$cflags  = "-g -Wall -std=c99 -I../../include #{`pkg-config --cflags glib-2.0 lua5.1`.strip} #{$llvm_cflags}"
+$ldflags = "../../libhivm-db.a -liconv #{`pkg-config --libs glib-2.0 lua5.1`.strip} #{$llvm_ldflags}"
 
 task 'default' => ['test_vm']
 
 desc "Build VM tester"
-file 'test_vm' => ['test_vm.c', '../../libhivm-db.a'] do
-  sh "cc test_vm.c #{$cflags} -o test_vm"
+file 'test_vm' => ['test_vm.c', '../../libhivm-db.a'] do |t|
+  sh "cc #{$cflags} -c #{t.prerequisites.first}"
+end
+
+desc 'Build VM tester executable'
+file 'test_vm' => ['test_vm.o'] do |t|
+  sh "c++ #{t.prerequisites.last} #{$ldflags} -o #{t.name}"
 end
 
 desc 'Clean'

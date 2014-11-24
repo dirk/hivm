@@ -199,18 +199,17 @@ hvm_obj_ref *hvm_vm_call_primitive(hvm_vm *vm, hvm_obj_ref *sym_object) {
   if(pv == NULL) {
     // TODO: Refactor exception creation
     // Primitive not found
-    hvm_exception  *exc = hvm_new_exception();
     char buff[256];// TODO: Buffer overflow if primitive name too long
     buff[0] = '\0';
     strcat(buff, "Primitive not found: ");
     // NOTE: Possible error that desymbolicate() could fail.
     strcat(buff, hvm_desymbolicate(vm->symbols, sym_id));
-    hvm_obj_ref *obj = hvm_new_obj_ref_string_data(hvm_util_strclone(buff));
-    exc->message = obj;
+    hvm_obj_ref *message = hvm_new_obj_ref_string_data(hvm_util_strclone(buff));
+    hvm_obj_ref *exc = hvm_exception_new(vm, message);
 
     hvm_location *loc = hvm_new_location();
     loc->name = hvm_util_strclone("hvm_vm_call_primitive");
-    hvm_exception_push_location(exc, loc);
+    hvm_exception_push_location(vm, exc, loc);
 
     vm->exception = exc;
     return NULL;
@@ -220,15 +219,14 @@ hvm_obj_ref *hvm_vm_call_primitive(hvm_vm *vm, hvm_obj_ref *sym_object) {
   return prim(vm);
 }
 
-hvm_exception *hvm_new_operand_not_integer_exception() {
-  hvm_exception *exc = hvm_new_exception();
+hvm_obj_ref *hvm_new_operand_not_integer_exception(hvm_vm *vm) {
   char *msg = "Operands must be integers";
-  hvm_obj_ref *obj = hvm_new_obj_ref_string_data(hvm_util_strclone(msg));
-  exc->message = obj;
+  hvm_obj_ref *message = hvm_new_obj_ref_string_data(hvm_util_strclone(msg));
+  hvm_obj_ref *exc = hvm_exception_new(vm, message);
 
   hvm_location *loc = hvm_new_location();
   loc->name = hvm_util_strclone("hvm_obj_int_op");
-  hvm_exception_push_location(exc, loc);
+  hvm_exception_push_location(vm, exc, loc);
   return exc;
 }
 
@@ -377,7 +375,8 @@ void hvm_vm_run(hvm_vm *vm) {
   unsigned char reg, areg, breg, creg;
   hvm_obj_ref *a, *b, *c, *arr, *idx, *key, *val, *strct;
   hvm_frame *frame, *parent_frame;
-  hvm_exception *exc;
+  // hvm_exception *exc;
+  hvm_obj_ref *exc;
   char *msg;
   hvm_subroutine_tag tag;
   hvm_call_trace *trace;

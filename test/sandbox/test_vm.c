@@ -113,6 +113,8 @@ void test_generator() {
   
   // byte sym = hvm_vm_reg_gen(0);
 
+
+  /*
   hvm_gen_set_debug_entry(gen->block, 0, "(main)");
   //hvm_gen_set_symbol(gen->block, sym, "subroutine");
   //hvm_gen_invokesymbolic(gen->block, sym, hvm_vm_reg_null());
@@ -135,6 +137,8 @@ void test_generator() {
   hvm_gen_set_symbol(gen->block, hvm_vm_reg_gen(0), "print");
   hvm_gen_invokeprimitive(gen->block, hvm_vm_reg_gen(0), hvm_vm_reg_null());
   hvm_gen_return(gen->block, hvm_vm_reg_null());
+  */
+
 
   // OLD TEST
   /*
@@ -147,9 +151,9 @@ void test_generator() {
   // hvm_gen_die(gen->block);
   */
 
+  test_exception_catch(gen);
   /*
   test_loop(gen);
-  // test_exception_catch(gen);
   // test_closure(gen);
 
   hvm_gen_set_symbol(gen->block, hvm_vm_reg_gen(0), "gc_run");

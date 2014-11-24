@@ -41,22 +41,28 @@ hvm_obj_ref *hvm_prim_exit(hvm_vm *vm) {
 }
 
 hvm_obj_ref *hvm_prim_print_exception(hvm_vm *vm) {
+  hvm_obj_ref *excref = vm->param_regs[0];
+  assert(excref->type == HVM_STRUCTURE);
+
+  hvm_symbol_id sym = hvm_symbolicate(vm->symbols, "message");
+  hvm_obj_ref *messageref = hvm_obj_struct_internal_get(excref->data.v, sym);
+  assert(messageref->type == HVM_STRING);
+
   // TODO: Make exceptions be plain structures?
   // hvm_obj_ref *excstruct = vm->param_regs[0];
   // assert(excstruct != NULL);
   // assert(excstruct->type == HVM_STRUCTURE);
   // excref = hvm_obj_struct_internal_get(excstruct->data.v, hvm_symbolicate(vm->symbols, "hvm_exception"));
-  hvm_obj_ref *excref = vm->param_regs[0];
-  assert(excref != NULL);
-  assert(excref->type == HVM_EXCEPTION);
-  hvm_exception *exc = excref->data.v;
-  hvm_exception_print(exc);
+  
+  // assert(excref != NULL);
+  // assert(excref->type == HVM_EXCEPTION);
+  // hvm_exception *exc = excref->data.v;
+  hvm_exception_print(vm, excref);
   return hvm_const_null;
 }
 
 bool hvm_type_check(char *name, hvm_obj_type type, hvm_obj_ref* ref, hvm_vm *vm) {
   if(ref->type != type) {
-    hvm_exception *exc = hvm_new_exception();
     char buff[256];
     buff[0] = '\0';
     strcat(buff, "`");
@@ -65,12 +71,12 @@ bool hvm_type_check(char *name, hvm_obj_type type, hvm_obj_ref* ref, hvm_vm *vm)
     strcat(buff, hvm_human_name_for_obj_type(type));
     strcat(buff, ", got ");
     strcat(buff, hvm_human_name_for_obj_type(ref->type));
-    hvm_obj_ref *obj = hvm_new_obj_ref_string_data(hvm_util_strclone(buff));
-    exc->message = obj;
+    hvm_obj_ref *message = hvm_new_obj_ref_string_data(hvm_util_strclone(buff));
+    hvm_obj_ref *exc = hvm_exception_new(vm, message);
     // Push the primitive as the first location
     hvm_location *loc = hvm_new_location();
     loc->name = hvm_util_strclone(name);
-    hvm_exception_push_location(exc, loc);
+    hvm_exception_push_location(vm, exc, loc);
     vm->exception = exc;
     return 0;
   } else {
@@ -82,14 +88,13 @@ hvm_obj_ref *hvm_prim_print(hvm_vm *vm) {
   hvm_obj_ref *strref = vm->param_regs[0];
   if(strref == NULL) {
     // Missing parameter
-    hvm_exception *exc = hvm_new_exception();
     static char *buff = "`print` expects 1 argument";
-    hvm_obj_ref *obj = hvm_new_obj_ref_string_data(hvm_util_strclone(buff));
-    exc->message = obj;
+    hvm_obj_ref *message = hvm_new_obj_ref_string_data(hvm_util_strclone(buff));
+    hvm_obj_ref *exc = hvm_exception_new(vm, message);
 
     hvm_location *loc = hvm_new_location();
     loc->name = hvm_util_strclone("hvm_prim_print");
-    hvm_exception_push_location(exc, loc);
+    hvm_exception_push_location(vm, exc, loc);
 
     vm->exception = exc;
     return NULL;

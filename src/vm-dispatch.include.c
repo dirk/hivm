@@ -199,7 +199,7 @@ EXECUTE:
       hvm_vm_copy_regs(vm);
       // fprintf(stderr, "CALLPRIMITIVE(%lld, $%d)\n", sym_id, breg);
       // FIXME: This may need to be smartened up.
-      hvm_exception *current_exc = vm->exception;// If there's a current exception
+      hvm_obj_ref *current_exc = vm->exception;// If there's a current exception
       val = hvm_vm_call_primitive(vm, key);
       // CHECK_EXCEPTION;
       if(vm->exception != current_exc) {
@@ -234,7 +234,8 @@ EXECUTE:
       reg = vm->program[vm->ip + 1];
       // TODO: Throw new exception if no current exception.
       assert(vm->exception != NULL);
-      val = hvm_obj_for_exception(vm, vm->exception);
+      // val = hvm_obj_for_exception(vm, vm->exception);
+      val = vm->exception;
       hvm_vm_register_write(vm, reg, val);
       vm->ip += 1;
       break;
@@ -242,30 +243,32 @@ EXECUTE:
       AREG;
       // Get the object to be associated with the execption
       val = _hvm_vm_register_read(vm, areg);
+      assert(val->type == HVM_STRUCTURE);
       // Create the exception and set the object
-      exc = hvm_new_exception();
-      exc->data = val;
+      // exc = hvm_new_exception();
+      // exc->data = val;
       // Set the exception and jump to the handler
       vm->exception = exc;
       goto EXCEPTION;
     case HVM_OP_GETEXCEPTIONDATA: // 1B OP | 1B REG | 1B REG
-      AREG; BREG;
-      b = _hvm_vm_register_read(vm, breg);
-      assert(b->type == HVM_EXCEPTION);
-      exc = b->data.v;
-      val = exc->data;
-      hvm_vm_register_write(vm, areg, val);
-      vm->ip += 2;
+      // AREG; BREG;
+      // b = _hvm_vm_register_read(vm, breg);
+      // assert(b->type == HVM_EXCEPTION);
+      // exc = b->data.v;
+      // val = exc->data;
+      // hvm_vm_register_write(vm, areg, val);
+      // vm->ip += 2;
+      fprintf(stderr, "GETEXCEPTIONDATA is no longer supported.\n");
+      assert(false);
       break;
 
     case HVM_OP_RETURN: // 1B OP | 1B REG
       reg = vm->program[vm->ip + 1];
       if(vm->stack_depth == 0) {
-        exc = hvm_new_exception();
         msg = "Attempt to return from stack root";
-        exc->message = hvm_new_obj_ref_string_data(hvm_util_strclone(msg));
+        hvm_obj_ref *message = hvm_new_obj_ref_string_data(hvm_util_strclone(msg));
         // Raise the exception
-        vm->exception = exc;
+        vm->exception = hvm_exception_new(vm, message);
         goto EXCEPTION;
       }
       // Current frame
@@ -376,15 +379,12 @@ EXECUTE:
       val = hvm_get_local(vm->top, key->data.u64);
       if(val == NULL) {
         // Local not found
-        hvm_exception *exc = hvm_new_exception();
         char buff[256];// TODO: Danger, Will Robinson, buffer overflow!
         buff[0] = '\0';
         strcat(buff, "Undefined local: ");
         strcat(buff, hvm_desymbolicate(vm->symbols, key->data.u64));
-        hvm_obj_ref *obj = hvm_new_obj_ref_string_data(hvm_util_strclone(buff));
-        exc->message = obj;
-
-        vm->exception = exc;
+        hvm_obj_ref *message = hvm_new_obj_ref_string_data(hvm_util_strclone(buff));
+        vm->exception = hvm_exception_new(vm, message);
         goto EXCEPTION;
         // val = hvm_const_null;
       }
@@ -437,8 +437,7 @@ EXECUTE:
       else if(instr == HVM_OP_MOD) { a = hvm_obj_int_mod(b, c); }
       if(a == NULL) {
         // Bad type
-        hvm_exception *exc = hvm_new_operand_not_integer_exception();
-        vm->exception = exc;
+        vm->exception = hvm_new_operand_not_integer_exception(vm);
         goto EXCEPTION;
       }
       // Ensure the resulting integer is tracked in the GC
@@ -465,8 +464,7 @@ EXECUTE:
       else if(instr == HVM_OP_EQ)  { a = hvm_obj_int_eq(b, c); }
       // TODO: Check if those comparison functions set an exception?
       if(a == NULL) {
-        hvm_exception *exc = hvm_new_operand_not_integer_exception();
-        vm->exception = exc;
+        vm->exception = hvm_new_operand_not_integer_exception(vm);
         goto EXCEPTION;
       }
       hvm_obj_space_add_obj_ref(vm->obj_space, a);
@@ -590,14 +588,13 @@ EXECUTE:
       key   = _hvm_vm_register_read(vm, creg);
       if(strct->type != HVM_STRUCTURE) {
         // Bad type
-        exc = hvm_new_exception();
         msg = "Attempting to get member of non-structure";
-        hvm_obj_ref *obj = hvm_new_obj_ref_string_data(hvm_util_strclone(msg));
-        exc->message = obj;
+        hvm_obj_ref *message = hvm_new_obj_ref_string_data(hvm_util_strclone(msg));
+        exc = hvm_exception_new(vm, message);
 
         hvm_location *loc = hvm_new_location();
         loc->name = hvm_util_strclone("hvm_structget");
-        hvm_exception_push_location(exc, loc);
+        hvm_exception_push_location(vm, exc, loc);
 
         vm->exception = exc;
         goto EXCEPTION;
@@ -645,13 +642,15 @@ EXECUTE:
 EXCEPTION:
   exc = vm->exception;
   assert(exc != NULL);
+  assert(exc->type == HVM_STRUCTURE);
   hvm_exception_build_backtrace(exc, vm);
   // Climb stack looking for catch handler.
   depth = vm->stack_depth;
   while(1) {
     frame = &vm->stack[depth];
     if(frame->catch_addr != HVM_FRAME_EMPTY_CATCH) {
-      val = hvm_obj_for_exception(vm, exc);
+      // val = hvm_obj_for_exception(vm, exc);
+      val = exc;
       hvm_vm_register_write(vm, frame->catch_register, val);
       // Resume execution at the exception handling address
       vm->ip = frame->catch_addr;
@@ -664,5 +663,5 @@ EXCEPTION:
     depth--;
   }
   // No exception handler found
-  hvm_exception_print(exc);
+  hvm_exception_print(vm, exc);
   return;

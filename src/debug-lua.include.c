@@ -24,15 +24,18 @@ int hvm_lua_backtrace(lua_State *L) {
   hvm_vm *vm = _hvm_lua_get_vm(L);
   // fprintf(stdout, "there! %p\n", vm);
   // Hackety hax backtrace building
-  hvm_exception *exc = hvm_new_exception();
+  hvm_obj_ref *exc = hvm_exception_new(vm, NULL);
   hvm_exception_build_backtrace(exc, vm);
   // Get the backtrace out of the exception
-  GArray *backtrace = exc->backtrace;
+  hvm_symbol_id sym = hvm_symbolicate(vm->symbols, "backtrace");
+  hvm_obj_ref *backtrace = hvm_obj_struct_internal_get(exc->data.v, sym);
+  if(backtrace != NULL) {
+    hvm_print_backtrace_array(backtrace);
+  } else {
+    fprintf(stderr, "No backtrace found!\n");
+  }
   // Then release the exception so we don't leak
-  free(exc);
-
-  hvm_print_backtrace(backtrace);
-  // TODO: Free the backtrace
+  hvm_obj_free(exc);
   return 0;
 }
 

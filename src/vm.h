@@ -95,9 +95,9 @@ typedef struct hvm_vm {
   uint32_t stack_depth;
 
   // Current exception (NULL for no exception)
-  struct hvm_exception *exception;
+  struct hvm_obj_ref* exception;
   // Debug entries
-  struct hvm_chunk_debug_entry *debug_entries;
+  struct hvm_chunk_debug_entry* debug_entries;
   uint64_t debug_entries_capacity;
   uint64_t debug_entries_size;
 
