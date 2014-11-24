@@ -1,20 +1,24 @@
 
 $cflags  = "-g -Wall -std=c99 -I../../include #{`pkg-config --cflags glib-2.0 lua5.1`.strip}"
-$ldflags = "../../libhivm-db.a -liconv -lz -lcurses #{`pkg-config --libs glib-2.0 lua5.1`.strip}"
+
+$ldflags = "../../libhivm-db.a -liconv -lz -lpthread -ledit -lcurses -lm -lc++ #{`pkg-config --libs glib-2.0 lua5.1`.strip} -dead_strip -why_load"
+if `uname -s`.strip == 'Darwin'
+  $ldflags += " -macosx_version_min 10.10"
+end
 
 task 'default' => ['test_vm']
 
 desc "Build VM tester"
-file 'test_vm' => ['test_vm.c', '../../libhivm-db.a'] do |t|
+file 'test_vm.o' => ['test_vm.c', '../../libhivm-db.a'] do |t|
   sh "cc #{$cflags} -c #{t.prerequisites.first}"
 end
 
 desc 'Build VM tester executable'
 file 'test_vm' => ['test_vm.o'] do |t|
-  sh "c++ #{t.prerequisites.last} #{$ldflags} -o #{t.name}"
+  sh "ld #{t.prerequisites.last} #{$ldflags} -o #{t.name}"
 end
 
 desc 'Clean'
 task 'clean' do
-  sh "rm test_vm test_vm.o"
+  sh "rm -f test_vm test_vm.o"
 end
