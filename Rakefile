@@ -94,7 +94,11 @@ file "src/jit-compiler-llvm.o" => ["src/jit-compiler.o"] do |t|
   llvm_ldflags = `#{$llvm_config} --ldflags`.strip
   # All the LLVM modules we want
   llvm_libs = `#{$llvm_config} --libs #{$llvm_modules}`.gsub("\n", '').strip
-  sh "ld #{t.prerequisites.first} #{llvm_libs} #{llvm_ldflags} -r -o #{t.name}"
+  llvm_libdir = `#{$llvm_config} --libdir`.strip
+  puts "llvm_ldflags: #{llvm_ldflags}"
+  puts "llvm_libs: #{llvm_libs}"
+  puts "llvm_libdir: #{llvm_libdir}"
+  sh "ld #{t.prerequisites.first} -L#{llvm_libdir} #{llvm_libs} -r -o #{t.name}"
 end
 
 file "src/chunk.pb-c.c" => ["src/chunk.proto"] do |t|
