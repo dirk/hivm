@@ -115,19 +115,6 @@ void hvm_exception_build_backtrace(hvm_obj_ref *exc, hvm_vm *vm) {
   }
 }
 
-void hvm_print_backtrace(void *backtrace_ptr) {
-  GArray *backtrace = (GArray *)backtrace_ptr;
-  unsigned int i;
-  hvm_location *loc;
-  for(i = 0; i < backtrace->len; i++) {
-    loc = g_array_index(backtrace, hvm_location*, i);
-    if(loc->name != NULL) {
-      fprintf(stderr, "    %s (%d:%s)\n", loc->name, loc->line, loc->file);
-    } else {
-      fprintf(stderr, "    unknown (%d:%s)\n", loc->line, loc->file);
-    }
-  }
-}
 
 void hvm_print_backtrace_array(hvm_obj_ref *backtrace) {
   assert(backtrace->type = HVM_ARRAY);

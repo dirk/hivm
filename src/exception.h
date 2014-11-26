@@ -21,7 +21,6 @@ void hvm_exception_push_location(hvm_vm *vm, hvm_obj_ref *exc, hvm_location *loc
 void hvm_exception_build_backtrace(hvm_obj_ref *exc, hvm_vm *vm);
 void hvm_exception_print(hvm_vm *vm, hvm_obj_ref *exc);
 
-// void hvm_print_backtrace(void*);// Argument should be a GArray*
 void hvm_print_backtrace_array(hvm_obj_ref *backtrace);
 
 hvm_obj_ref *hvm_obj_for_exception(hvm_vm *vm, hvm_exception *exc);

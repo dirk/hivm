@@ -363,10 +363,15 @@ void hvm_obj_free(hvm_obj_ref *ref) {
     hvm_obj_struct_free(ref->data.v);
   } else if(ref->type == HVM_ARRAY) {
     fprintf(stderr, "hvm_obj_array_free not implemented yet\n");
-    exit(1);
+    assert(false);
   } else if(ref->type == HVM_EXCEPTION) {
-    hvm_exception *exc = ref->data.v;
-    free(exc);
+    fprintf(stderr, "HVM_EXCEPTION is deprecated\n");
+    assert(false);
+    // hvm_exception *exc = ref->data.v;
+    // free(exc);
+  } else if(ref->type == HVM_STRING) {
+    fprintf(stderr, "hvm_obj_string_free not implemented yet\n");
+    assert(false);
   }
   free(ref);
 }
