@@ -220,6 +220,8 @@ typedef enum {
 
   HVM_OP_LITINTEGER = 41,// 1B OP | 1B REG  | 8B LIT
 
+  HVM_OP_SYMBOLICATE = 42,// 1B OP | 1B REG | 1B REG
+
   HVM_OP_GETLOCAL = 17,  // 1B OP | 1B REG  | 1B REG
   HVM_OP_SETLOCAL = 18,  // 1B OP | 1B REG  | 1B REG
   HVM_OP_GETGLOBAL = 19, // 1B OP | 1B REG  | 1B REG
@@ -268,6 +270,7 @@ typedef enum {
   HVM_OP_STRUCTHAS = 40,    // 1B OP | 3B REGS
 
   HVM_OP_MOVE = 43,// 1B OP | 1B REG | 1B REG
+
   HVM_OP_GOTOADDRESS = 44,// 1B OP | 1B REG
 
 } hvm_opcodes;

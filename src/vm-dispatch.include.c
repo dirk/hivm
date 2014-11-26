@@ -608,7 +608,7 @@ EXECUTE:
       vm->ip += 3;
       break;
     case HVM_OP_STRUCTDELETE:
-      // structdelete V S K`
+      // structdelete V S K
       AREG; BREG; CREG;
       strct = _hvm_vm_register_read(vm, breg);
       key   = _hvm_vm_register_read(vm, creg);
@@ -616,7 +616,7 @@ EXECUTE:
       vm->ip += 3;
       break;
     case HVM_OP_STRUCTNEW:
-      // structnew S`
+      // structnew S
       AREG;
       hvm_obj_struct *s = hvm_new_obj_struct();
       strct = hvm_new_obj_ref();
@@ -631,7 +631,29 @@ EXECUTE:
       fprintf(stderr, "STRUCTHAS not implemented yet!\n");
       goto end;
 
-    // TODO: Implement SYMBOLICATE.
+
+    case HVM_OP_SYMBOLICATE:
+      // symbolicate SYM STR
+      AREG; BREG;
+      b = _hvm_vm_register_read(vm, breg);
+      // Make sure we got a string
+      if(b->type != HVM_STRING) {
+        msg = "Symbolicate cannot handle non-string objects";
+        hvm_obj_ref *message = hvm_new_obj_ref_string_data(hvm_util_strclone(msg));
+        exc = hvm_exception_new(vm, message);
+        vm->exception = exc;
+        goto EXCEPTION;
+      }
+      hvm_obj_string *string = b->data.v;
+      char *cstring = string->data;
+      hvm_symbol_id sym = hvm_symbolicate(vm->symbols, cstring);
+      val = hvm_new_obj_ref();
+      val->type = HVM_SYMBOL;
+      val->data.u64 = sym;
+      hvm_obj_space_add_obj_ref(vm->obj_space, val);
+      hvm_vm_register_write(vm, areg, val);
+      vm->ip += 2;
+      break;
 
     default:
       fprintf(stderr, "Unknown instruction: %u\n", instr);
