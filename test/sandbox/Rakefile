@@ -1,7 +1,8 @@
 
 $cflags  = "-g -Wall -std=c99 -I../../include #{`pkg-config --cflags glib-2.0 lua5.1`.strip}"
 
-$ldflags = "../../libhivm-db.a -liconv -lz -lpthread -ledit -lcurses -lm -lc++ #{`pkg-config --libs glib-2.0 lua5.1`.strip} -dead_strip -why_load"
+# Link against shared library
+$ldflags = "-L../.. -lhivm-0.0.1 -liconv -lz -lpthread -ledit -lcurses -lm -lc++ #{`pkg-config --libs glib-2.0 lua5.1`.strip} -dead_strip -why_load"
 if `uname -s`.strip == 'Darwin'
   $ldflags += " -macosx_version_min 10.10"
 end
@@ -13,7 +14,7 @@ file 'test_vm.o' => ['test_vm.c', '../../libhivm-db.a'] do |t|
   sh "cc #{$cflags} -c #{t.prerequisites.first}"
 end
 
-desc 'Build VM tester executable'
+desc 'Link VM tester executable'
 file 'test_vm' => ['test_vm.o'] do |t|
   sh "ld #{t.prerequisites.last} #{$ldflags} -o #{t.name}"
 end

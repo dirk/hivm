@@ -1,7 +1,8 @@
 def include_env v
   ENV[v].to_s
 end
-$cc = ENV['CC'].nil? ? 'clang' : ENV['CC']
+$cc  = ENV['CC'].nil? ? 'clang' : ENV['CC']
+$cpp = ENV['CPP'].nil? ? 'clang++' : ENV['CPP']
 $ar = 'ar'
 $ld = 'ld'
 # $ldflags = "-lpthread -L. #{include_env 'LDFLAGS'}".strip
@@ -13,16 +14,20 @@ $llvm_config = 'llvm-config'
 if `uname -s`.strip == 'Darwin'
   $llvm_config = "#{`brew --prefix llvm`.strip}/bin/llvm-config"
 end
-$llvm_modules = 'core analysis executionengine jit mcjit interpreter native'
+$llvm_modules = 'core analysis mcjit native'
+
+llvm_libs = `#{$llvm_config} --libs #{$llvm_modules}`.gsub("\n", '').strip
+$llvm_libdir = `#{$llvm_config} --libdir`.strip
+$llvm_ldflags = "-L#{$llvm_libdir} #{llvm_libs}"
+
+$version = `cat ./VERSION`.strip
+$shared_library = "libhivm-#{$version}.so"
 
 def cflags_for file
   basename = File.basename file
   cflags = $cflags
   if %w{object.o generator.o exception.o debug.o bootstrap.o}.include? basename
     cflags += " #{`pkg-config --cflags glib-2.0`.strip}"
-  end
-  if basename == "libhivm.so"
-    cflags += " #{`pkg-config --libs libprotobuf-c`.strip} #{`pkg-config --libs glib-2.0`.strip}"
   end
   # TODO: Refactor to make this unnecessary
   if basename == "generator.o" || basename == "bootstrap.o" || basename == "debug.o"
@@ -61,6 +66,9 @@ end
 namespace "build" do
   desc "Build include directory (header files)"
   task "include" => headers.values.map {|dst| "include/#{dst}.h" }
+
+  desc "Build the shared library"
+  task "shared" => $shared_library
 end
 
 objects = [
@@ -86,19 +94,27 @@ file 'libhivm.a' => objects, &static_archiver
 file 'libhivm-db.a' => debug_objects, &static_archiver
 
 
-file 'libhivm.so' => objects do |t|
-  sh "#{$cc} #{t.prerequisites.join ' '} #{cflags_for t.name} -shared -o #{t.name}"
+# Don't use the giant LLVM-bundled JIT compiler object
+shared_objects = objects.map do |file|
+  (file == 'src/jit-compiler-llvm.o') ? 'src/jit-compiler.o' : file
 end
 
-file "src/jit-compiler-llvm.o" => ["src/jit-compiler.o"] do |t|
-  llvm_ldflags = `#{$llvm_config} --ldflags`.strip
-  # All the LLVM modules we want
-  llvm_libs = `#{$llvm_config} --libs #{$llvm_modules}`.gsub("\n", '').strip
-  llvm_libdir = `#{$llvm_config} --libdir`.strip
-  puts "llvm_ldflags: #{llvm_ldflags}"
-  puts "llvm_libs: #{llvm_libs}"
-  puts "llvm_libdir: #{llvm_libdir}"
-  sh "ld #{t.prerequisites.first} -L#{llvm_libdir} #{llvm_libs} -r -o #{t.name}"
+file $shared_library => shared_objects do |t|
+  objects = t.prerequisites.join ' '
+  # Static libraries
+  ldflags = "-liconv -lz -lpthread -ledit -lcurses -lm -lc++ "
+  ldflags += `pkg-config --libs glib-2.0 lua5.1 libprotobuf-c`.strip+" "
+  # Add the LLVM dynamic library
+  llvm_version = `#{$llvm_config} --version`.strip
+  ldflags += "-L#{$llvm_libdir} -lLLVM-#{llvm_version} "
+  if `uname -s`.strip == 'Darwin'
+    ldflags += " -macosx_version_min 10.10"
+  end
+  sh "#{$ld} #{objects} #{ldflags} -dylib -o #{t.name}"
+end
+
+file "src/jit-compiler-llvm.o" => "src/jit-compiler.o" do |t|
+  sh "#{$ld} #{t.prerequisites.first} #{$llvm_ldflags} -r -o #{t.name}"
 end
 
 file "src/chunk.pb-c.c" => ["src/chunk.proto"] do |t|
@@ -135,8 +151,7 @@ task "clean" do
   sh "rm -f src/chunk.pb-c.*"
   sh "rm -f include/*.h"
   # sh "rm test/*.o"
-  sh "rm -f libhivm.*"
-  sh "rm -f libhivm-db.a"
+  sh "rm -f lib*.*"
 end
 
 namespace "clean" do
