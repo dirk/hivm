@@ -41,12 +41,39 @@ typedef enum {
 
 #define HVM_COMPILE_DATA_HEAD hvm_compile_data_type type;
 
+#define HVM_UNKNOWN_TYPE -1
+
+/// Wrapped values provide meta-data storage around a particular value. These
+/// will allow us to track information around that value to do analysis
+/// and optimizations based on it.
+typedef struct hvm_compile_value {
+  /// Type of the value being referenced.
+  char type;
+#ifdef LLVM_C_CORE_H
+  /// Reference to the LLVM value this wraps.
+  LLVMValueRef value;
+#else
+  void *value;
+#endif
+  /// If we know that this will be a constant.
+  bool constant;
+} hvm_compile_value;
+
+
 // Data item conventions:
 //   .reg: Register that the result of the instruction goes in.
 
 typedef struct hvm_compile_sequence_data_head {
   HVM_COMPILE_DATA_HEAD;
 } hvm_compile_sequence_data_head;
+
+typedef struct hvm_compile_sequence_data_move {
+  HVM_COMPILE_DATA_HEAD;
+  /// Register value will be copied to
+  byte reg;
+  /// Value that will be in the register
+  hvm_compile_value *value;
+} hvm_compile_sequence_data_move;
 
 typedef struct hvm_compile_sequence_data_goto {
   HVM_COMPILE_DATA_HEAD;
@@ -123,6 +150,7 @@ typedef struct hvm_compile_sequence_data_invokeprimitive {
 /// sequence in the trace instruction sequence being compiled.
 typedef union hvm_compile_sequence_data {
   hvm_compile_sequence_data_head       head;
+  hvm_compile_sequence_data_move       move;
   hvm_compile_sequence_data_arrayset   arrayset;
   hvm_compile_sequence_data_arrayget   arrayget;
   hvm_compile_sequence_data_add        add;

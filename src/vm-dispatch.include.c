@@ -88,7 +88,7 @@ EXECUTE:
       const_index = READ_U32(&vm->program[vm->ip + 4]);
       reg         = vm->program[vm->ip + 8];
       // Get the symbol out of the constant table
-      key    = hvm_vm_get_const(vm, const_index);
+      key = hvm_vm_get_const(vm, const_index);
       assert(key->type == HVM_SYMBOL);
       sym_id = key->data.u64;
       char *sym_name = hvm_desymbolicate(vm->symbols, sym_id);
@@ -630,7 +630,6 @@ EXECUTE:
       // structhas B S K
       fprintf(stderr, "STRUCTHAS not implemented yet!\n");
       goto end;
-
 
     case HVM_OP_SYMBOLICATE:
       // symbolicate SYM STR
