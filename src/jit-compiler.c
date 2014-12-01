@@ -758,7 +758,7 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         value2 = hvm_jit_load_general_reg_value(context, builder, reg2);
         data_item->add.operand1 = value1;
         data_item->add.operand2 = value2;
-        // Fetch our source values
+        // Fetch the meta-data about those values
         hvm_compile_value *ov1 = hvm_jit_get_value(context, reg1);
         hvm_compile_value *ov2 = hvm_jit_get_value(context, reg2);
         if(ov1->type == HVM_INTEGER && ov2->type == HVM_INTEGER) {
@@ -872,42 +872,23 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
       case HVM_TRACE_SEQUENCE_ITEM_LITINTEGER:
         data_item->head.type = HVM_COMPILE_DATA_LITINTEGER;
         reg = trace_item->litinteger.register_value;
-        /*
-        // Convert the literal integer value from the trace into an LLVM value
-        // NOTE: Even though we're sending it as unsigned, the final `true`
-        //       argument to LLVMConstInt should make sure LLVM knows it's
-        //       actually signed.
-        value = LLVMConstInt(int64_type, (unsigned long long)trace_item->litinteger.literal_value, true);
-        // Get a new object ref with integer type
-        func = hvm_jit_new_obj_int_llvm_value(bundle);        
-        // Going to get a pointer and cast it properly
-        value_returned = LLVMBuildCall(builder, func, NULL, 0, "obj_ref_int");
-        value_returned = LLVMBuildPointerCast(builder, value_returned, obj_ref_ptr_type, "value_returned");
-        // Then get the pointer to the data property and set it (index 0 to get
-        // 1st item pointed at, second index 0 to get 1st item in the struct).
-        data_ptr = LLVMBuildGEP(builder, value_returned, (LLVMValueRef[]){i32_zero, i32_one}, 2, "data_ptr");
-        // Convert it to the proper 64-bit integer pointer
-        data_ptr = LLVMBuildPointerCast(builder, data_ptr, int64_pointer_type, "data_ptr");
-        // And store our literal value in it
-        LLVMBuildStore(builder, value, data_ptr);
-        */
         // Create a new object reference and store the literal value in it
-        // TODO: Right now this will leak!
         ref = hvm_new_obj_int();
+        // Mark it as a constant to be exempt from GC.
+        ref->flags = ref->flags | HVM_OBJ_FLAG_CONSTANT;
+        // TODO: Add it to the object space so that the VM and GC will still
+        //       know about it.
         ref->data.i64 = trace_item->litinteger.literal_value;
         // Convert the reference to a pointer
         value = LLVMConstInt(int64_type, (unsigned long long)ref, false);
         value = LLVMBuildIntToPtr(builder, value, obj_ref_ptr_type, "integer");
-        // Save our new value into the data item.
-        // Save that value into the data and the "register"
+        // Save that value into the data item
         data_item->litinteger.value = value;
         data_item->litinteger.reg   = reg;
-        // Then save the value into the "registers"
-        // JIT_SAVE_DATA_ITEM_AND_VALUE(reg, data_item, value_returned);
-        // hvm_jit_store_reg_value(context, builder, reg, value_returned);
         cv = hvm_compile_value_new(HVM_INTEGER, value);
         cv->constant = true;
         cv->constant_object = ref;
+        // Then save the value into the "registers"
         STORE(reg, cv);
         break;
 
