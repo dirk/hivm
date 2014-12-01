@@ -835,6 +835,7 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
       case HVM_TRACE_SEQUENCE_ITEM_LITINTEGER:
         data_item->head.type = HVM_COMPILE_DATA_LITINTEGER;
         reg = trace_item->litinteger.register_value;
+        /*
         // Convert the literal integer value from the trace into an LLVM value
         // NOTE: Even though we're sending it as unsigned, the final `true`
         //       argument to LLVMConstInt should make sure LLVM knows it's
@@ -852,13 +853,22 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         data_ptr = LLVMBuildPointerCast(builder, data_ptr, int64_pointer_type, "data_ptr");
         // And store our literal value in it
         LLVMBuildStore(builder, value, data_ptr);
+        */
+        // Create a new object reference and store the literal value in it
+        // TODO: Right now this will leak!
+        ref = hvm_new_obj_int();
+        ref->data.i64 = trace_item->litinteger.literal_value;
+        // Convert the reference to a pointer
+        value = LLVMConstInt(int64_type, (unsigned long long)ref, false);
+        value = LLVMBuildIntToPtr(builder, value, obj_ref_ptr_type, "integer");
+        // Save our new value into the data item.
         // Save that value into the data and the "register"
-        data_item->litinteger.value = value_returned;
+        data_item->litinteger.value = value;
         data_item->litinteger.reg   = reg;
         // Then save the value into the "registers"
         // JIT_SAVE_DATA_ITEM_AND_VALUE(reg, data_item, value_returned);
         // hvm_jit_store_reg_value(context, builder, reg, value_returned);
-        cv = hvm_compile_value_new(HVM_INTEGER, value_returned);
+        cv = hvm_compile_value_new(HVM_INTEGER, value);
         cv->constant = true;
         STORE(reg, cv);
         break;
