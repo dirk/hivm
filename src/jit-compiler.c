@@ -565,6 +565,7 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         value = LLVMBuildIntToPtr(builder, value, obj_ref_ptr_type, "string");
         cv = hvm_compile_value_new(HVM_STRING, value);
         cv->constant = true;
+        cv->constant_object = ref;
         STORE(reg, cv);
         break;
 
@@ -583,6 +584,7 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         data_item->setsymbol.value = value;
         cv = hvm_compile_value_new(HVM_SYMBOL, value);
         cv->constant = true;
+        cv->constant_object = ref;
         // TODO: Call a VM function to check this
         STORE(reg, cv);
         // JIT_SAVE_DATA_ITEM_AND_VALUE(reg, data_item, value);
@@ -870,6 +872,7 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         // hvm_jit_store_reg_value(context, builder, reg, value_returned);
         cv = hvm_compile_value_new(HVM_INTEGER, value);
         cv->constant = true;
+        cv->constant_object = ref;
         STORE(reg, cv);
         break;
 

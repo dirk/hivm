@@ -57,6 +57,8 @@ typedef struct hvm_compile_value {
 #endif
   /// If we know that this will be a constant.
   bool constant;
+  /// Constant object (this is the value contained in .value)
+  hvm_obj_ref *constant_object;
 } hvm_compile_value;
 
 
