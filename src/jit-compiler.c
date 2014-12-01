@@ -384,6 +384,13 @@ void hvm_jit_store_value(struct hvm_jit_compile_context *context, byte reg, hvm_
 }
 
 
+hvm_compile_value *hvm_compile_value_new(char type, LLVMValueRef value) {
+  hvm_compile_value *cv = malloc(sizeof(hvm_compile_value));
+  cv->type  = type;
+  cv->value = value;
+  return cv;
+}
+
 
 LLVMValueRef hvm_jit_load_general_reg_value(struct hvm_jit_compile_context *context, LLVMBuilderRef builder, byte reg) {
   if(reg > 127) {
@@ -541,9 +548,7 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
           // Can't handle other register types yet
           assert(false);
         }
-        cv = NEW_COMPILE_VALUE();
-        cv->type  = HVM_UNKNOWN_TYPE;
-        cv->value = value;
+        cv = hvm_compile_value_new(HVM_UNKNOWN_TYPE, value);
         data_item->move.reg   = reg;
         data_item->move.value = cv;
         // hvm_jit_store_reg_value(context, builder, reg, value);
@@ -558,9 +563,7 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         // Convert it to a pointer
         value = LLVMConstInt(int64_type, (unsigned long long)ref, false);
         value = LLVMBuildIntToPtr(builder, value, obj_ref_ptr_type, "string");
-        cv = NEW_COMPILE_VALUE();
-        cv->type     = HVM_STRING;
-        cv->value    = value;
+        cv = hvm_compile_value_new(HVM_STRING, value);
         cv->constant = true;
         STORE(reg, cv);
         break;
@@ -578,9 +581,12 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         value = LLVMBuildIntToPtr(builder, value, obj_ref_ptr_type, "symbol");
         // Save our new value into the data item.
         data_item->setsymbol.value = value;
+        cv = hvm_compile_value_new(HVM_SYMBOL, value);
+        cv->constant = true;
         // TODO: Call a VM function to check this
+        STORE(reg, cv);
         // JIT_SAVE_DATA_ITEM_AND_VALUE(reg, data_item, value);
-        hvm_jit_store_reg_value(context, builder, reg, value);
+        // hvm_jit_store_reg_value(context, builder, reg, value);
         break;
 
       case HVM_TRACE_SEQUENCE_ITEM_ARRAYGET:
@@ -598,8 +604,10 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         value_returned = LLVMBuildCall(builder, func, arrayget_args, 2, "result");
         // Save the return value
         reg = trace_item->arrayget.register_value;
+        cv = hvm_compile_value_new(HVM_UNKNOWN_TYPE, value_returned);
+        STORE(reg, cv);
         // JIT_SAVE_DATA_ITEM_AND_VALUE(reg, data_item, value_returned);
-        hvm_jit_store_reg_value(context, builder, reg, value_returned);
+        // hvm_jit_store_reg_value(context, builder, reg, value_returned);
         break;
 
       case HVM_TRACE_SEQUENCE_ITEM_EQ:
@@ -616,8 +624,9 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         LLVMValueRef int_eq_args[2] = {value1, value2};
         value = LLVMBuildCall(builder, func, int_eq_args, 2, "equal");
         // TODO: Check if return is NULL and raise proper exception
-        // JIT_SAVE_DATA_ITEM_AND_VALUE(reg, data_item, value);
-        hvm_jit_store_reg_value(context, builder, reg, value);
+        cv = hvm_compile_value_new(HVM_INTEGER, value);
+        STORE(reg, cv);
+        // hvm_jit_store_reg_value(context, builder, reg, value);
         break;
 
       case HVM_TRACE_SEQUENCE_ITEM_AND:
@@ -649,8 +658,9 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         // Convert it to the proper 64-bit integer pointer
         data_ptr = LLVMBuildPointerCast(builder, data_ptr, int64_pointer_type, "data_ptr");
         LLVMBuildStore(builder, value, data_ptr);
-        // JIT_SAVE_DATA_ITEM_AND_VALUE(reg, data_item, value_returned);
-        hvm_jit_store_reg_value(context, builder, reg, value_returned);
+        // hvm_jit_store_reg_value(context, builder, reg, value_returned);
+        cv = hvm_compile_value_new(HVM_INTEGER, value_returned);
+        STORE(reg, cv);
         break;
 
       case HVM_TRACE_SEQUENCE_ITEM_ARRAYSET:
@@ -681,7 +691,9 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         // Then build the function call
         value_returned = LLVMBuildCall(builder, func, arraylen_args, 1, "arraylen");
         // JIT_SAVE_DATA_ITEM_AND_VALUE(reg, data_item, value_returned);
-        hvm_jit_store_reg_value(context, builder, reg, value_returned);
+        // hvm_jit_store_reg_value(context, builder, reg, value_returned);
+        cv = hvm_compile_value_new(HVM_INTEGER, value_returned);
+        STORE(reg, cv);
         break;
 
       case HVM_TRACE_SEQUENCE_ITEM_INVOKEPRIMITIVE:
@@ -701,7 +713,9 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         func = hvm_jit_vm_call_primitive_llvm_value(bundle);
         LLVMValueRef invokeprimitive_args[2] = {value_vm, value_symbol};
         value_returned = LLVMBuildCall(builder, func, invokeprimitive_args, 2, "result");
-        hvm_jit_store_reg_value(context, builder, reg, value_returned);
+        // hvm_jit_store_reg_value(context, builder, reg, value_returned);
+        cv = hvm_compile_value_new(HVM_UNKNOWN_TYPE, value_returned);
+        STORE(reg, cv);
         break;
 
       case HVM_TRACE_SEQUENCE_ITEM_ADD:
@@ -719,7 +733,9 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         LLVMValueRef add_args[2] = {value1, value2};
         value_returned = LLVMBuildCall(builder, func, add_args, 2, "added");
         // JIT_SAVE_DATA_ITEM_AND_VALUE(reg_result, data_item, value_returned);
-        hvm_jit_store_reg_value(context, builder, reg, value_returned);
+        // hvm_jit_store_reg_value(context, builder, reg, value_returned);
+        cv = hvm_compile_value_new(HVM_INTEGER, value_returned);
+        STORE(reg, cv);
         break;
 
       case HVM_TRACE_SEQUENCE_ITEM_GOTO:
@@ -751,7 +767,9 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         value_returned = LLVMBuildCall(builder, func, comparison_args, 2, "gt");
         // TODO: Check for exception set by primitive or NULL return from it
         // JIT_SAVE_DATA_ITEM_AND_VALUE(reg_result, data_item, value_returned);
-        hvm_jit_store_reg_value(context, builder, reg, value_returned);
+        // hvm_jit_store_reg_value(context, builder, reg, value_returned);
+        cv = hvm_compile_value_new(HVM_INTEGER, value_returned);
+        STORE(reg, cv);
         break;
 
       case HVM_TRACE_SEQUENCE_ITEM_IF:
@@ -839,7 +857,10 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         data_item->litinteger.reg   = reg;
         // Then save the value into the "registers"
         // JIT_SAVE_DATA_ITEM_AND_VALUE(reg, data_item, value_returned);
-        hvm_jit_store_reg_value(context, builder, reg, value_returned);
+        // hvm_jit_store_reg_value(context, builder, reg, value_returned);
+        cv = hvm_compile_value_new(HVM_INTEGER, value_returned);
+        cv->constant = true;
+        STORE(reg, cv);
         break;
 
       default:
