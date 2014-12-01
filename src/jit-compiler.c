@@ -357,6 +357,30 @@ LLVMValueRef hvm_jit_compile_value_is_falsey(LLVMBuilderRef builder, LLVMValueRe
   return falsey;
 }
 
+LLVMValueRef hvm_jit_obj_int_add_direct(LLVMBuilderRef builder, hvm_compile_bundle *bundle, LLVMValueRef llvm_ov1, LLVMValueRef llvm_ov2) {
+  LLVMValueRef func, value, data_ptr, data_ptr1, data_ptr2;
+  // Get the data pointer and fetch it
+  data_ptr1 = LLVMBuildGEP(builder, llvm_ov1, (LLVMValueRef[]){i32_zero, i32_one}, 2, "");
+  data_ptr2 = LLVMBuildGEP(builder, llvm_ov2, (LLVMValueRef[]){i32_zero, i32_one}, 2, "");
+  LLVMValueRef operand1, operand2;
+  operand1 = LLVMBuildLoad(builder, data_ptr1, "");
+  operand2 = LLVMBuildLoad(builder, data_ptr2, "");
+  // Then cast them to i64
+  operand1 = LLVMBuildIntCast(builder, operand1, int64_type, "operand1");
+  operand2 = LLVMBuildIntCast(builder, operand2, int64_type, "operand2");
+  // Add the values
+  LLVMValueRef value_i64 = LLVMBuildAdd(builder, operand1, operand2, "value");
+  // Create the integer to return
+  func = hvm_jit_new_obj_int_llvm_value(bundle);
+  value = LLVMBuildCall(builder, func, NULL, 0, "obj_ref_int");
+  value = LLVMBuildPointerCast(builder, value, obj_ref_ptr_type, "value");
+  // Get the pointer into its data and set the new value
+  data_ptr = LLVMBuildGEP(builder, value, (LLVMValueRef[]){i32_zero, i32_one}, 2, "");
+  data_ptr = LLVMBuildPointerCast(builder, data_ptr, int64_pointer_type, "value->data.i64");
+  LLVMBuildStore(builder, value_i64, data_ptr);
+  return value;
+}
+
 
 // #define JIT_SAVE_DATA_ITEM_AND_VALUE(REG, DATA_ITEM, VALUE) \
 //   if(REG <= 127) { \
@@ -382,6 +406,10 @@ void hvm_jit_store_value(struct hvm_jit_compile_context *context, byte reg, hvm_
   hvm_compile_value **values = context->values;
   values[reg] = value;
 }
+hvm_compile_value *hvm_jit_get_value(struct hvm_jit_compile_context *context, byte reg) {
+  return context->values[reg];
+}
+
 
 
 hvm_compile_value *hvm_compile_value_new(char type, LLVMValueRef value) {
@@ -730,10 +758,17 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         value2 = hvm_jit_load_general_reg_value(context, builder, reg2);
         data_item->add.operand1 = value1;
         data_item->add.operand2 = value2;
-        // Build our add operation
-        func = hvm_jit_obj_int_add_llvm_value(bundle);
-        LLVMValueRef add_args[2] = {value1, value2};
-        value_returned = LLVMBuildCall(builder, func, add_args, 2, "added");
+        // Fetch our source values
+        hvm_compile_value *ov1 = hvm_jit_get_value(context, reg1);
+        hvm_compile_value *ov2 = hvm_jit_get_value(context, reg2);
+        if(ov1->type == HVM_INTEGER && ov2->type == HVM_INTEGER) {
+          value_returned = hvm_jit_obj_int_add_direct(builder, bundle, value1, value2);
+        } else {
+          // Build our add operation
+          func = hvm_jit_obj_int_add_llvm_value(bundle);
+          LLVMValueRef add_args[2] = {value1, value2};
+          value_returned = LLVMBuildCall(builder, func, add_args, 2, "added");
+        }
         // JIT_SAVE_DATA_ITEM_AND_VALUE(reg_result, data_item, value_returned);
         // hvm_jit_store_reg_value(context, builder, reg, value_returned);
         cv = hvm_compile_value_new(HVM_INTEGER, value_returned);
