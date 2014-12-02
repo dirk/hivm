@@ -357,30 +357,6 @@ LLVMValueRef hvm_jit_compile_value_is_falsey(LLVMBuilderRef builder, LLVMValueRe
   return falsey;
 }
 
-LLVMValueRef hvm_jit_obj_int_add_direct(LLVMBuilderRef builder, hvm_compile_bundle *bundle, LLVMValueRef llvm_ov1, LLVMValueRef llvm_ov2) {
-  LLVMValueRef func, value, data_ptr, data_ptr1, data_ptr2;
-  // Get the data pointer and fetch it
-  data_ptr1 = LLVMBuildGEP(builder, llvm_ov1, (LLVMValueRef[]){i32_zero, i32_one}, 2, "");
-  data_ptr2 = LLVMBuildGEP(builder, llvm_ov2, (LLVMValueRef[]){i32_zero, i32_one}, 2, "");
-  LLVMValueRef operand1, operand2;
-  operand1 = LLVMBuildLoad(builder, data_ptr1, "");
-  operand2 = LLVMBuildLoad(builder, data_ptr2, "");
-  // Then cast them to i64
-  operand1 = LLVMBuildIntCast(builder, operand1, int64_type, "operand1");
-  operand2 = LLVMBuildIntCast(builder, operand2, int64_type, "operand2");
-  // Add the values
-  LLVMValueRef value_i64 = LLVMBuildAdd(builder, operand1, operand2, "value");
-  // Create the integer to return
-  func = hvm_jit_new_obj_int_llvm_value(bundle);
-  value = LLVMBuildCall(builder, func, NULL, 0, "obj_ref_int");
-  value = LLVMBuildPointerCast(builder, value, obj_ref_ptr_type, "value");
-  // Get the pointer into its data and set the new value
-  data_ptr = LLVMBuildGEP(builder, value, (LLVMValueRef[]){i32_zero, i32_one}, 2, "");
-  data_ptr = LLVMBuildPointerCast(builder, data_ptr, int64_pointer_type, "value->data.i64");
-  LLVMBuildStore(builder, value_i64, data_ptr);
-  return value;
-}
-
 
 // #define JIT_SAVE_DATA_ITEM_AND_VALUE(REG, DATA_ITEM, VALUE) \
 //   if(REG <= 127) { \
@@ -392,6 +368,8 @@ LLVMValueRef hvm_jit_obj_int_add_direct(LLVMBuilderRef builder, hvm_compile_bund
 //   }
 
 struct hvm_jit_compile_context {
+  // Bundle of LLVM objects and such
+  hvm_compile_bundle *bundle;
   // Boxes for object references (emulating the virtual registers in the VM),
   // however LLVM will optimize our stores and loads to/from these into faster
   // phi nodes.
@@ -409,8 +387,6 @@ void hvm_jit_store_value(struct hvm_jit_compile_context *context, byte reg, hvm_
 hvm_compile_value *hvm_jit_get_value(struct hvm_jit_compile_context *context, byte reg) {
   return context->values[reg];
 }
-
-
 
 hvm_compile_value *hvm_compile_value_new(char type, LLVMValueRef value) {
   hvm_compile_value *cv = malloc(sizeof(hvm_compile_value));
@@ -494,6 +470,37 @@ void hvm_jit_store_arg_reg_value(struct hvm_jit_compile_context *context, LLVMBu
   LLVMBuildStore(builder, value, arg_ptr);
 }
 
+LLVMValueRef hvm_jit_obj_int_add_direct(struct hvm_jit_compile_context *context, LLVMBuilderRef builder, byte reg1, byte reg2) {
+  LLVMValueRef func, value, data_ptr, data_ptr1, data_ptr2, value1, value2;
+  // Get the bundle from the context
+  hvm_compile_bundle *bundle = context->bundle;
+  // Insert code to extract the operand object refs from the stack slots
+  value1 = hvm_jit_load_general_reg_value(context, builder, reg1);
+  value2 = hvm_jit_load_general_reg_value(context, builder, reg2);
+
+  // Get the data pointer and fetch it
+  data_ptr1 = LLVMBuildGEP(builder, value1, (LLVMValueRef[]){i32_zero, i32_one}, 2, "");
+  data_ptr2 = LLVMBuildGEP(builder, value2, (LLVMValueRef[]){i32_zero, i32_one}, 2, "");
+  LLVMValueRef operand1, operand2;
+  operand1 = LLVMBuildLoad(builder, data_ptr1, "");
+  operand2 = LLVMBuildLoad(builder, data_ptr2, "");
+  // Then cast them to i64
+  operand1 = LLVMBuildIntCast(builder, operand1, int64_type, "operand1");
+  operand2 = LLVMBuildIntCast(builder, operand2, int64_type, "operand2");
+  // Add the values
+  LLVMValueRef value_i64 = LLVMBuildAdd(builder, operand1, operand2, "value");
+  // Create the integer to return
+  func = hvm_jit_new_obj_int_llvm_value(bundle);
+  value = LLVMBuildCall(builder, func, NULL, 0, "obj_ref_int");
+  value = LLVMBuildPointerCast(builder, value, obj_ref_ptr_type, "value");
+  // Get the pointer into its data and set the new value
+  data_ptr = LLVMBuildGEP(builder, value, (LLVMValueRef[]){i32_zero, i32_one}, 2, "");
+  data_ptr = LLVMBuildPointerCast(builder, data_ptr, int64_pointer_type, "value->data.i64");
+  LLVMBuildStore(builder, value_i64, data_ptr);
+  return value;
+}
+
+
 void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bundle *bundle) {
   unsigned int i;
   // Sequence data items for the instruction that set a given register.
@@ -505,6 +512,7 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
     general_reg_boxes[i] = NULL;
   }
   struct hvm_jit_compile_context context_struct = {
+    .bundle       = bundle,
     .general_regs = general_reg_boxes,
     .vm           = vm,
     .values       = wrapped_values
@@ -753,17 +761,18 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         reg  = trace_item->add.register_result;
         reg1 = trace_item->add.register_operand1;
         reg2 = trace_item->add.register_operand2;
-        // Get the source values for the operation
-        value1 = hvm_jit_load_general_reg_value(context, builder, reg1);
-        value2 = hvm_jit_load_general_reg_value(context, builder, reg2);
-        data_item->add.operand1 = value1;
-        data_item->add.operand2 = value2;
         // Fetch the meta-data about those values
         hvm_compile_value *ov1 = hvm_jit_get_value(context, reg1);
         hvm_compile_value *ov2 = hvm_jit_get_value(context, reg2);
         if(ov1->type == HVM_INTEGER && ov2->type == HVM_INTEGER) {
-          value_returned = hvm_jit_obj_int_add_direct(builder, bundle, value1, value2);
+          printf("using direct addition code path at 0x%08llX\n", trace_item->head.ip);
+          value_returned = hvm_jit_obj_int_add_direct(context, builder, reg1, reg2);
         } else {
+          // Get the source values for the operation
+          value1 = hvm_jit_load_general_reg_value(context, builder, reg1);
+          value2 = hvm_jit_load_general_reg_value(context, builder, reg2);
+          // data_item->add.operand1 = value1;
+          // data_item->add.operand2 = value2;
           // Build our add operation
           func = hvm_jit_obj_int_add_llvm_value(bundle);
           LLVMValueRef add_args[2] = {value1, value2};
@@ -1183,6 +1192,9 @@ void hvm_jit_compile_trace(hvm_vm *vm, hvm_call_trace *trace) {
 
   // Identify potential guard points to be checked before/during/after
   // execution.
+
+  // LLVMDumpModule(module);
+  // exit(1);
 
   // Save the compiled function
   trace->compiled_function = function;
