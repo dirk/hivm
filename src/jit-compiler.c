@@ -390,8 +390,10 @@ hvm_compile_value *hvm_jit_get_value(struct hvm_jit_compile_context *context, by
 
 hvm_compile_value *hvm_compile_value_new(char type, LLVMValueRef value) {
   hvm_compile_value *cv = malloc(sizeof(hvm_compile_value));
-  cv->type  = type;
-  cv->value = value;
+  cv->type     = type;
+  cv->value    = value;
+  cv->constant = false;
+  cv->constant_object = NULL;
   return cv;
 }
 
@@ -470,13 +472,31 @@ void hvm_jit_store_arg_reg_value(struct hvm_jit_compile_context *context, LLVMBu
   LLVMBuildStore(builder, value, arg_ptr);
 }
 
-LLVMValueRef hvm_jit_obj_int_add_direct(struct hvm_jit_compile_context *context, LLVMBuilderRef builder, byte reg1, byte reg2) {
+LLVMValueRef hvm_llvm_value_for_obj_ref(LLVMBuilderRef builder, hvm_obj_ref *ref) {
+  LLVMValueRef ptr = LLVMConstInt(int64_type, (unsigned long long)ref, false);
+  return LLVMBuildIntToPtr(builder, ptr, obj_ref_ptr_type, "");
+}
+
+LLVMValueRef hvm_jit_obj_int_add_direct(struct hvm_jit_compile_context *context, LLVMBuilderRef builder, hvm_compile_value *cv1, hvm_compile_value *cv2, byte reg1, byte reg2, byte register_result) {
   LLVMValueRef func, value, data_ptr, data_ptr1, data_ptr2, value1, value2;
   // Get the bundle from the context
   hvm_compile_bundle *bundle = context->bundle;
-  // Insert code to extract the operand object refs from the stack slots
-  value1 = hvm_jit_load_general_reg_value(context, builder, reg1);
-  value2 = hvm_jit_load_general_reg_value(context, builder, reg2);
+  // If the left side is constant and not going into the result
+  if(cv1->constant && reg1 != register_result) {
+    printf("using constant object for LHS\n");
+    value1 = hvm_llvm_value_for_obj_ref(builder, cv1->constant_object);
+  } else {
+    // Insert code to extract the operand object refs from the stack slots
+    value1 = hvm_jit_load_general_reg_value(context, builder, reg1);
+  }
+  // Same for right side
+  if(cv2->constant && reg2 != register_result) {
+    printf("using constant object for RHS\n");
+    value2 = hvm_llvm_value_for_obj_ref(builder, cv2->constant_object);
+  } else {
+    value2 = hvm_jit_load_general_reg_value(context, builder, reg2);
+  }
+  // value2 = hvm_jit_load_general_reg_value(context, builder, reg2);
 
   // Get the data pointer and fetch it
   data_ptr1 = LLVMBuildGEP(builder, value1, (LLVMValueRef[]){i32_zero, i32_one}, 2, "");
@@ -766,7 +786,7 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         hvm_compile_value *ov2 = hvm_jit_get_value(context, reg2);
         if(ov1->type == HVM_INTEGER && ov2->type == HVM_INTEGER) {
           printf("using direct addition code path at 0x%08llX\n", trace_item->head.ip);
-          value_returned = hvm_jit_obj_int_add_direct(context, builder, reg1, reg2);
+          value_returned = hvm_jit_obj_int_add_direct(context, builder, ov1, ov2, reg1, reg2, reg);
         } else {
           // Get the source values for the operation
           value1 = hvm_jit_load_general_reg_value(context, builder, reg1);
