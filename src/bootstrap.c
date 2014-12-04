@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <assert.h>
+#include <sys/time.h>
 
 #include <glib.h>
 
@@ -28,6 +29,8 @@ void hvm_bootstrap_primitives(hvm_vm *vm) {
   PRIM_SET("int_to_string", hvm_prim_int_to_string);
   PRIM_SET("array_clone", hvm_prim_array_clone);
   PRIM_SET("exit", hvm_prim_exit);
+
+  PRIM_SET("time_as_int", hvm_prim_time_as_int);
 
   PRIM_SET("gc_run", hvm_prim_gc_run);
   PRIM_SET("rand", hvm_prim_rand);
@@ -146,6 +149,18 @@ hvm_obj_ref *hvm_prim_int_to_string(hvm_vm *vm) {
   hvm_obj_ref *str = hvm_new_obj_ref_string_data(hvm_util_strclone(buff));
   hvm_obj_space_add_obj_ref(vm->obj_space, str);
   return str;
+}
+
+// Returns microseconds since epoch as 64-bit integer
+hvm_obj_ref *hvm_prim_time_as_int(hvm_vm *vm) {
+  int64_t sec;
+  hvm_obj_ref * ret;
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  sec = (1000000 * tv.tv_sec) + tv.tv_usec;
+  ret = hvm_new_obj_int();
+  ret->data.i64 = sec;
+  return ret;
 }
 
 hvm_obj_ref *hvm_prim_debug_print_struct(hvm_vm *vm) {
