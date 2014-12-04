@@ -58,7 +58,7 @@ void build_array(hvm_gen *gen, unsigned int size) {
 void define_insertion_sort(hvm_gen *gen) {
   hvm_gen_sub(gen->block, "insertion_sort");
 
-  byte sym = hvm_vm_reg_gen(0);
+  // byte sym = hvm_vm_reg_gen(0);
   byte i   = hvm_vm_reg_gen(1);
   byte j   = hvm_vm_reg_gen(2);
   byte x   = hvm_vm_reg_gen(3);
@@ -76,7 +76,7 @@ void define_insertion_sort(hvm_gen *gen) {
   byte one  = hvm_vm_reg_gen(22);
   hvm_gen_litinteger(gen->block, one, 1);
 
-  byte i_as_string = hvm_vm_reg_gen(23);
+  // byte i_as_string = hvm_vm_reg_gen(23);
 
   hvm_gen_move(gen->block, arr, hvm_vm_reg_param(0));
 
@@ -94,14 +94,14 @@ void define_insertion_sort(hvm_gen *gen) {
     hvm_gen_arrayget(gen->block, x, arr, i);
 
     // Printing $i as string
-    hvm_gen_set_symbol(gen->block, sym, "int_to_string");
-    hvm_gen_move(gen->block, hvm_vm_reg_arg(0), i);
-    hvm_gen_invokeprimitive(gen->block, sym, i_as_string);
-    hvm_gen_move(gen->block, hvm_vm_reg_arg(0), i_as_string);
-    hvm_gen_set_symbol(gen->block, sym, "print");
-    hvm_gen_invokeprimitive(gen->block, sym, hvm_vm_reg_null());
-    hvm_gen_set_string(gen->block, hvm_vm_reg_arg(0), "\n");
-    hvm_gen_invokeprimitive(gen->block, sym, hvm_vm_reg_null());
+    // hvm_gen_set_symbol(gen->block, sym, "int_to_string");
+    // hvm_gen_move(gen->block, hvm_vm_reg_arg(0), i);
+    // hvm_gen_invokeprimitive(gen->block, sym, i_as_string);
+    // hvm_gen_move(gen->block, hvm_vm_reg_arg(0), i_as_string);
+    // hvm_gen_set_symbol(gen->block, sym, "print");
+    // hvm_gen_invokeprimitive(gen->block, sym, hvm_vm_reg_null());
+    // hvm_gen_set_string(gen->block, hvm_vm_reg_arg(0), "\n");
+    // hvm_gen_invokeprimitive(gen->block, sym, hvm_vm_reg_null());
 
     // $j = $i
     hvm_gen_move(gen->block, j, i);
@@ -147,7 +147,7 @@ void define_insertion_sort(hvm_gen *gen) {
 }
 
 int main(int argc, char **argv) {
-  static const unsigned int array_size = 10;
+  static const unsigned int array_size = 1000;
 
   hvm_gen *gen = hvm_new_gen();
   hvm_gen_set_file(gen, "sorting");
@@ -160,12 +160,16 @@ int main(int argc, char **argv) {
   
   // Main program
   hvm_gen_label(gen->block, "program");
-  byte sym         = hvm_vm_reg_gen(0);
-  byte ret         = hvm_vm_reg_gen(1);
-  byte local_array = hvm_vm_reg_gen(2);
-  byte array_copy  = hvm_vm_reg_gen(3);
-
+  byte sym           = hvm_vm_reg_gen(0);
+  byte ret           = hvm_vm_reg_gen(1);
+  byte local_array   = hvm_vm_reg_gen(2);
+  byte array_copy    = hvm_vm_reg_gen(3);
+  byte timing        = hvm_vm_reg_gen(4);
+  byte timings_array = hvm_vm_reg_gen(104);
   
+  hvm_gen_arraynew(gen->block, timings_array, hvm_vm_reg_null());
+  // hvm_gen_set_symbol(gen->block, sym, "timings");
+  // hvm_gen_setlocal(gen->block, sym, timings_array);
 
   // Do the loop to invoke insertion sort a few times
   byte idx  = hvm_vm_reg_gen(100);
@@ -173,7 +177,7 @@ int main(int argc, char **argv) {
   byte cond = hvm_vm_reg_gen(102);
   byte i    = hvm_vm_reg_gen(103);
   hvm_gen_litinteger(gen->block, idx, 0);
-  hvm_gen_litinteger(gen->block, lim, 10);
+  hvm_gen_litinteger(gen->block, lim, 3);
   hvm_gen_label(gen->block, "loop_condition");
   // $cond = $idx == $lim
   hvm_gen_eq(gen->block, cond, idx, lim);
@@ -187,10 +191,18 @@ int main(int argc, char **argv) {
     // $array_copy = prim:array_clone($local_array)
     hvm_gen_set_symbol(gen->block, sym, "array_clone");
     hvm_gen_invokeprimitive(gen->block, sym, array_copy);
+    // arraypush $timings_array (time_as_int())
+    hvm_gen_set_symbol(gen->block, sym, "time_as_int");
+    hvm_gen_invokeprimitive(gen->block, sym, timing);
+    hvm_gen_arraypush(gen->block, timings_array, timing);
     // arg:0 = $array_copy
     hvm_gen_move(gen->block, hvm_vm_reg_arg(0), array_copy);
     // $ret = #insertion_sort()
     hvm_gen_callsymbolic_symbol(gen->block, "insertion_sort", ret);
+    // arraypush $timings_array (time_as_int())
+    hvm_gen_set_symbol(gen->block, sym, "time_as_int");
+    hvm_gen_invokeprimitive(gen->block, sym, timing);
+    hvm_gen_arraypush(gen->block, timings_array, timing);
     // $idx = $idx + 1
     hvm_gen_litinteger(gen->block, i, 1);
     hvm_gen_add(gen->block, idx, idx, i);
@@ -225,20 +237,32 @@ int main(int argc, char **argv) {
 
   printf("\nDONE\n\n");
 
-  /*
-  hvm_obj_ref *arrref = hvm_get_local(vm->top, hvm_symbolicate(vm->symbols, array));
+  // hvm_obj_ref *arrref = hvm_get_local(vm->top, hvm_symbolicate(vm->symbols, array));
+  hvm_obj_ref *arrref = hvm_vm_register_read(vm, timings_array);
   assert(arrref->type == HVM_ARRAY);
 
   hvm_obj_array *arr = arrref->data.v;
 
-  printf("array = [%u]{\n", arr->array->len);
+  printf("timings_array = [%u]{\n", arr->array->len);
   for(unsigned int i = 0; i < arr->array->len; i++) {
     hvm_obj_ref *intval = g_array_index(arr->array, hvm_obj_ref*, i);
     assert(intval->type == HVM_INTEGER);
     printf("  %4u = %lld\n", i, intval->data.i64);
   }
+  printf("}\n\n");
+
+  printf("computed timings = {\n");
+  for(unsigned int i = 0; i < arr->array->len; i += 2) {
+    hvm_obj_ref *start = g_array_index(arr->array, hvm_obj_ref*, i);
+    hvm_obj_ref *end   = g_array_index(arr->array, hvm_obj_ref*, i + 1);
+
+    int64_t st = start->data.i64;
+    int64_t et = end->data.i64;
+    unsigned int run = ((i == 0 ? 1 : i) / 2) + 1;
+
+    printf("  run[%d] = %lld microseconds\n", run, et - st);
+  }
   printf("}\n");
-  */
 
 
   // printf("\nAFTER RUNNING:\n");
