@@ -481,9 +481,14 @@ LLVMValueRef hvm_jit_obj_int_add_direct(struct hvm_jit_compile_context *context,
   LLVMValueRef func, value, data_ptr, data_ptr1, data_ptr2, value1, value2;
   // Get the bundle from the context
   hvm_compile_bundle *bundle = context->bundle;
+  // printf("$%d = $%d + $%d\n", register_result, reg1, reg2);
+  // printf("cv1->constant = %d\n", cv1->constant);
+  // printf("cv2->constant = %d\n", cv2->constant);
+  // printf("cv1->constant_object = %p\n", cv1->constant_object);
+  // printf("cv2->constant_object = %p\n", cv2->constant_object);
   // If the left side is constant and not going into the result
   if(cv1->constant && reg1 != register_result) {
-    printf("using constant object for LHS\n");
+    // printf("using constant object for LHS\n");
     value1 = hvm_llvm_value_for_obj_ref(builder, cv1->constant_object);
   } else {
     // Insert code to extract the operand object refs from the stack slots
@@ -491,7 +496,7 @@ LLVMValueRef hvm_jit_obj_int_add_direct(struct hvm_jit_compile_context *context,
   }
   // Same for right side
   if(cv2->constant && reg2 != register_result) {
-    printf("using constant object for RHS\n");
+    // printf("using constant object for RHS\n");
     value2 = hvm_llvm_value_for_obj_ref(builder, cv2->constant_object);
   } else {
     value2 = hvm_jit_load_general_reg_value(context, builder, reg2);
@@ -785,7 +790,7 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         hvm_compile_value *ov1 = hvm_jit_get_value(context, reg1);
         hvm_compile_value *ov2 = hvm_jit_get_value(context, reg2);
         if(ov1->type == HVM_INTEGER && ov2->type == HVM_INTEGER) {
-          printf("using direct addition code path at 0x%08llX\n", trace_item->head.ip);
+          // printf("using direct addition code path at 0x%08llX\n", trace_item->head.ip);
           value_returned = hvm_jit_obj_int_add_direct(context, builder, ov1, ov2, reg1, reg2, reg);
         } else {
           // Get the source values for the operation

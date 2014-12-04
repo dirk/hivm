@@ -121,20 +121,19 @@ EXECUTE:
           if(trace->compiled_function == NULL) {
             hvm_jit_compile_trace(vm, trace);
             fprintf(stderr, "compiled trace for %s:0x%08llX\n", sym_name, dest);
+          }
+          fprintf(stderr, "running compiled trace for %s:0x%08llX\n", sym_name, dest);
+          hvm_jit_exit *result = hvm_jit_run_compiled_trace(vm, trace);
+          if(result->ret.status == HVM_JIT_EXIT_BAILOUT) {
+            vm->ip = result->bailout.destination;
+            goto EXECUTE;
           } else {
-            fprintf(stderr, "running compiled trace for %s:0x%08llX\n", sym_name, dest);
-            hvm_jit_exit *result = hvm_jit_run_compiled_trace(vm, trace);
-            if(result->ret.status == HVM_JIT_EXIT_BAILOUT) {
-              vm->ip = result->bailout.destination;
-              goto EXECUTE;
-            } else {
-              assert(vm->stack_depth != 0);
-              vm->ip = frame->return_addr;
-              vm->stack_depth -= 1;
-              vm->top = &vm->stack[vm->stack_depth];
-              hvm_vm_register_write(vm, frame->return_register, result->ret.value);
-              goto EXECUTE;
-            }
+            assert(vm->stack_depth != 0);
+            vm->ip = frame->return_addr;
+            vm->stack_depth -= 1;
+            vm->top = &vm->stack[vm->stack_depth];
+            hvm_vm_register_write(vm, frame->return_register, result->ret.value);
+            goto EXECUTE;
           }
         }
         // fprintf(stderr, "subroutine %s:0x%08llX has heat %d\n", sym_name, dest, tag.heat);

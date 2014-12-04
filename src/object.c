@@ -44,8 +44,15 @@ hvm_obj_array *hvm_new_obj_array() {
 }
 hvm_obj_array *hvm_new_obj_array_with_length(hvm_obj_ref *lenref) {
   hvm_obj_array *arr = malloc(sizeof(hvm_obj_array));
-  assert(lenref->type == HVM_INTEGER);
-  guint len = (guint)(lenref->data.i64);
+  guint len;
+  if(lenref->type == HVM_INTEGER) {
+    len = (guint)(lenref->data.i64);
+  } else if(lenref->type == HVM_NULL) {
+    len = 0;
+  } else {
+    fprintf(stderr, "Invalid object type for length\n");
+    assert(false);
+  }
   // printf("new array len: %d\n", len);
   arr->array = g_array_sized_new(TRUE, TRUE, sizeof(hvm_obj_ref*), len);
   // printf("arr->array->len: %d\n", arr->array->len);
