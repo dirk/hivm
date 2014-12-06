@@ -47,23 +47,25 @@ typedef enum {
 /// will allow us to track information around that value to do analysis
 /// and optimizations based on it.
 typedef struct hvm_compile_value {
+  /// Register this value is located in.
+  byte reg;
   /// Type of the value being referenced.
   char type;
-#ifdef LLVM_C_CORE_H
-  /// Reference to the LLVM value this wraps.
-  LLVMValueRef value;
-#else
-  void *value;
-#endif
   /// If we know that this will be a constant.
   bool constant;
-  /// Constant object (this is the value contained in .value)
+  /// Constant object (this is the value contained in .constant_value)
   hvm_obj_ref *constant_object;
+#ifdef LLVM_C_CORE_H
+  /// Reference to the LLVM value pointing to the constant object.
+  LLVMValueRef constant_value;
+#else
+  void *constant_value;
+#endif
 } hvm_compile_value;
 
 
 // Data item conventions:
-//   .reg: Register that the result of the instruction goes in.
+//   .register_return: Register that the result of the instruction goes in.
 
 typedef struct hvm_compile_sequence_data_head {
   HVM_COMPILE_DATA_HEAD;
@@ -72,7 +74,7 @@ typedef struct hvm_compile_sequence_data_head {
 typedef struct hvm_compile_sequence_data_move {
   HVM_COMPILE_DATA_HEAD;
   /// Register value will be copied to
-  byte reg;
+  byte register_return;
   /// Value that will be in the register
   hvm_compile_value *value;
 } hvm_compile_sequence_data_move;
@@ -98,7 +100,7 @@ typedef struct hvm_compile_sequence_data_arrayget {
   LLVMValueRef index;
   // Result value and result register
   LLVMValueRef value;
-  byte reg;
+  byte register_return;
 } hvm_compile_sequence_data_arrayget;
 
 typedef struct hvm_compile_sequence_data_add {
@@ -107,7 +109,7 @@ typedef struct hvm_compile_sequence_data_add {
   LLVMValueRef operand2;
   // Results
   LLVMValueRef result;
-  byte reg;
+  byte register_return;
 } hvm_compile_sequence_data_add;
 
 typedef struct hvm_compile_sequence_data_if {
@@ -119,7 +121,7 @@ typedef struct hvm_compile_sequence_data_if {
 typedef struct hvm_compile_sequence_data_setsymbol {
   HVM_COMPILE_DATA_HEAD;
   // Register that the `.symbol` would be placed into
-  byte reg;
+  byte register_return;
   // The symbol that was retrieved up from the constant table
   LLVMValueRef value;
   // Index into the constant table
@@ -131,7 +133,7 @@ typedef struct hvm_compile_sequence_data_setsymbol hvm_compile_sequence_data_set
 typedef struct hvm_compile_sequence_data_litinteger {
   HVM_COMPILE_DATA_HEAD;
   // Register that the integer will be put in
-  byte reg;
+  byte register_return;
   // The constant integer in LLVM
   LLVMValueRef value;
 } hvm_compile_sequence_data_litinteger;
@@ -145,7 +147,7 @@ typedef struct hvm_compile_sequence_data_invokeprimitive {
   LLVMValueRef  symbol_value;
   // Result value and register
   LLVMValueRef  value;
-  byte          reg;
+  byte          register_return;
 } hvm_compile_sequence_data_invokeprimitive;
 
 /// Structs used for figuring out and keeping track of data related to each
@@ -186,6 +188,22 @@ typedef struct hvm_compile_bundle {
   LLVMValueRef           llvm_function;
 #endif
 } hvm_compile_bundle;
+
+/// Used by the compilation passes to share state and information about the
+/// code being compiled.
+struct hvm_jit_compile_context {
+  /// Bundle of LLVM objects and such
+  hvm_compile_bundle *bundle;
+  /// Boxes for object references (emulating the virtual registers in the VM),
+  /// however LLVM will optimize our stores and loads to/from these into faster
+  /// phi nodes.
+  LLVMValueRef *general_regs;
+  /// Pointer to the VM we're compiling for.
+  hvm_vm *vm;
+  /// Boxes for wrapped values corresponding to a register.
+  hvm_compile_value **values;
+};
+
 
 typedef enum {
   HVM_JIT_EXIT_BAILOUT,

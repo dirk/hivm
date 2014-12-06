@@ -367,33 +367,23 @@ LLVMValueRef hvm_jit_compile_value_is_falsey(LLVMBuilderRef builder, LLVMValueRe
 //     assert(false); \
 //   }
 
-struct hvm_jit_compile_context {
-  // Bundle of LLVM objects and such
-  hvm_compile_bundle *bundle;
-  // Boxes for object references (emulating the virtual registers in the VM),
-  // however LLVM will optimize our stores and loads to/from these into faster
-  // phi nodes.
-  LLVMValueRef *general_regs;
-  // Pointer to the VM we're compiling for.
-  hvm_vm *vm;
-  // Boxes for wrapped values corresponding to a register.
-  hvm_compile_value **values;
-};
-
-void hvm_jit_store_value(struct hvm_jit_compile_context *context, byte reg, hvm_compile_value *value) {
+void hvm_jit_store_value(struct hvm_jit_compile_context *context, hvm_compile_value *value) {
+  // Store in the values
   hvm_compile_value **values = context->values;
+  byte reg = value->reg;
   values[reg] = value;
 }
 hvm_compile_value *hvm_jit_get_value(struct hvm_jit_compile_context *context, byte reg) {
   return context->values[reg];
 }
 
-hvm_compile_value *hvm_compile_value_new(char type, LLVMValueRef value) {
+hvm_compile_value *hvm_compile_value_new(char type, byte reg) {
   hvm_compile_value *cv = malloc(sizeof(hvm_compile_value));
-  cv->type     = type;
-  cv->value    = value;
+  cv->reg  = reg;
+  cv->type = type;
   cv->constant = false;
   cv->constant_object = NULL;
+  cv->constant_value  = NULL;
   return cv;
 }
 
@@ -526,24 +516,8 @@ LLVMValueRef hvm_jit_obj_int_add_direct(struct hvm_jit_compile_context *context,
 }
 
 
-void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bundle *bundle) {
+void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit_compile_context *context) {
   unsigned int i;
-  // Sequence data items for the instruction that set a given register.
-  hvm_compile_value *wrapped_values[255];
-
-  // Initialize array pointer containers to NULL
-  LLVMValueRef general_reg_boxes[HVM_GENERAL_REGISTERS];
-  for(i = 0; i < HVM_GENERAL_REGISTERS; i++) {
-    general_reg_boxes[i] = NULL;
-  }
-  struct hvm_jit_compile_context context_struct = {
-    .bundle       = bundle,
-    .general_regs = general_reg_boxes,
-    .vm           = vm,
-    .values       = wrapped_values
-  };
-  struct hvm_jit_compile_context *context = &context_struct;
-
   byte reg, reg_array, reg_index, reg_value, reg_symbol, reg_result, reg_source, reg1, reg2;
   unsigned int type;
   uint64_t ip;
@@ -552,10 +526,10 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bu
   LLVMValueRef value, value_array, value_index, value_symbol, value_returned, value1, value2, value_vm;
   LLVMValueRef data_ptr;
   hvm_compile_value *cv;
-
   // 64 bytes to play with for making strings to pass to LLVM
   char scratch[64];
 
+  hvm_compile_bundle *bundle = context->bundle;
   hvm_compile_sequence_data *data = bundle->data;
   // Function-pointer-as-value
   LLVMValueRef func;
@@ -582,16 +556,16 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bu
     LLVMPositionBuilderAtEnd(builder, current_basic_block);
 
 #define NEW_COMPILE_VALUE() malloc(sizeof(hvm_compile_value))
-#define STORE(REG, COMPILE_VALUE) \
-      hvm_jit_store_reg_value(context, builder, REG, COMPILE_VALUE->value); \
-      hvm_jit_store_value(context, REG, COMPILE_VALUE);
+#define STORE(COMPILE_VALUE, LLVM_VALUE) \
+      hvm_jit_store_value(context, COMPILE_VALUE); \
+      hvm_jit_store_reg_value(context, builder, COMPILE_VALUE->reg, LLVM_VALUE)
 
     // Do stuff with the item based upon its type.
     switch(trace_item->head.type) {
       case HVM_TRACE_SEQUENCE_ITEM_MOVE:
         data_item->head.type = HVM_COMPILE_DATA_MOVE;
         reg_source = trace_item->move.register_source;
-        reg        = trace_item->move.register_dest;
+        reg        = trace_item->move.register_return;
         // fprintf(stderr, "0x%08llX move %d -> %d\n", trace_item->head.ip, reg_source, reg);
         if(hvm_is_gen_reg(reg_source)) {
           // Fetch the value from one and put it in the other
@@ -609,32 +583,33 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bu
           // Can't handle other register types yet
           assert(false);
         }
-        cv = hvm_compile_value_new(HVM_UNKNOWN_TYPE, value);
-        data_item->move.reg   = reg;
+        cv = hvm_compile_value_new(HVM_UNKNOWN_TYPE, reg);
+        data_item->move.register_return = reg;
         data_item->move.value = cv;
         // hvm_jit_store_reg_value(context, builder, reg, value);
-        STORE(reg, cv);
+        STORE(cv, value);
         break;
 
       case HVM_TRACE_SEQUENCE_ITEM_SETSTRING:
         data_item->setstring.type = HVM_COMPILE_DATA_SETSTRING;
-        reg = trace_item->setstring.reg;
+        reg = trace_item->setstring.register_return;
         // Get the object reference from the constant pool
         ref = hvm_const_pool_get_const(&vm->const_pool, trace_item->setstring.constant);
         // Convert it to a pointer
         value = LLVMConstInt(int64_type, (unsigned long long)ref, false);
         value = LLVMBuildIntToPtr(builder, value, obj_ref_ptr_type, "string");
-        cv = hvm_compile_value_new(HVM_STRING, value);
+        cv = hvm_compile_value_new(HVM_STRING, reg);
         cv->constant = true;
         cv->constant_object = ref;
-        STORE(reg, cv);
+        cv->constant_value  = value;
+        STORE(cv, value);
         break;
 
       case HVM_TRACE_SEQUENCE_ITEM_SETSYMBOL:
         data_item->setsymbol.type = HVM_COMPILE_DATA_SETSYMBOL;
-        reg = trace_item->setsymbol.reg;
+        reg = trace_item->setsymbol.register_return;
         // Copy over our basic information from the trace item
-        data_item->setsymbol.reg      = reg;
+        data_item->setsymbol.register_return = reg;
         data_item->setsymbol.constant = trace_item->setsymbol.constant;
         // Also compile our symbol as a LLVM value
         ref = hvm_const_pool_get_const(&vm->const_pool, data_item->setsymbol.constant);
@@ -643,11 +618,11 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bu
         value = LLVMBuildIntToPtr(builder, value, obj_ref_ptr_type, "symbol");
         // Save our new value into the data item.
         data_item->setsymbol.value = value;
-        cv = hvm_compile_value_new(HVM_SYMBOL, value);
+        cv = hvm_compile_value_new(HVM_SYMBOL, reg);
         cv->constant = true;
         cv->constant_object = ref;
         // TODO: Call a VM function to check this
-        STORE(reg, cv);
+        STORE(cv, value);
         // JIT_SAVE_DATA_ITEM_AND_VALUE(reg, data_item, value);
         // hvm_jit_store_reg_value(context, builder, reg, value);
         break;
@@ -666,16 +641,16 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bu
         // Build the function call
         value_returned = LLVMBuildCall(builder, func, arrayget_args, 2, "result");
         // Save the return value
-        reg = trace_item->arrayget.register_value;
-        cv = hvm_compile_value_new(HVM_UNKNOWN_TYPE, value_returned);
-        STORE(reg, cv);
+        reg = trace_item->arrayget.register_return;
+        cv = hvm_compile_value_new(HVM_UNKNOWN_TYPE, reg);
+        STORE(cv, value_returned);
         // JIT_SAVE_DATA_ITEM_AND_VALUE(reg, data_item, value_returned);
         // hvm_jit_store_reg_value(context, builder, reg, value_returned);
         break;
 
       case HVM_TRACE_SEQUENCE_ITEM_EQ:
         data_item->head.type = HVM_COMPILE_DATA_EQ;
-        reg    = trace_item->eq.register_result;
+        reg    = trace_item->eq.register_return;
         reg1   = trace_item->eq.register_operand1;
         reg2   = trace_item->eq.register_operand2;
         value1 = hvm_jit_load_general_reg_value(context, builder, reg1);
@@ -687,14 +662,14 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bu
         LLVMValueRef int_eq_args[2] = {value1, value2};
         value = LLVMBuildCall(builder, func, int_eq_args, 2, "equal");
         // TODO: Check if return is NULL and raise proper exception
-        cv = hvm_compile_value_new(HVM_INTEGER, value);
-        STORE(reg, cv);
+        cv = hvm_compile_value_new(HVM_INTEGER, reg);
+        STORE(cv, value);
         // hvm_jit_store_reg_value(context, builder, reg, value);
         break;
 
       case HVM_TRACE_SEQUENCE_ITEM_AND:
         data_item->head.type = HVM_COMPILE_DATA_AND;
-        reg    = trace_item->eq.register_result;
+        reg    = trace_item->eq.register_return;
         reg1   = trace_item->eq.register_operand1;
         reg2   = trace_item->eq.register_operand2;
         value1 = hvm_jit_load_general_reg_value(context, builder, reg1);
@@ -722,8 +697,8 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bu
         data_ptr = LLVMBuildPointerCast(builder, data_ptr, int64_pointer_type, "data_ptr");
         LLVMBuildStore(builder, value, data_ptr);
         // hvm_jit_store_reg_value(context, builder, reg, value_returned);
-        cv = hvm_compile_value_new(HVM_INTEGER, value_returned);
-        STORE(reg, cv);
+        cv = hvm_compile_value_new(HVM_INTEGER, reg);
+        STORE(cv, value_returned);
         break;
 
       case HVM_TRACE_SEQUENCE_ITEM_ARRAYSET:
@@ -744,7 +719,7 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bu
 
       case HVM_TRACE_SEQUENCE_ITEM_ARRAYLEN:
         data_item->head.type = HVM_COMPILE_DATA_ARRAYLEN;
-        reg = trace_item->arraylen.register_value;
+        reg = trace_item->arraylen.register_return;
         // Get the source array to get the length of
         reg_array   = trace_item->arraylen.register_array;
         value_array = hvm_jit_load_general_reg_value(context, builder, reg_array);
@@ -755,8 +730,8 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bu
         value_returned = LLVMBuildCall(builder, func, arraylen_args, 1, "arraylen");
         // JIT_SAVE_DATA_ITEM_AND_VALUE(reg, data_item, value_returned);
         // hvm_jit_store_reg_value(context, builder, reg, value_returned);
-        cv = hvm_compile_value_new(HVM_INTEGER, value_returned);
-        STORE(reg, cv);
+        cv = hvm_compile_value_new(HVM_INTEGER, reg);
+        STORE(cv, value_returned);
         break;
 
       case HVM_TRACE_SEQUENCE_ITEM_INVOKEPRIMITIVE:
@@ -777,13 +752,13 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bu
         LLVMValueRef invokeprimitive_args[2] = {value_vm, value_symbol};
         value_returned = LLVMBuildCall(builder, func, invokeprimitive_args, 2, "result");
         // hvm_jit_store_reg_value(context, builder, reg, value_returned);
-        cv = hvm_compile_value_new(HVM_UNKNOWN_TYPE, value_returned);
-        STORE(reg, cv);
+        cv = hvm_compile_value_new(HVM_UNKNOWN_TYPE, reg);
+        STORE(cv, value_returned);
         break;
 
       case HVM_TRACE_SEQUENCE_ITEM_ADD:
         data_item->add.type = HVM_COMPILE_DATA_ADD;
-        reg  = trace_item->add.register_result;
+        reg  = trace_item->add.register_return;
         reg1 = trace_item->add.register_operand1;
         reg2 = trace_item->add.register_operand2;
         // Fetch the meta-data about those values
@@ -805,8 +780,8 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bu
         }
         // JIT_SAVE_DATA_ITEM_AND_VALUE(reg_result, data_item, value_returned);
         // hvm_jit_store_reg_value(context, builder, reg, value_returned);
-        cv = hvm_compile_value_new(HVM_INTEGER, value_returned);
-        STORE(reg, cv);
+        cv = hvm_compile_value_new(HVM_INTEGER, reg);
+        STORE(cv, value_returned);
         break;
 
       case HVM_TRACE_SEQUENCE_ITEM_GOTO:
@@ -819,7 +794,7 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bu
 
       case HVM_TRACE_SEQUENCE_ITEM_GT:
         // Extract the registers and values
-        reg_result = trace_item->add.register_result;
+        reg_result = trace_item->add.register_return;
         reg1       = trace_item->add.register_operand1;
         reg2       = trace_item->add.register_operand2;
         value1     = hvm_jit_load_general_reg_value(context, builder, reg1);
@@ -839,8 +814,8 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bu
         // TODO: Check for exception set by primitive or NULL return from it
         // JIT_SAVE_DATA_ITEM_AND_VALUE(reg_result, data_item, value_returned);
         // hvm_jit_store_reg_value(context, builder, reg, value_returned);
-        cv = hvm_compile_value_new(HVM_INTEGER, value_returned);
-        STORE(reg, cv);
+        cv = hvm_compile_value_new(HVM_INTEGER, reg);
+        STORE(cv, value_returned);
         break;
 
       case HVM_TRACE_SEQUENCE_ITEM_IF:
@@ -905,7 +880,7 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bu
 
       case HVM_TRACE_SEQUENCE_ITEM_LITINTEGER:
         data_item->head.type = HVM_COMPILE_DATA_LITINTEGER;
-        reg = trace_item->litinteger.register_value;
+        reg = trace_item->litinteger.register_return;
         // Create a new object reference and store the literal value in it
         ref = hvm_new_obj_int();
         // Mark it as a constant to be exempt from GC.
@@ -918,12 +893,13 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bu
         value = LLVMBuildIntToPtr(builder, value, obj_ref_ptr_type, "integer");
         // Save that value into the data item
         data_item->litinteger.value = value;
-        data_item->litinteger.reg   = reg;
-        cv = hvm_compile_value_new(HVM_INTEGER, value);
+        data_item->litinteger.register_return = reg;
+        cv = hvm_compile_value_new(HVM_INTEGER, reg);
         cv->constant = true;
         cv->constant_object = ref;
+        cv->constant_value = value;
         // Then save the value into the "registers"
-        STORE(reg, cv);
+        STORE(cv, value);
         break;
 
       default:
@@ -1145,6 +1121,13 @@ void hvm_jit_compile_pass_identify_blocks(hvm_call_trace *trace, hvm_compile_bun
   }
 }
 
+void hvm_jit_compile_pass_identify_constant_registers(hvm_call_trace *trace, struct hvm_jit_compile_context *context) {
+  hvm_compile_bundle *bundle = context->bundle;
+  for(unsigned int i = 0; i < trace->sequence_length; i++) {
+    hvm_trace_sequence_item *item = &trace->sequence[i];
+  }
+}
+
 
 int hvm_trace_item_comparator(const void *va, const void *vb) {
   hvm_trace_sequence_item *a = (hvm_trace_sequence_item*)va;
@@ -1203,20 +1186,39 @@ void hvm_jit_compile_trace(hvm_vm *vm, hvm_call_trace *trace) {
   // Rearrange the trace to be a linear sequence of ordered IPs
   hvm_jit_sort_trace(trace);
 
+
+  // Initialize array pointer containers to NULL
+  LLVMValueRef general_reg_boxes[HVM_GENERAL_REGISTERS];
+  for(unsigned int i = 0; i < HVM_GENERAL_REGISTERS; i++) {
+    general_reg_boxes[i] = NULL;
+  }
+  // Sequence data items for the instruction that set a given register.
+  hvm_compile_value *wrapped_values[255];
+  // Setting up the context
+  struct hvm_jit_compile_context compile_context = {
+    .bundle       = &bundle,
+    .general_regs = general_reg_boxes,
+    .vm           = vm,
+    .values       = wrapped_values
+  };
+
   // Break our sequence into blocks based upon possible destinations of
   // jumps/ifs/gotos/etc.
   hvm_jit_compile_pass_identify_blocks(trace, &bundle);
+
+  // Identify potential guard points to be checked before/during/after
+  // execution.
+
+  // Identify registers with constant values that we can optimize.
+  hvm_jit_compile_pass_identify_constant_registers(trace, &compile_context);
 
   // Identify and extract gets/sets of globals and locals into dedicated
   // in-out pointers arguments to the block so that they can be passed
   // by the VM into the block at call time.
 
-  // Identify potential guard points to be checked before/during/after
-  // execution.
-
   // Resolve register references in instructions into concrete IR value
   // references and build the instruction sequence.
-  hvm_jit_compile_pass_emit(vm, trace, &bundle);
+  hvm_jit_compile_pass_emit(vm, trace, &compile_context);
 
   // LLVMDumpModule(module);
   // exit(1);

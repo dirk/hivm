@@ -70,8 +70,8 @@ void hvm_jit_call_trace_push_instruction(hvm_vm *vm, hvm_call_trace *trace) {
         item->setsymbol.type = HVM_TRACE_SEQUENCE_ITEM_SETSYMBOL;
       }
       // 1B OP | 1B REG | 4B CONST
-      item->setstring.reg      = vm->program[vm->ip + 1];
-      item->setstring.constant = *(uint32_t*)(&vm->program[vm->ip + 2]);
+      item->setstring.register_return = vm->program[vm->ip + 1];
+      item->setstring.constant        = *(uint32_t*)(&vm->program[vm->ip + 2]);
       break;
 
     case HVM_OP_INVOKEPRIMITIVE:
@@ -134,7 +134,7 @@ void hvm_jit_call_trace_push_instruction(hvm_vm *vm, hvm_call_trace *trace) {
       if(instr == HVM_OP_LT)  { item->eq.type  = HVM_TRACE_SEQUENCE_ITEM_LT;  }
       if(instr == HVM_OP_GT)  { item->eq.type  = HVM_TRACE_SEQUENCE_ITEM_GT;  }
       if(instr == HVM_OP_AND) { item->and.type = HVM_TRACE_SEQUENCE_ITEM_AND; }
-      item->add.register_result   = vm->program[vm->ip + 1];
+      item->add.register_return   = vm->program[vm->ip + 1];
       item->add.register_operand1 = vm->program[vm->ip + 2];
       item->add.register_operand2 = vm->program[vm->ip + 3];
       break;
@@ -148,27 +148,27 @@ void hvm_jit_call_trace_push_instruction(hvm_vm *vm, hvm_call_trace *trace) {
 
     case HVM_OP_ARRAYGET:
       item->arrayget.type = HVM_TRACE_SEQUENCE_ITEM_ARRAYGET;
-      item->arrayget.register_value = vm->program[vm->ip + 1];
+      item->arrayget.register_return = vm->program[vm->ip + 1];
       item->arrayget.register_array = vm->program[vm->ip + 2];
       item->arrayget.register_index = vm->program[vm->ip + 3];
       break;
 
     case HVM_OP_ARRAYLEN:
       item->arraylen.type = HVM_TRACE_SEQUENCE_ITEM_ARRAYLEN;
-      item->arraylen.register_value = vm->program[vm->ip + 1];
-      item->arraylen.register_array = vm->program[vm->ip + 2];
+      item->arraylen.register_return = vm->program[vm->ip + 1];
+      item->arraylen.register_array  = vm->program[vm->ip + 2];
       break;      
 
     case HVM_OP_MOVE:
       item->move.type = HVM_TRACE_SEQUENCE_ITEM_MOVE;
-      item->move.register_dest   = vm->program[vm->ip + 1];
+      item->move.register_return = vm->program[vm->ip + 1];
       item->move.register_source = vm->program[vm->ip + 2];
       break;
 
     case HVM_OP_LITINTEGER:
       item->litinteger.type = HVM_TRACE_SEQUENCE_ITEM_LITINTEGER;
-      item->litinteger.register_value = vm->program[vm->ip + 1];
-      item->litinteger.literal_value  = *(int64_t*)(&vm->program[vm->ip + 2]);
+      item->litinteger.register_return = vm->program[vm->ip + 1];
+      item->litinteger.literal_value   = *(int64_t*)(&vm->program[vm->ip + 2]);
       break;
 
     default:
@@ -250,14 +250,14 @@ void hvm_jit_tracer_dump_trace(hvm_vm *vm, hvm_call_trace *trace) {
         printf("$%d.arrayset[$%d] = $%d", reg1, reg2, reg3);
         break;
       case HVM_TRACE_SEQUENCE_ITEM_SETSYMBOL:
-        reg = item->setsymbol.reg;
+        reg = item->setsymbol.register_return;
         short_symbol_id = item->setsymbol.constant;
         hvm_obj_ref *ref = hvm_const_pool_get_const(&vm->const_pool, short_symbol_id);
         symbol_name = hvm_desymbolicate(vm->symbols, ref->data.u64);
         printf("$%-3d = setsymbol(#%d = %s)", reg, short_symbol_id, symbol_name);
         break;
       case HVM_TRACE_SEQUENCE_ITEM_ADD:
-        reg1 = item->add.register_result;
+        reg1 = item->add.register_return;
         reg2 = item->add.register_operand1;
         reg3 = item->add.register_operand2;
         printf("$%-3d = $%d + $%d", reg1, reg2, reg3);
@@ -273,22 +273,22 @@ void hvm_jit_tracer_dump_trace(hvm_vm *vm, hvm_call_trace *trace) {
         printf("goto(0x%08llX)", u64);
         break;
       case HVM_TRACE_SEQUENCE_ITEM_ARRAYLEN:
-        reg1 = item->arraylen.register_value;
+        reg1 = item->arraylen.register_return;
         reg2 = item->arraylen.register_array;
         printf("$%-3d = $%d.arraylen", reg1, reg2);
         break;
       case HVM_TRACE_SEQUENCE_ITEM_LITINTEGER:
-        reg1 = item->litinteger.register_value;
+        reg1 = item->litinteger.register_return;
         i64  = item->litinteger.literal_value;
         printf("$%-3d = litinteger(%lld)", reg1, i64);
         break;
       case HVM_TRACE_SEQUENCE_ITEM_MOVE:
-        reg1 = item->move.register_dest;
+        reg1 = item->move.register_return;
         reg2 = item->move.register_source;
         printf("$%-3d = $%d", reg1, reg2);
         break;
       case HVM_TRACE_SEQUENCE_ITEM_EQ:
-        reg1 = item->eq.register_result;
+        reg1 = item->eq.register_return;
         reg2 = item->eq.register_operand1;
         reg3 = item->eq.register_operand2;
         char *cmp = "==";

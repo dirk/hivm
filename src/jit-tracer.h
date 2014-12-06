@@ -31,7 +31,7 @@ typedef struct hvm_trace_sequence_item_head {
 typedef struct hvm_trace_sequence_item_setstring {
   HVM_TRACE_SEQUENCE_ITEM_HEAD;
   /// Destination register for the constant
-  byte reg;
+  byte register_return;
   /// Index into the constant table
   uint32_t constant;
 } hvm_trace_sequence_item_setstring;
@@ -77,7 +77,7 @@ typedef struct hvm_trace_sequence_item_goto {
 
 typedef struct hvm_trace_sequence_item_add {
   HVM_TRACE_SEQUENCE_ITEM_HEAD;
-  byte register_result;
+  byte register_return;
   byte register_operand1;
   byte register_operand2;
 } hvm_trace_sequence_item_add;
@@ -95,23 +95,28 @@ typedef struct hvm_trace_sequence_item_arrayset {
   byte register_value;
 } hvm_trace_sequence_item_arrayset;
 
-typedef hvm_trace_sequence_item_arrayset hvm_trace_sequence_item_arrayget;
+typedef struct hvm_trace_sequence_item_arrayget {
+  HVM_TRACE_SEQUENCE_ITEM_HEAD;
+  byte register_return;
+  byte register_array;
+  byte register_index;
+} hvm_trace_sequence_item_arrayget;
 
 typedef struct hvm_trace_sequence_item_arraylen {
   HVM_TRACE_SEQUENCE_ITEM_HEAD;
-  byte register_value;
+  byte register_return;
   byte register_array;
 } hvm_trace_sequence_item_arraylen;
 
 typedef struct hvm_trace_sequence_item_move {
   HVM_TRACE_SEQUENCE_ITEM_HEAD;
-  byte register_dest;
+  byte register_return;
   byte register_source;
 } hvm_trace_sequence_item_move;
 
 typedef struct hvm_trace_sequence_item_litinteger {
   HVM_TRACE_SEQUENCE_ITEM_HEAD;
-  byte register_value;
+  byte register_return;
   int64_t literal_value;
 } hvm_trace_sequence_item_litinteger;
 
