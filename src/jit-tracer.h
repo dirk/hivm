@@ -28,6 +28,13 @@ typedef struct hvm_trace_sequence_item_head {
   HVM_TRACE_SEQUENCE_ITEM_HEAD;
 } hvm_trace_sequence_item_head;
 
+// All instructions that write back to a register must have the HEAD and
+// .register_return as their first fields!
+typedef struct hvm_trace_sequence_item_returning {
+  HVM_TRACE_SEQUENCE_ITEM_HEAD;
+  byte register_return;
+} hvm_trace_sequence_item_returning;
+
 typedef struct hvm_trace_sequence_item_setstring {
   HVM_TRACE_SEQUENCE_ITEM_HEAD;
   /// Destination register for the constant
@@ -49,12 +56,12 @@ typedef struct hvm_trace_sequence_item_return {
 
 typedef struct hvm_trace_sequence_item_invokeprimitive {
   HVM_TRACE_SEQUENCE_ITEM_HEAD;
+  /// Register for the return value
+  byte register_return;
   /// Register with the symbol for the primitive
   byte register_symbol;
   /// Symbol contained in that register
   hvm_symbol_id symbol_value;
-  /// Register for the return value
-  byte register_return;
   /// Type of the object returned from the primitive
   hvm_obj_type returned_type;
 } hvm_trace_sequence_item_invokeprimitive;
@@ -122,6 +129,7 @@ typedef struct hvm_trace_sequence_item_litinteger {
 
 typedef union hvm_trace_sequence_item {
   hvm_trace_sequence_item_head             head;
+  hvm_trace_sequence_item_returning        returning;
 
   hvm_trace_sequence_item_setstring        setstring;
   hvm_trace_sequence_item_setsymbol        setsymbol;

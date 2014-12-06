@@ -73,6 +73,8 @@ extern unsigned char HVM_DEBUG_FLAG_HIDE_BACKTRACE;
 #define HVM_REG_ARG_OFFSET   130
 #define HVM_REG_PARAM_OFFSET 146
 
+#define HVM_TOTAL_REGISTERS 163
+
 bool hvm_is_gen_reg(byte i);
 bool hvm_is_arg_reg(byte i);
 bool hvm_is_param_reg(byte i);

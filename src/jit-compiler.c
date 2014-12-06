@@ -383,7 +383,6 @@ hvm_compile_value *hvm_compile_value_new(char type, byte reg) {
   cv->type = type;
   cv->constant = false;
   cv->constant_object = NULL;
-  cv->constant_value  = NULL;
   return cv;
 }
 
@@ -467,7 +466,7 @@ LLVMValueRef hvm_llvm_value_for_obj_ref(LLVMBuilderRef builder, hvm_obj_ref *ref
   return LLVMBuildIntToPtr(builder, ptr, obj_ref_ptr_type, "");
 }
 
-LLVMValueRef hvm_jit_obj_int_add_direct(struct hvm_jit_compile_context *context, LLVMBuilderRef builder, hvm_compile_value *cv1, hvm_compile_value *cv2, byte reg1, byte reg2, byte register_result) {
+LLVMValueRef hvm_jit_obj_int_add_direct(struct hvm_jit_compile_context *context, LLVMBuilderRef builder, hvm_compile_value *cv1, hvm_compile_value *cv2, byte reg1, byte reg2) {
   LLVMValueRef func, value, data_ptr, data_ptr1, data_ptr2, value1, value2;
   // Get the bundle from the context
   hvm_compile_bundle *bundle = context->bundle;
@@ -476,8 +475,9 @@ LLVMValueRef hvm_jit_obj_int_add_direct(struct hvm_jit_compile_context *context,
   // printf("cv2->constant = %d\n", cv2->constant);
   // printf("cv1->constant_object = %p\n", cv1->constant_object);
   // printf("cv2->constant_object = %p\n", cv2->constant_object);
-  // If the left side is constant and not going into the result
-  if(cv1->constant && reg1 != register_result) {
+
+  // If the left side is constant in the scope and has an unchanging value
+  if(context->constant_regs[reg1] && cv1->constant) {
     // printf("using constant object for LHS\n");
     value1 = hvm_llvm_value_for_obj_ref(builder, cv1->constant_object);
   } else {
@@ -485,14 +485,12 @@ LLVMValueRef hvm_jit_obj_int_add_direct(struct hvm_jit_compile_context *context,
     value1 = hvm_jit_load_general_reg_value(context, builder, reg1);
   }
   // Same for right side
-  if(cv2->constant && reg2 != register_result) {
+  if(context->constant_regs[reg2] && cv2->constant) {
     // printf("using constant object for RHS\n");
     value2 = hvm_llvm_value_for_obj_ref(builder, cv2->constant_object);
   } else {
     value2 = hvm_jit_load_general_reg_value(context, builder, reg2);
   }
-  // value2 = hvm_jit_load_general_reg_value(context, builder, reg2);
-
   // Get the data pointer and fetch it
   data_ptr1 = LLVMBuildGEP(builder, value1, (LLVMValueRef[]){i32_zero, i32_one}, 2, "");
   data_ptr2 = LLVMBuildGEP(builder, value2, (LLVMValueRef[]){i32_zero, i32_one}, 2, "");
@@ -601,7 +599,6 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
         cv = hvm_compile_value_new(HVM_STRING, reg);
         cv->constant = true;
         cv->constant_object = ref;
-        cv->constant_value  = value;
         STORE(cv, value);
         break;
 
@@ -766,7 +763,7 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
         hvm_compile_value *ov2 = hvm_jit_get_value(context, reg2);
         if(ov1->type == HVM_INTEGER && ov2->type == HVM_INTEGER) {
           // printf("using direct addition code path at 0x%08llX\n", trace_item->head.ip);
-          value_returned = hvm_jit_obj_int_add_direct(context, builder, ov1, ov2, reg1, reg2, reg);
+          value_returned = hvm_jit_obj_int_add_direct(context, builder, ov1, ov2, reg1, reg2);
         } else {
           // Get the source values for the operation
           value1 = hvm_jit_load_general_reg_value(context, builder, reg1);
@@ -897,7 +894,6 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
         cv = hvm_compile_value_new(HVM_INTEGER, reg);
         cv->constant = true;
         cv->constant_object = ref;
-        cv->constant_value = value;
         // Then save the value into the "registers"
         STORE(cv, value);
         break;
@@ -1122,9 +1118,39 @@ void hvm_jit_compile_pass_identify_blocks(hvm_call_trace *trace, hvm_compile_bun
 }
 
 void hvm_jit_compile_pass_identify_constant_registers(hvm_call_trace *trace, struct hvm_jit_compile_context *context) {
-  hvm_compile_bundle *bundle = context->bundle;
-  for(unsigned int i = 0; i < trace->sequence_length; i++) {
+  unsigned int i;
+  // Track the number of times a register is written (if it's less than
+  // 2 times then we know it will be constant).
+  unsigned int writes[HVM_TOTAL_REGISTERS];
+  for(i = 0; i < HVM_TOTAL_REGISTERS; i++) {
+    writes[i] = 0;
+  }
+
+  for(i = 0; i < trace->sequence_length; i++) {
     hvm_trace_sequence_item *item = &trace->sequence[i];
+    byte register_return;
+
+    switch(item->head.type) {
+      case HVM_TRACE_SEQUENCE_ITEM_SETSTRING:
+      case HVM_TRACE_SEQUENCE_ITEM_SETSYMBOL:
+      case HVM_TRACE_SEQUENCE_ITEM_INVOKEPRIMITIVE:
+      case HVM_TRACE_SEQUENCE_ITEM_ADD:
+      case HVM_TRACE_SEQUENCE_ITEM_ARRAYGET:
+      case HVM_TRACE_SEQUENCE_ITEM_ARRAYLEN:
+      case HVM_TRACE_SEQUENCE_ITEM_MOVE:
+      case HVM_TRACE_SEQUENCE_ITEM_LITINTEGER:
+        register_return = item->returning.register_return;
+        writes[register_return] += 1;
+        break;
+      default:
+        continue;
+    }
+  }
+
+  for(i = 0; i < HVM_TOTAL_REGISTERS; i++) {
+    // printf("writes[%d] = %u\n", i, writes[i]);
+    // Mark the register as constant if we write to it 1 or less times.
+    context->constant_regs[i] = (writes[i] < 2);
   }
 }
 
@@ -1192,14 +1218,17 @@ void hvm_jit_compile_trace(hvm_vm *vm, hvm_call_trace *trace) {
   for(unsigned int i = 0; i < HVM_GENERAL_REGISTERS; i++) {
     general_reg_boxes[i] = NULL;
   }
-  // Sequence data items for the instruction that set a given register.
-  hvm_compile_value *wrapped_values[255];
+  // Wrapped values read and written into registers during the trace
+  hvm_compile_value *wrapped_values[HVM_TOTAL_REGISTERS];
+  // Registers marked as constant
+  bool constant_registers[HVM_TOTAL_REGISTERS];
   // Setting up the context
   struct hvm_jit_compile_context compile_context = {
-    .bundle       = &bundle,
-    .general_regs = general_reg_boxes,
-    .vm           = vm,
-    .values       = wrapped_values
+    .bundle        = &bundle,
+    .general_regs  = general_reg_boxes,
+    .constant_regs = constant_registers,
+    .vm            = vm,
+    .values        = wrapped_values
   };
 
   // Break our sequence into blocks based upon possible destinations of

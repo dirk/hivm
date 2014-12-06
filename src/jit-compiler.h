@@ -55,12 +55,12 @@ typedef struct hvm_compile_value {
   bool constant;
   /// Constant object (this is the value contained in .constant_value)
   hvm_obj_ref *constant_object;
-#ifdef LLVM_C_CORE_H
-  /// Reference to the LLVM value pointing to the constant object.
-  LLVMValueRef constant_value;
-#else
-  void *constant_value;
-#endif
+  // #ifdef LLVM_C_CORE_H
+  //   /// Reference to the LLVM value pointing to the constant object.
+  //   LLVMValueRef constant_value;
+  // #else
+  //   void *constant_value;
+  // #endif
 } hvm_compile_value;
 
 
@@ -198,6 +198,8 @@ struct hvm_jit_compile_context {
   /// however LLVM will optimize our stores and loads to/from these into faster
   /// phi nodes.
   LLVMValueRef *general_regs;
+  /// For knowing whether a register is constant or not.
+  bool *constant_regs;
   /// Pointer to the VM we're compiling for.
   hvm_vm *vm;
   /// Boxes for wrapped values corresponding to a register.
