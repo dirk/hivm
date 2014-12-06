@@ -458,7 +458,7 @@ void hvm_jit_store_arg_reg_value(struct hvm_jit_compile_context *context, LLVMBu
 
   static LLVMTypeRef ptr_to_obj_ptr_type;
   if(!ptr_to_obj_ptr_type) {
-    ptr_to_obj_ptr_type = LLVMPointerType(obj_ref_ptr_type, 0);    
+    ptr_to_obj_ptr_type = LLVMPointerType(obj_ref_ptr_type, 0);
   }
 
   // Get the base of the argument registers array
@@ -526,7 +526,7 @@ LLVMValueRef hvm_jit_obj_int_add_direct(struct hvm_jit_compile_context *context,
 }
 
 
-void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bundle *bundle) {
+void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bundle *bundle) {
   unsigned int i;
   // Sequence data items for the instruction that set a given register.
   hvm_compile_value *wrapped_values[255];
@@ -827,7 +827,7 @@ void hvm_jit_compile_builder(hvm_vm *vm, hvm_call_trace *trace, hvm_compile_bund
         type       = trace_item->head.type;
         // Save the operation type and lookup the comparison function
         if(type == HVM_TRACE_SEQUENCE_ITEM_GT) {
-          data_item->head.type = HVM_COMPILE_DATA_GT;  
+          data_item->head.type = HVM_COMPILE_DATA_GT;
           func = hvm_jit_obj_int_gt_llvm_value(bundle);
         } else {
           assert(false);
@@ -1070,7 +1070,7 @@ bool hvm_jit_trace_contains_ip(hvm_call_trace *trace, uint64_t ip) {
   return false;
 }
 
-void hvm_jit_compile_identify_blocks(hvm_call_trace *trace, hvm_compile_bundle *bundle) {
+void hvm_jit_compile_pass_identify_blocks(hvm_call_trace *trace, hvm_compile_bundle *bundle) {
   // Sanity guards
   assert(trace->sequence_length > 0);
 
@@ -1124,7 +1124,7 @@ void hvm_jit_compile_identify_blocks(hvm_call_trace *trace, hvm_compile_bundle *
         if(hvm_jit_trace_contains_ip(trace, ip)) {
           // Setting up a FALSINESS block
           block = hvm_jit_compile_find_or_insert_block(parent_func, bundle, ip);
-          data_item->item_if.falsey_block = block;  
+          data_item->item_if.falsey_block = block;
         } else {
           // Otherwise set to NULL to indicate we need a bailout
           data_item->item_if.falsey_block = NULL;
@@ -1205,11 +1205,7 @@ void hvm_jit_compile_trace(hvm_vm *vm, hvm_call_trace *trace) {
 
   // Break our sequence into blocks based upon possible destinations of
   // jumps/ifs/gotos/etc.
-  hvm_jit_compile_identify_blocks(trace, &bundle);
-
-  // Resolve register references in instructions into concrete IR value
-  // references and build the instruction sequence.
-  hvm_jit_compile_builder(vm, trace, &bundle);
+  hvm_jit_compile_pass_identify_blocks(trace, &bundle);
 
   // Identify and extract gets/sets of globals and locals into dedicated
   // in-out pointers arguments to the block so that they can be passed
@@ -1217,6 +1213,10 @@ void hvm_jit_compile_trace(hvm_vm *vm, hvm_call_trace *trace) {
 
   // Identify potential guard points to be checked before/during/after
   // execution.
+
+  // Resolve register references in instructions into concrete IR value
+  // references and build the instruction sequence.
+  hvm_jit_compile_pass_emit(vm, trace, &bundle);
 
   // LLVMDumpModule(module);
   // exit(1);
