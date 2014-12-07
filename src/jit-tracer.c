@@ -177,6 +177,12 @@ void hvm_jit_call_trace_push_instruction(hvm_vm *vm, hvm_call_trace *trace) {
       item->getlocal.register_symbol = vm->program[vm->ip + 2];
       break;
 
+    case HVM_OP_SETLOCAL:
+      item->setlocal.type = HVM_TRACE_SEQUENCE_ITEM_SETLOCAL;
+      item->setlocal.register_symbol = vm->program[vm->ip + 1];
+      item->setlocal.register_value  = vm->program[vm->ip + 2];
+      break;
+
     default:
       fprintf(stderr, "jit-tracer: Don't know what to do with instruction: %d\n", instr);
       do_increment = false;
