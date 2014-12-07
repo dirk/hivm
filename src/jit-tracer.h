@@ -18,7 +18,8 @@ typedef enum {
   HVM_TRACE_SEQUENCE_ITEM_ARRAYGET        = 13,
   HVM_TRACE_SEQUENCE_ITEM_MOVE            = 14,
   HVM_TRACE_SEQUENCE_ITEM_LITINTEGER      = 15,
-  HVM_TRACE_SEQUENCE_ITEM_ARRAYLEN        = 16
+  HVM_TRACE_SEQUENCE_ITEM_ARRAYLEN        = 16,
+  HVM_TRACE_SEQUENCE_ITEM_GETLOCAL        = 17
 } hvm_trace_sequence_item_type;
 
 #define HVM_TRACE_SEQUENCE_ITEM_HEAD hvm_trace_sequence_item_type type; \
@@ -127,6 +128,12 @@ typedef struct hvm_trace_sequence_item_litinteger {
   int64_t literal_value;
 } hvm_trace_sequence_item_litinteger;
 
+typedef struct hvm_trace_sequence_item_getlocal {
+  HVM_TRACE_SEQUENCE_ITEM_HEAD;
+  byte register_return;
+  byte register_symbol;
+} hvm_trace_sequence_item_getlocal;
+
 typedef union hvm_trace_sequence_item {
   hvm_trace_sequence_item_head             head;
   hvm_trace_sequence_item_returning        returning;
@@ -147,6 +154,7 @@ typedef union hvm_trace_sequence_item {
   hvm_trace_sequence_item_arraylen         arraylen;
   hvm_trace_sequence_item_move             move;
   hvm_trace_sequence_item_litinteger       litinteger;
+  hvm_trace_sequence_item_getlocal         getlocal;
 } hvm_trace_sequence_item;
 
 /// Stores information about a call site (traces, JIT blocks, etc.).
