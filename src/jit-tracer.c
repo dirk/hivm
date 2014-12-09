@@ -183,6 +183,18 @@ void hvm_jit_call_trace_push_instruction(hvm_vm *vm, hvm_call_trace *trace) {
       item->setlocal.register_value  = vm->program[vm->ip + 2];
       break;
 
+    case HVM_OP_GETGLOBAL:
+      item->getglobal.type = HVM_TRACE_SEQUENCE_ITEM_GETGLOBAL;
+      item->getglobal.register_return = vm->program[vm->ip + 1];
+      item->getglobal.register_symbol = vm->program[vm->ip + 2];
+      break;
+
+    case HVM_OP_SETGLOBAL:
+      item->setglobal.type = HVM_TRACE_SEQUENCE_ITEM_SETGLOBAL;
+      item->setglobal.register_symbol = vm->program[vm->ip + 1];
+      item->setglobal.register_value  = vm->program[vm->ip + 2];
+      break;
+
     default:
       fprintf(stderr, "jit-tracer: Don't know what to do with instruction: %d\n", instr);
       do_increment = false;

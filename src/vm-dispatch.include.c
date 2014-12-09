@@ -385,7 +385,6 @@ EXECUTE:
         hvm_obj_ref *message = hvm_new_obj_ref_string_data(hvm_util_strclone(buff));
         vm->exception = hvm_exception_new(vm, message);
         goto EXCEPTION;
-        // val = hvm_const_null;
       }
       hvm_vm_register_write(vm, areg, val);
       vm->ip += 2;
