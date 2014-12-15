@@ -242,7 +242,12 @@ void hvm_print_data(byte *data, uint64_t size) {
         i += 2;
         printf("$%-3d = $%d.arraylen\n", reg1, reg2);
         break;
-
+      case HVM_OP_ARRAYPUSH: // 1B OP | 2B REGS
+        reg1 = data[i + 1];
+        reg2 = data[i + 2];
+        i += 2;
+        printf("$%d.arraypush($%d)\n", reg1, reg2);
+        break;
 
       case HVM_OP_GOTOADDRESS: // 1B OP | 1B DEST REG
         reg1 = data[i + 1];

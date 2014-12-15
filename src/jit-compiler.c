@@ -768,15 +768,11 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
           // Get the source values for the operation
           value1 = hvm_jit_load_general_reg_value(context, builder, reg1);
           value2 = hvm_jit_load_general_reg_value(context, builder, reg2);
-          // data_item->add.operand1 = value1;
-          // data_item->add.operand2 = value2;
-          // Build our add operation
+          // TODO: Currently this will fail if given non-integer values.
           func = hvm_jit_obj_int_add_llvm_value(bundle);
           LLVMValueRef add_args[2] = {value1, value2};
           value_returned = LLVMBuildCall(builder, func, add_args, 2, "added");
         }
-        // JIT_SAVE_DATA_ITEM_AND_VALUE(reg_result, data_item, value_returned);
-        // hvm_jit_store_reg_value(context, builder, reg, value_returned);
         cv = hvm_compile_value_new(HVM_INTEGER, reg);
         STORE(cv, value_returned);
         break;
