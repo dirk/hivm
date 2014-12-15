@@ -157,7 +157,13 @@ void hvm_jit_call_trace_push_instruction(hvm_vm *vm, hvm_call_trace *trace) {
       item->arraylen.type = HVM_TRACE_SEQUENCE_ITEM_ARRAYLEN;
       item->arraylen.register_return = vm->program[vm->ip + 1];
       item->arraylen.register_array  = vm->program[vm->ip + 2];
-      break;      
+      break;
+
+    case HVM_OP_ARRAYPUSH:
+      item->arraypush.type = HVM_TRACE_SEQUENCE_ITEM_ARRAYPUSH;
+      item->arraypush.register_array = vm->program[vm->ip + 1];
+      item->arraypush.register_value = vm->program[vm->ip + 2];
+      break;
 
     case HVM_OP_MOVE:
       item->move.type = HVM_TRACE_SEQUENCE_ITEM_MOVE;

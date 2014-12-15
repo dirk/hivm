@@ -19,10 +19,11 @@ typedef enum {
   HVM_TRACE_SEQUENCE_ITEM_MOVE            = 14,
   HVM_TRACE_SEQUENCE_ITEM_LITINTEGER      = 15,
   HVM_TRACE_SEQUENCE_ITEM_ARRAYLEN        = 16,
-  HVM_TRACE_SEQUENCE_ITEM_GETLOCAL        = 17,
-  HVM_TRACE_SEQUENCE_ITEM_SETLOCAL        = 18,
-  HVM_TRACE_SEQUENCE_ITEM_GETGLOBAL       = 19,
-  HVM_TRACE_SEQUENCE_ITEM_SETGLOBAL       = 20
+  HVM_TRACE_SEQUENCE_ITEM_ARRAYPUSH       = 17,
+  HVM_TRACE_SEQUENCE_ITEM_GETLOCAL        = 18,
+  HVM_TRACE_SEQUENCE_ITEM_SETLOCAL        = 19,
+  HVM_TRACE_SEQUENCE_ITEM_GETGLOBAL       = 20,
+  HVM_TRACE_SEQUENCE_ITEM_SETGLOBAL       = 21
 } hvm_trace_sequence_item_type;
 
 #define HVM_TRACE_SEQUENCE_ITEM_HEAD hvm_trace_sequence_item_type type; \
@@ -119,6 +120,12 @@ typedef struct hvm_trace_sequence_item_arraylen {
   byte register_array;
 } hvm_trace_sequence_item_arraylen;
 
+typedef struct hvm_trace_sequence_item_arraypush {
+  HVM_TRACE_SEQUENCE_ITEM_HEAD;
+  byte register_array;
+  byte register_value;
+} hvm_trace_sequence_item_arraypush;
+
 typedef struct hvm_trace_sequence_item_move {
   HVM_TRACE_SEQUENCE_ITEM_HEAD;
   byte register_return;
@@ -173,6 +180,7 @@ typedef union hvm_trace_sequence_item {
   hvm_trace_sequence_item_arrayset         arrayset;
   hvm_trace_sequence_item_arrayget         arrayget;
   hvm_trace_sequence_item_arraylen         arraylen;
+  hvm_trace_sequence_item_arraypush        arraypush;
   hvm_trace_sequence_item_move             move;
   hvm_trace_sequence_item_litinteger       litinteger;
   hvm_trace_sequence_item_getlocal         getlocal;
