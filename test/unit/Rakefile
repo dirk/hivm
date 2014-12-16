@@ -19,7 +19,35 @@ tests.each do |src|
 end
 
 desc 'Build all tests'
-task 'default' => test_bins
+task 'build' => test_bins
+
+desc 'Run all tests'
+task 'default' => ['build'] do |t|
+  passed = []
+  failed = []
+  total  = 0
+  test_bins.each do |bin|
+    Open3.popen3("./#{bin}") {|stdin, stdout, stderr, wait|
+      stdout.each_char {|c|
+        # Skip newlines
+        next if c == "\n"
+        print c
+      }
+      # TODO: Collect errors from stderr via `stderr.each_line`
+      status = wait.value
+      if status.exitstatus == 0
+        passed << bin
+      else
+        failed << bin
+      end
+      total += 1
+    }
+  end
+  puts "\n\n"
+  # Print summary
+  puts "Total: #{total.to_s} tests"
+  puts "Pass: #{passed.length}, fail: #{failed.length}."
+end
 
 desc 'Clean'
 task 'clean' do
