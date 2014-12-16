@@ -1,0 +1,26 @@
+
+$cflags = "-g -Wall -std=c99 -I../../include"
+$ldflags = "../../libhivm-db.a -liconv -lz -lcurses #{`pkg-config --libs glib-2.0 lua5.1`.strip} -dead_strip"
+
+test_bins = []
+
+tests = Dir['test_*.c']
+tests.each do |src|
+  bin = src.sub '.c', ''
+  obj = src.sub '.c', '.o'
+  test_bins << bin
+
+  desc "Build #{bin} test binary"
+  file bin => [src, 'preamble.h'] do |t|
+    sh "clang -c #{src} #{$cflags}"
+    sh "clang++ #{obj} #{$ldflags} -o #{bin}"
+  end
+end
+
+desc 'Build all tests'
+task 'default' => test_bins
+
+desc 'Clean'
+task 'clean' do
+  sh "rm -f test"
+end
