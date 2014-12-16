@@ -2,16 +2,23 @@
 *.o
 *.a
 *.so
+*.dSYM
+
 src/chunk.pb-c.*
 doc/*
 include/*
-*.dSYM
+
 test/sandbox/test
 test/sandbox/test_vm
 test/sorting/test_sorting
-test/unit/test
+test/unit-old/test
 
+test/unit/*
+# Re-add specific files in unit test directory
+!test/unit/Rakefile
+!test/unit/test_*.c
+
+# Editor-related files
 dummy/*
 hivm.xcodeproj
 *.sublime*
-

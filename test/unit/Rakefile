@@ -8,6 +8,7 @@ tests = Dir['test_*.c']
 tests.each do |src|
   bin = src.sub '.c', ''
   obj = src.sub '.c', '.o'
+  # Add it to the list of generated test binaries
   test_bins << bin
 
   desc "Build #{bin} test binary"
