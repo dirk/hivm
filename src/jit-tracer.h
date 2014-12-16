@@ -217,7 +217,7 @@ typedef struct hvm_call_trace {
   byte *caller_tag;
 
   /// Pointer to LLVMValueRef for our compiled function
-  void *compiled_function; 
+  void *compiled_function;
 } hvm_call_trace;
 
 /// Allocate a new trace. The entry IP will be set to the current VM IP.

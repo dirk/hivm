@@ -264,7 +264,7 @@ typedef enum {
   HVM_OP_ARRAYREMOVE = 33,  // 1B OP | 3B REGS
   HVM_OP_ARRAYNEW = 34,     // 1B OP | 2B REGS
   HVM_OP_ARRAYLEN = 35,     // 1B OP | 2B REGS ( 1 = length(2) )
-  
+
   HVM_OP_STRUCTSET = 36,    // 1B OP | 3B REGS
   HVM_OP_STRUCTGET = 37,    // 1B OP | 3B REGS
   HVM_OP_STRUCTDELETE = 38, // 1B OP | 3B REGS
