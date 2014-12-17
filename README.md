@@ -4,6 +4,33 @@
 
 For now you'll probably just want to read over the [notes](manual/notes.md) and [instruction set](manual/instructions.md).
 
+## Getting started
+
+Hivm uses the [Rake build tool](https://github.com/ruby/rake) which should be available with most Ruby installations or through Rubygems (via `[sudo] gem install rake`). Hivm also depends on a few other open-source libraries:
+
+* [LLVM] around version 3.5: Compiler infrastructure used in the JIT compiler
+* [GNOME GLib] version 2.*: Common C application library
+* [Lua] version 5.1: Used by the debugger
+
+[LLVM]: http://llvm.org/
+[GNOME GLIB]: https://wiki.gnome.org/Projects/GLib
+[Lua]: http://www.lua.org/
+
+On Mac OS X these should be easily-installed via Homebrew:
+
+```sh
+brew install glib llvm lua51
+```
+
+You can then build the project by invoking Rake:
+
+```sh
+git clone https://github.com/dirk/hivm.git
+cd hivm
+rake # Will build the library, headers, and so forth
+rake -T # Will show a list of all available tasks
+```
+
 ## The Manifesto
 
 Virtual machines have become a new layer of abstraction between the programmer and the machine their code runs on. The ecosystem of virtual machines is growing and the machines themselves are becoming increasingly more complex. Furthermore, virtual machines have almost always been closely bound to their "native tongue": the language they were originally designed to execute. Running "non-native" languages on these machines is cumbersome and often incurs a penalty in performance and/or functionality.
