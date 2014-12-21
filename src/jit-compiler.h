@@ -217,9 +217,11 @@ struct hvm_jit_compile_context {
   /// however LLVM will optimize our stores and loads to/from these into faster
   /// phi nodes.
   LLVMValueRef *general_regs;
-  /// For knowing whether a register is constant or not.
+  /// For knowing whether a register is constant or not
   bool *constant_regs;
-  /// Pointer to the VM we're compiling for.
+  /// Local variable slots
+  struct hvm_obj_struct *locals;
+  /// Pointer to the VM we're compiling for
   hvm_vm *vm;
   /// Boxes for wrapped values corresponding to a register.
   hvm_compile_value **values;
