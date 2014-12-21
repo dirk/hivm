@@ -58,7 +58,7 @@ void build_array(hvm_gen *gen, unsigned int size) {
 void define_insertion_sort(hvm_gen *gen) {
   hvm_gen_sub(gen->block, "insertion_sort");
 
-  // byte sym = hvm_vm_reg_gen(0);
+  byte sym = hvm_vm_reg_gen(0);
   byte i   = hvm_vm_reg_gen(1);
   byte j   = hvm_vm_reg_gen(2);
   byte x   = hvm_vm_reg_gen(3);
@@ -78,7 +78,13 @@ void define_insertion_sort(hvm_gen *gen) {
 
   // byte i_as_string = hvm_vm_reg_gen(23);
 
-  hvm_gen_move(gen->block, arr, hvm_vm_reg_param(0));
+  // hvm_gen_move(gen->block, arr, hvm_vm_reg_param(0));
+  // Esoteric get/setlocal testing
+  // Put the param in local:array
+  hvm_gen_set_symbol(gen->block, sym, "array");
+  hvm_gen_setlocal(gen->block, sym, hvm_vm_reg_param(0));
+  // Then fetch it out into $arr
+  hvm_gen_getlocal(gen->block, arr, sym);
 
   // $i = 1
   hvm_gen_litinteger(gen->block, i, 1);
@@ -90,7 +96,7 @@ void define_insertion_sort(hvm_gen *gen) {
   hvm_gen_eq(gen->block, r4, i, len);
   hvm_gen_if_label(gen->block, r4, "insertion_sort_end");
   // Loop body
-    // $x = A[$i]
+    // $x = $arr[$i]
     hvm_gen_arrayget(gen->block, x, arr, i);
 
     // Printing $i as string
@@ -112,7 +118,7 @@ void define_insertion_sort(hvm_gen *gen) {
       // Checking the left side of the AND
         hvm_gen_eq(gen->block, r5, r4, zero);
         hvm_gen_if_label(gen->block, r5, "insertion_sort_inner_end");
-      // $a_jminus1 = A[j - 1]
+      // $a_jminus1 = $arr[j - 1]
       hvm_gen_add(gen->block, r5, j, neg1);
       hvm_gen_arrayget(gen->block, a_jminus1, arr, r5);
       // $r5 = $a_jminus1 > $x
@@ -157,7 +163,7 @@ int main(int argc, char **argv) {
   hvm_gen_goto_label(gen->block, "program");
   // Then insert our insertion sort subroutine
   define_insertion_sort(gen);
-  
+
   // Main program
   hvm_gen_label(gen->block, "program");
   byte sym           = hvm_vm_reg_gen(0);
@@ -166,7 +172,7 @@ int main(int argc, char **argv) {
   byte array_copy    = hvm_vm_reg_gen(3);
   byte timing        = hvm_vm_reg_gen(4);
   byte timings_array = hvm_vm_reg_gen(104);
-  
+
   hvm_gen_arraynew(gen->block, timings_array, hvm_vm_reg_null());
   // hvm_gen_set_symbol(gen->block, sym, "timings");
   // hvm_gen_setlocal(gen->block, sym, timings_array);

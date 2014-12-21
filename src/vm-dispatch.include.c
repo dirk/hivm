@@ -369,6 +369,11 @@ EXECUTE:
       key = _hvm_vm_register_read(vm, areg);
       assert(key->type == HVM_SYMBOL);
       hvm_set_local(vm->top, key->data.u64, _hvm_vm_register_read(vm, breg));
+      IN_JIT(
+        if(vm->top->trace != NULL) {
+          hvm_jit_tracer_annotate_setlocal(vm, key->data.u64);
+        }
+      )
       vm->ip += 2;
       break;
     case HVM_OP_GETLOCAL: // 1B OP | 1B REG   | 1B REG (A = local(B))
@@ -387,6 +392,11 @@ EXECUTE:
         goto EXCEPTION;
       }
       hvm_vm_register_write(vm, areg, val);
+      IN_JIT(
+        if(vm->top->trace != NULL) {
+          hvm_jit_tracer_annotate_getlocal(vm, key->data.u64);
+        }
+      )
       vm->ip += 2;
       break;
 

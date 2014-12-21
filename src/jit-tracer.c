@@ -219,6 +219,14 @@ void hvm_jit_tracer_before_instruction(hvm_vm *vm) {
   }
 }
 
+
+hvm_trace_sequence_item *hvm_jit_tracer_get_current_item(hvm_vm *vm) {
+  hvm_frame *frame              = vm->top;
+  hvm_call_trace *trace         = frame->trace;
+  hvm_trace_sequence_item *item = trace->current_item;
+  return item;
+}
+
 void hvm_jit_tracer_annotate_invokeprimitive_returned_type(hvm_vm *vm, hvm_obj_ref *val) {
   hvm_frame *frame              = vm->top;
   hvm_call_trace *trace         = frame->trace;
@@ -238,6 +246,18 @@ void hvm_jit_tracer_annotate_if_branched(hvm_vm *vm, bool branched) {
   // `.branched` property.
   assert(item->head.type == HVM_TRACE_SEQUENCE_ITEM_IF);
   item->item_if.branched = branched;
+}
+
+void hvm_jit_tracer_annotate_getlocal(hvm_vm *vm, hvm_symbol_id symbol) {
+  hvm_trace_sequence_item *item = hvm_jit_tracer_get_current_item(vm);
+  assert(item->head.type == HVM_TRACE_SEQUENCE_ITEM_GETLOCAL);
+  item->getlocal.symbol_value = symbol;
+}
+
+void hvm_jit_tracer_annotate_setlocal(hvm_vm *vm, hvm_symbol_id symbol) {
+  hvm_trace_sequence_item *item = hvm_jit_tracer_get_current_item(vm);
+  assert(item->head.type == HVM_TRACE_SEQUENCE_ITEM_SETLOCAL);
+  item->setlocal.symbol_value = symbol;
 }
 
 void hvm_jit_tracer_dump_trace(hvm_vm *vm, hvm_call_trace *trace) {

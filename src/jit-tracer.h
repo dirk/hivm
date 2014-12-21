@@ -142,12 +142,16 @@ typedef struct hvm_trace_sequence_item_getlocal {
   HVM_TRACE_SEQUENCE_ITEM_HEAD;
   byte register_return;
   byte register_symbol;
+  // Symbol of the local being looked up
+  hvm_symbol_id symbol_value;
 } hvm_trace_sequence_item_getlocal;
 
 typedef struct hvm_trace_sequence_item_setlocal {
   HVM_TRACE_SEQUENCE_ITEM_HEAD;
   byte register_symbol;
   byte register_value;
+  // Symbol of the local being set
+  hvm_symbol_id symbol_value;
 } hvm_trace_sequence_item_setlocal;
 
 typedef struct hvm_trace_sequence_item_getglobal {
@@ -230,6 +234,8 @@ void hvm_jit_tracer_before_instruction(hvm_vm *vm);
 // execution code in the JIT dispatcher).
 void hvm_jit_tracer_annotate_invokeprimitive_returned_type(hvm_vm*, hvm_obj_ref*);
 void hvm_jit_tracer_annotate_if_branched(hvm_vm*, bool branched);
+void hvm_jit_tracer_annotate_getlocal(hvm_vm *vm, hvm_symbol_id symbol);
+void hvm_jit_tracer_annotate_setlocal(hvm_vm *vm, hvm_symbol_id symbol);
 
 /// Write the trace to STDOUT. Format is similar to that of the chunk
 /// disassembler.
