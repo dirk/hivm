@@ -11,6 +11,7 @@
 #include <llvm-c/Transforms/Scalar.h>
 
 #include "vm.h"
+#include "symbol.h"
 #include "object.h"
 #include "frame.h"
 #include "bootstrap.h"
@@ -1223,6 +1224,53 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
   }//for
 }
 
+void hvm_jit_compile_pass_identify_locals(hvm_call_trace *trace, struct hvm_jit_compile_context *context) {
+  hvm_compile_sequence_data *data = context->bundle->data;
+  LLVMBuilderRef builder = context->bundle->llvm_builder;
+  // Set up a structure to store all of our LLVMValueRefs; each local will
+  // get its own LLVMValueRef slot
+  hvm_obj_struct *locals = hvm_new_obj_struct();
+  // Register the local is being read from/written to
+  byte reg_return, reg_value;
+  hvm_symbol_id symbol_id;
+
+  unsigned int i;
+  for(i = 0; i < trace->sequence_length; i++) {
+    hvm_trace_sequence_item *item        = &trace->sequence[i];
+    hvm_compile_sequence_data *data_item = &data[i];
+
+    switch(item->head.type) {
+      case HVM_TRACE_SEQUENCE_ITEM_GETLOCAL:
+        reg_return = item->getlocal.register_return;
+        symbol_id  = item->getlocal.symbol_value;
+        {
+          // Fetching the hvm_obj_ref* pointer but casting it as a void since
+          // it's really just an LLVMValueRef slot pointer
+          void *slot = hvm_obj_struct_internal_get(locals, symbol_id);
+          assert(slot != NULL);
+          // Convert it to a LLVMValueRef to add it to the `data_item`
+          data_item->getlocal.slot = (LLVMValueRef)slot;
+        }
+        break;
+      case HVM_TRACE_SEQUENCE_ITEM_SETLOCAL:
+        // Register that is being read
+        reg_value = item->setlocal.register_value;
+        symbol_id = item->setlocal.symbol_value;
+        {
+          char scratch[80];// FIXME: Possible overflow here
+          char *symbol_name = hvm_desymbolicate(context->vm->symbols, symbol_id);
+          sprintf(scratch, "local:%s", symbol_name);
+          // Allocate the slot and add it to the structure dictionary
+          void *slot = LLVMBuildAlloca(builder, obj_ref_ptr_type, scratch);
+          hvm_obj_struct_internal_set(locals, symbol_id, slot);
+        }
+        break;
+      default:
+        continue;
+    }
+  }
+}
+
 int hvm_trace_item_comparator(const void *va, const void *vb) {
   hvm_trace_sequence_item *a = (hvm_trace_sequence_item*)va;
   hvm_trace_sequence_item *b = (hvm_trace_sequence_item*)vb;
@@ -1315,6 +1363,7 @@ void hvm_jit_compile_trace(hvm_vm *vm, hvm_call_trace *trace) {
   // Identify and extract gets/sets of globals and locals into dedicated
   // in-out pointers arguments to the block so that they can be passed
   // by the VM into the block at call time.
+  hvm_jit_compile_pass_identify_locals(trace, &compile_context);
 
   // Resolve register references in instructions into concrete IR value
   // references and build the instruction sequence.

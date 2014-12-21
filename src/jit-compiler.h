@@ -152,6 +152,18 @@ typedef struct hvm_compile_sequence_data_invokeprimitive {
   byte          register_return;
 } hvm_compile_sequence_data_invokeprimitive;
 
+typedef struct hvm_compile_sequence_data_getlocal {
+  HVM_COMPILE_DATA_HEAD;
+  // Slot allocated for this local variable; set up by
+  // `hvm_jit_compile_pass_identify_locals`
+  LLVMValueRef slot;
+} hvm_compile_sequence_data_getlocal;
+
+typedef struct hvm_compile_sequence_data_setlocal {
+  HVM_COMPILE_DATA_HEAD;
+  LLVMValueRef slot;
+} hvm_compile_sequence_data_setlocal;
+
 /// Structs used for figuring out and keeping track of data related to each
 /// sequence in the trace instruction sequence being compiled.
 typedef union hvm_compile_sequence_data {
@@ -165,6 +177,8 @@ typedef union hvm_compile_sequence_data {
   hvm_compile_sequence_data_if         item_if;
   hvm_compile_sequence_data_goto       item_goto;
   hvm_compile_sequence_data_litinteger litinteger;
+  hvm_compile_sequence_data_getlocal   getlocal;
+  hvm_compile_sequence_data_setlocal   setlocal;
   hvm_compile_sequence_data_invokeprimitive invokeprimitive;
 } hvm_compile_sequence_data;
 
