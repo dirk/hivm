@@ -387,6 +387,23 @@ hvm_compile_value *hvm_compile_value_new(char type, byte reg) {
 }
 
 
+// Slots are pointers to values on the stack; those values on the stack then
+// contain a pointer of type hvm_obj_ref*
+LLVMValueRef hvm_jit_load_slot(LLVMBuilderRef builder, LLVMValueRef slot, char *name) {
+  // Get a pointer to the location on the stack
+  LLVMValueRef ptr = LLVMBuildGEP(builder, slot, (LLVMValueRef[]){i32_zero}, 1, "");
+  // Then load the hvm_obj_ref* pointer from that location
+  return LLVMBuildLoad(builder, ptr, name);
+}
+
+// Put a given hvm_obj_ref* (wrapped in a LLVMValueRef) in a slot on the stack
+void hvm_jit_store_slot(LLVMBuilderRef builder, LLVMValueRef slot, LLVMValueRef value, char *name) {
+  // Get the pointer to the slot
+  LLVMValueRef ptr = LLVMBuildGEP(builder, slot, (LLVMValueRef[]){i32_zero}, 1, name);
+  // Put the hvm_obj_ref* pointer in that slot
+  LLVMBuildStore(builder, value, ptr);
+}
+
 LLVMValueRef hvm_jit_load_general_reg_value(struct hvm_jit_compile_context *context, LLVMBuilderRef builder, byte reg) {
   if(reg > 127) {
     fprintf(stderr, "jit-compiler: Cannot handle load from register %d\n", reg);
@@ -395,10 +412,11 @@ LLVMValueRef hvm_jit_load_general_reg_value(struct hvm_jit_compile_context *cont
   LLVMValueRef gr = context->general_regs[reg];
   assert(gr != NULL);
   // Get the pointer-to-pointer and load the object reference pointer out of it
-  LLVMValueRef ptr = LLVMBuildGEP(builder, gr, (LLVMValueRef[]){i32_zero}, 1, "");
+  // LLVMValueRef ptr = LLVMBuildGEP(builder, gr, (LLVMValueRef[]){i32_zero}, 1, "");
+  // return LLVMBuildLoad(builder, ptr, scratch);
   char scratch[40];
   sprintf(scratch, "general_reg[%d]", reg);
-  return LLVMBuildLoad(builder, ptr, scratch);
+  return hvm_jit_load_slot(builder, gr, scratch);
 }
 
 void hvm_jit_store_general_reg_value(struct hvm_jit_compile_context*, LLVMBuilderRef, byte, LLVMValueRef);
@@ -423,18 +441,16 @@ void hvm_jit_store_general_reg_value(struct hvm_jit_compile_context *context, LL
     assert(false);
   }
   LLVMValueRef gr = context->general_regs[reg];
+  char scratch[40];
+  sprintf(scratch, "general_reg[%d]", reg);
   if(gr == NULL) {
     // Allocate the register on the stack if it's null
-    char scratch[40];
-    sprintf(scratch, "general_reg[%d]", reg);
     gr = LLVMBuildAlloca(builder, obj_ref_ptr_type, scratch);
-    // And also save it
+    // And also save it for future loads and stores
     context->general_regs[reg] = gr;
   }
-  // Get the pointer to the `hvm_obj_ref*` pointer.
-  LLVMValueRef ptr = LLVMBuildGEP(builder, gr, (LLVMValueRef[]){i32_zero}, 1, "");
-  // Then store the new pointer in there.
-  LLVMBuildStore(builder, value, ptr);
+  LLVMValueRef slot = gr;
+  hvm_jit_store_slot(builder, slot, value, scratch);
 }
 
 void hvm_jit_store_arg_reg_value(struct hvm_jit_compile_context *context, LLVMBuilderRef builder, byte reg, LLVMValueRef value) {
@@ -1018,7 +1034,7 @@ hvm_jit_block *hvm_jit_compile_find_or_insert_block(LLVMValueRef parent_func, hv
     block = next;
   }
 
-block_inserted:
+  block_inserted:
   sprintf(name, "block_0x%08llX", ip);
   block->ip          = ip;
   block->basic_block = LLVMAppendBasicBlockInContext(context, parent_func, name);
