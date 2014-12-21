@@ -218,6 +218,14 @@ LLVMValueRef hvm_jit_set_local_llvm_value(hvm_compile_bundle *bundle) {
   return func;
 }
 
+LLVMValueRef hvm_jit_get_local_llvm_value(hvm_compile_bundle *bundle) {
+  STATIC_VALUE(LLVMValueRef, func);
+  UNPACK_BUNDLE(bundle);
+  // (hvm_frame*, hvm_symbol_id) -> hvm_obj_ref*
+  ADD_FUNCTION(func, hvm_get_local, obj_ref_ptr_type, 2, pointer_type, int64_type);
+  return func;
+}
+
 LLVMValueRef hvm_jit_new_obj_int_llvm_value(hvm_compile_bundle *bundle) {
   STATIC_VALUE(LLVMValueRef, func);
   UNPACK_BUNDLE(bundle);
@@ -365,6 +373,12 @@ LLVMValueRef hvm_jit_compile_value_is_falsey(LLVMBuilderRef builder, LLVMValueRe
   return falsey;
 }
 
+LLVMValueRef hvm_jit_load_symbol_id_from_obj_ref_value(LLVMBuilderRef builder, LLVMValueRef value) {
+  LLVMValueRef data_ptr = LLVMBuildGEP(builder, value, (LLVMValueRef[]){i32_zero, i32_one}, 2, "data_ptr");
+  LLVMValueRef data     = LLVMBuildLoad(builder, data_ptr, "");
+  // Fetch out the .data as an int64 (same as hvm_symbol_id)
+  return LLVMBuildIntCast(builder, data, int64_type, "val_data");
+}
 
 // #define JIT_SAVE_DATA_ITEM_AND_VALUE(REG, DATA_ITEM, VALUE) \
 //   if(REG <= 127) { \
@@ -781,7 +795,7 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
   hvm_jit_block *jit_block;
   hvm_obj_ref *ref;
   LLVMValueRef value, value_array, value_index, value_symbol, value_returned, value1, value2, value_vm;
-  LLVMValueRef data_ptr;
+  LLVMValueRef data_ptr, frame_ptr;
   hvm_compile_value *cv;
   // 64 bytes to play with for making strings to pass to LLVM
   char scratch[64];
@@ -1158,24 +1172,33 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
         reg_value  = trace_item->setlocal.register_value;
         reg_symbol = trace_item->setlocal.register_symbol;
         // symbol_id = trace_item->setlocal.symbol_value
-
         // Pull out the symbol ID from the value in reg_symbol
         value_symbol = hvm_jit_load_general_reg_value(context, builder, reg_symbol);
-        {
-          LLVMValueRef data_ptr = LLVMBuildGEP(builder, value_symbol, (LLVMValueRef[]){i32_zero, i32_one}, 2, "data_ptr");
-          LLVMValueRef data     = LLVMBuildLoad(builder, data_ptr, "");
-          // Fetch out the .data as an int64 (same as hvm_symbol_id)
-          value_symbol          = LLVMBuildIntCast(builder, data, int64_type, "val_data");
-        }
+        value_symbol = hvm_jit_load_symbol_id_from_obj_ref_value(builder, value_symbol);
         // Get the value to be written
         value = hvm_jit_load_general_reg_value(context, builder, reg_value);
         // Create a pointer to the `hvm_frame`
-        LLVMValueRef frame_ptr;
         frame_ptr = LLVMConstInt(int64_type, (unsigned long long)(bundle->frame), false);
         frame_ptr = LLVMBuildIntToPtr(builder, frame_ptr, pointer_type, "frame");
         // Build the call to write to the frame
         func = hvm_jit_set_local_llvm_value(bundle);
         LLVMBuildCall(builder, func, (LLVMValueRef[]){frame_ptr, value_symbol, value}, 3, "");
+        break;
+
+      case HVM_TRACE_SEQUENCE_ITEM_GETLOCAL:
+        data_item->head.type = HVM_COMPILE_DATA_GETLOCAL;
+        reg_result = trace_item->getlocal.register_return;
+        reg_symbol = trace_item->getlocal.register_symbol;
+        // Get the symbol ID
+        value_symbol = hvm_jit_load_general_reg_value(context, builder, reg_symbol);
+        value_symbol = hvm_jit_load_symbol_id_from_obj_ref_value(builder, value_symbol);
+        // Get the frame and read the local from it
+        frame_ptr = LLVMConstInt(int64_type, (unsigned long long)(bundle->frame), false);
+        frame_ptr = LLVMBuildIntToPtr(builder, frame_ptr, pointer_type, "frame");
+        func      = hvm_jit_get_local_llvm_value(bundle);
+        value     = LLVMBuildCall(builder, func, (LLVMValueRef[]){frame_ptr, value_symbol}, 2, "get_local");
+        cv = hvm_compile_value_new(HVM_UNKNOWN_TYPE, reg_result);
+        STORE(cv, value);
         break;
 
       default:
@@ -1243,7 +1266,8 @@ void hvm_jit_compile_trace(hvm_vm *vm, hvm_call_trace *trace) {
   hvm_compile_sequence_data *data = malloc(sizeof(hvm_compile_sequence_data) * trace->sequence_length);
   // Establish a bundle for all of our stuff related to this compilation.
   hvm_compile_bundle bundle = {
-    .data = data,
+    .frame = hvm_new_frame(),
+    .data  = data,
     .llvm_module   = module,
     .llvm_builder  = builder,
     .llvm_engine   = engine,
