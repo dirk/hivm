@@ -58,14 +58,15 @@ void build_array(hvm_gen *gen, unsigned int size) {
 void define_insertion_sort(hvm_gen *gen) {
   hvm_gen_sub(gen->block, "insertion_sort");
 
-  byte sym = hvm_vm_reg_gen(0);
-  byte i   = hvm_vm_reg_gen(1);
-  byte j   = hvm_vm_reg_gen(2);
-  byte x   = hvm_vm_reg_gen(3);
-  byte len = hvm_vm_reg_gen(10);
-  byte r4  = hvm_vm_reg_gen(4);
-  byte r5  = hvm_vm_reg_gen(5);
-  byte arr = hvm_vm_reg_gen(6);
+  byte sym     = hvm_vm_reg_gen(0);
+  byte i       = hvm_vm_reg_gen(1);
+  byte j       = hvm_vm_reg_gen(2);
+  byte x       = hvm_vm_reg_gen(3);
+  byte len     = hvm_vm_reg_gen(10);
+  byte r4      = hvm_vm_reg_gen(4);
+  byte r5      = hvm_vm_reg_gen(5);
+  byte arr     = hvm_vm_reg_gen(6);
+  byte scratch = hvm_vm_reg_gen(7);
 
   byte a_jminus1 = hvm_vm_reg_gen(11);
 
@@ -81,8 +82,9 @@ void define_insertion_sort(hvm_gen *gen) {
   // hvm_gen_move(gen->block, arr, hvm_vm_reg_param(0));
   // Esoteric get/setlocal testing
   // Put the param in local:array
+  hvm_gen_move(gen->block, scratch, hvm_vm_reg_param(0));
   hvm_gen_set_symbol(gen->block, sym, "array");
-  hvm_gen_setlocal(gen->block, sym, hvm_vm_reg_param(0));
+  hvm_gen_setlocal(gen->block, sym, scratch);
   // Then fetch it out into $arr
   hvm_gen_getlocal(gen->block, arr, sym);
 

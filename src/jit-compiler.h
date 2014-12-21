@@ -36,7 +36,8 @@ typedef enum {
   HVM_COMPILE_DATA_EQ,
   HVM_COMPILE_DATA_GT,
   HVM_COMPILE_DATA_AND,
-  HVM_COMPILE_DATA_RETURN
+  HVM_COMPILE_DATA_RETURN,
+  HVM_COMPILE_DATA_SETLOCAL
 } hvm_compile_data_type;
 
 #define HVM_COMPILE_DATA_HEAD hvm_compile_data_type type;
@@ -169,6 +170,9 @@ typedef union hvm_compile_sequence_data {
 /// Holds all information relevant to a compilation of a trace (eg. instruction
 /// sequence compilation data).
 typedef struct hvm_compile_bundle {
+  // VM execution frame
+  struct hvm_frame *frame;
+  // Instructions as they are compiled
   hvm_compile_sequence_data *data;
 
   /// Head of linked list of blocks
