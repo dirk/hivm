@@ -64,9 +64,10 @@ EXECUTE:
       byte     parent_ret_reg  = parent_frame->return_register;
       // Overwrite current frame (ie. parent).
       frame = &vm->stack[vm->stack_depth];
-      hvm_frame_initialize(frame);
-      frame->return_addr     = parent_ret_addr;
-      frame->return_register = parent_ret_reg;
+      // hvm_frame_initialize(frame);
+      // frame->return_addr     = parent_ret_addr;
+      // frame->return_register = parent_ret_reg;
+      hvm_frame_initialize_returning(frame, parent_ret_addr, parent_ret_reg);
       hvm_vm_copy_regs(vm);
       vm->ip = dest;
       goto EXECUTE;
@@ -76,9 +77,11 @@ EXECUTE:
       reg  = vm->program[vm->ip + 12];
       vm->stack_depth += 1;
       frame = &vm->stack[vm->stack_depth];
-      hvm_frame_initialize(frame);
-      frame->return_addr     = vm->ip + 13; // Instruction is 13 bytes long.
-      frame->return_register = reg;
+      // hvm_frame_initialize(frame);
+      // frame->return_addr     = vm->ip + 13; // Instruction is 13 bytes long.
+      // frame->return_register = reg;
+      // Instruction is 13 bytes long
+      hvm_frame_initialize_returning(frame, vm->ip + 13, reg);
       hvm_vm_copy_regs(vm);
       vm->ip = dest;
       vm->top = frame;
@@ -123,9 +126,11 @@ EXECUTE:
       // Then perform the call
       vm->stack_depth += 1;
       frame = &vm->stack[vm->stack_depth];
-      hvm_frame_initialize(frame);
-      frame->return_addr     = vm->ip + 9;
-      frame->return_register = reg;
+      // hvm_frame_initialize(frame);
+      // frame->return_addr     = vm->ip + 9;
+      // frame->return_register = reg;
+      // Instruction is 9 bytes long
+      hvm_frame_initialize_returning(frame, vm->ip + 9, reg);
       hvm_vm_copy_regs(vm);
       vm->ip = dest;
       vm->top = frame;
@@ -190,9 +195,11 @@ EXECUTE:
       // fprintf(stderr, "CALLSYMBOLIC(0x%08llX, $%d)\n", dest, breg);
       vm->stack_depth += 1;
       frame = &vm->stack[vm->stack_depth];
-      hvm_frame_initialize(frame);
-      frame->return_addr = vm->ip + 6;// Instruction is 6 bytes long
-      frame->return_register = breg;
+      // hvm_frame_initialize(frame);
+      // frame->return_addr = vm->ip + 6;
+      // frame->return_register = breg;
+      // Instruction is 6 bytes long
+      hvm_frame_initialize_returning(frame, vm->ip + 6, breg);
       hvm_vm_copy_regs(vm);
       vm->ip = dest;
       vm->top = frame;
@@ -206,9 +213,11 @@ EXECUTE:
       reg  = vm->program[vm->ip + 5]; // Return register now
       vm->stack_depth += 1;
       frame = &vm->stack[vm->stack_depth];
-      hvm_frame_initialize(frame);
-      frame->return_addr     = vm->ip + 6; // Instruction 6 bytes long.
-      frame->return_register = reg;
+      // hvm_frame_initialize(frame);
+      // frame->return_addr     = vm->ip + 6;
+      // frame->return_register = reg;
+      // Instruction is 6 bytes long
+      hvm_frame_initialize_returning(frame, vm->ip + 6, reg);
       hvm_vm_copy_regs(vm);
       vm->ip = dest;
       vm->top = frame;

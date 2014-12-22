@@ -339,6 +339,15 @@ void hvm_vm_copy_regs(hvm_vm *vm) {
   vm->param_regs[HVM_PARAMETER_REGISTERS - 1] = pn;
 }
 
+// Utility function for setting up new stack frames
+ALWAYS_INLINE void hvm_frame_initialize_returning(hvm_frame *frame, uint64_t return_addr, byte return_register) {
+  // Initialize all the parts of the frame
+  hvm_frame_initialize(frame);
+  // Then set our return register and addresses
+  frame->return_addr     = return_addr;
+  frame->return_register = return_register;
+}
+
 // Utilities for reading bytes as arbitrary types from addresses
 #define READ_U32(V) *(uint32_t*)(V)
 #define READ_U64(V) *(uint64_t*)(V)
