@@ -83,6 +83,27 @@ EXECUTE:
       vm->ip = dest;
       vm->top = frame;
       goto EXECUTE;
+    case HVM_OP_CALLPRIMITIVE:// 1B OP | 3B TAG | 4B CONST | 1B REG
+      PROCESS_TAG;
+      const_index = READ_U32(&vm->program[vm->ip + 4]);
+      reg         = vm->program[vm->ip + 8];
+      // Get symbol of the primitive out of the constant table
+      key = hvm_vm_get_const(vm, const_index);
+      hvm_vm_copy_regs(vm);
+      {
+        // Save any current exception
+        hvm_obj_ref *current_exc = vm->exception;
+        val = hvm_vm_call_primitive(vm, key);
+        // Check if it generated a new exception
+        if(vm->exception != current_exc) {
+          goto EXCEPTION;
+        }
+      }
+      // Write the result value to the right register
+      hvm_vm_register_write(vm, reg, val);
+      vm->ip += 8;
+      break;
+
     case HVM_OP_CALLSYMBOLIC:// 1B OP | 3B TAG | 4B CONST | 1B REG
       PROCESS_TAG;
       const_index = READ_U32(&vm->program[vm->ip + 4]);
