@@ -207,6 +207,7 @@ typedef enum {
   // Calls
   HVM_OP_CALL = 6,            // 1B OP | 3B TAG | 8B DEST  | 1B REG
   HVM_OP_CALLSYMBOLIC = 57,   // 1B OP | 3B TAG | 4B CONST | 1B REG
+  HVM_OP_CALLPRIMITIVE = 58,  // 1B OP | 3B TAG | 4B CONST | 1B REG
   HVM_OP_TAILCALL = 7,        // 1B OP | 3B TAG | 8B DEST
   // Invocations
   HVM_OP_INVOKESYMBOLIC = 8,  // 1B OP | 3B TAG | 1B REG   | 1B REG

@@ -28,12 +28,12 @@ void test_heap() {
   hvm_obj_ref *sref = hvm_new_obj_ref();
   sref->type = HVM_STRUCTURE;
   sref->data.v = s;
-  
+
   hvm_obj_ref *sym = hvm_new_obj_ref();
   sym->type = HVM_SYMBOL;
   sym->data.u64 = 0;
   hvm_obj_struct_set(sref, sym, ref);
-  
+
   ref2 = hvm_obj_struct_get(sref, sym);
   str2 = ref2->data.v;
   printf("str2->data: %s\n", str2->data);
@@ -73,12 +73,14 @@ void test_exception_catch(hvm_gen *gen) {
   // Exception handler
   hvm_gen_label(gen->block, "catch");
   hvm_gen_set_string(gen->block, hvm_vm_reg_arg(0), "Caught exception!\n");
-  hvm_gen_set_symbol(gen->block, z, "print");
-  hvm_gen_invokeprimitive(gen->block, z, hvm_vm_reg_null());
-  hvm_gen_set_symbol(gen->block, z, "print_exception");
+  // hvm_gen_set_symbol(gen->block, z, "print");
+  // hvm_gen_invokeprimitive(gen->block, z, hvm_vm_reg_null());
+  hvm_gen_callprimitive(gen->block, "print", hvm_vm_reg_null());
   hvm_gen_setexception(gen->block, e);
   hvm_gen_move(gen->block, hvm_vm_reg_arg(0), e);
-  hvm_gen_invokeprimitive(gen->block, z, hvm_vm_reg_null());
+  // hvm_gen_set_symbol(gen->block, z, "print_exception");
+  // hvm_gen_invokeprimitive(gen->block, z, hvm_vm_reg_null());
+  hvm_gen_callprimitive(gen->block, "print_exception", hvm_vm_reg_null());
   hvm_gen_clearcatch(gen->block);
   hvm_gen_die(gen->block);
 }
@@ -110,7 +112,7 @@ void test_generator() {
   // hvm_gen_litinteger(gen->block, hvm_vm_reg_gen(4), 2);
   // hvm_gen_add(gen->block, hvm_vm_reg_gen(5), hvm_vm_reg_gen(3), hvm_vm_reg_gen(4));
   // hvm_gen_return(gen->block, hvm_vm_reg_gen(5));
-  
+
   // byte sym = hvm_vm_reg_gen(0);
 
 
@@ -145,7 +147,7 @@ void test_generator() {
   hvm_gen_set_string(gen->block, hvm_vm_reg_arg(0), "Hello world!\n");
   hvm_gen_set_symbol(gen->block, hvm_vm_reg_gen(0), "print");
   hvm_gen_invokeprimitive(gen->block, hvm_vm_reg_gen(0), hvm_vm_reg_null());
-  
+
   hvm_gen_set_symbol(gen->block, hvm_vm_reg_gen(0), "exit");
   hvm_gen_invokeprimitive(gen->block, hvm_vm_reg_gen(0), hvm_vm_reg_null());
   // hvm_gen_die(gen->block);
@@ -158,7 +160,7 @@ void test_generator() {
 
   hvm_gen_set_symbol(gen->block, hvm_vm_reg_gen(0), "gc_run");
   hvm_gen_invokeprimitive(gen->block, hvm_vm_reg_gen(0), hvm_vm_reg_null());
-  
+
   test_closure(gen);
   hvm_gen_set_symbol(gen->block, hvm_vm_reg_gen(0), "gc_run");
   hvm_gen_invokeprimitive(gen->block, hvm_vm_reg_gen(0), hvm_vm_reg_null());
@@ -169,7 +171,7 @@ void test_generator() {
   /*
   // Hijinks-like code
   byte obj, func, sym, arg_sym, string_reg, sym_reg, console;
-  
+
   hvm_gen_goto_label(gen->block, "defs");
 
   hvm_gen_sub(gen->block, "_js_new_object");
@@ -255,6 +257,7 @@ void test_generator() {
 
   printf("AFTER LOADING:\n");
   hvm_print_data(vm->program, vm->program_size);
+  // return;
 
   //hvm_debug_begin(vm);
 
@@ -317,18 +320,18 @@ int main(int argc, char **argv) {
   printf("a2: %llu\n", a2);
   printf("size = %llu\n", st->size);
   */
-  
+
   // hvm_obj_ref *i = hvm_new_obj_int();
   // i->data.i64 = 10;
   // hvm_obj_array *a = hvm_new_obj_array_with_length(i);
   // hvm_obj_ref  *ar = hvm_new_obj_ref();
   // ar->type = HVM_ARRAY;
   // ar->data.v = a;
-  // 
+  //
   // hvm_obj_array_push(ar, i);
   // printf("a->array->len = %d\n", a->array->len);
-  
-  
-  
+
+
+
   return 0;
 }

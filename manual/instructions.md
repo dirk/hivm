@@ -70,6 +70,9 @@ Calls operate directly via hardcoded destinations. They are intended to be used 
 `call (tag) SUB RET`
 :  Call the subroutine at address SUB (8-byte). RET can be a register for return or $null for no return or ignoring return.
 
+`callprimitive CONST RET`
+:  Look up a symbol ID from the constant table (4 bytes constant index), then call the primitive identified by that symbol ID.
+
 `tailcall (tag) SUB`
 :  Same as `call` but does not grow the stack. Current subroutine's return will be the return from SUB.
 

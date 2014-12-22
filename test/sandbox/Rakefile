@@ -2,7 +2,7 @@
 $cflags  = "-g -Wall -std=c99 -I../../include #{`pkg-config --cflags glib-2.0 lua5.1`.strip}"
 
 # Link against shared library
-$ldflags = "-L../.. -lhivm-0.0.1 -liconv -lz -lpthread -ledit -lcurses -lm -lc++ #{`pkg-config --libs glib-2.0 lua5.1`.strip} -dead_strip -why_load"
+$ldflags = "../../libhivm-db.a -liconv -lz -lpthread -ledit -lcurses -lm -lc++ #{`pkg-config --libs glib-2.0 lua5.1`.strip}"# -dead_strip -why_load"
 if `uname -s`.strip == 'Darwin'
   $ldflags += " -macosx_version_min 10.10"
 end

@@ -29,7 +29,8 @@ typedef enum {
   HVM_GEN_OP_CALL,
   HVM_GEN_OP_CALL_LABEL,
   // 1B OP | 3B TAG | 4B CONST | 1B REG
-  HVM_GEN_OP_CALLSYMBOLIC_SYMBOL,
+  HVM_GEN_OP_CALLSYMBOLIC,
+  HVM_GEN_OP_CALLPRIMITIVE,
 
   // 1B OP | 3B TAG | 1B REG | 1B REG
   HVM_GEN_OP_INVOKESYMBOLIC,
@@ -147,7 +148,8 @@ typedef struct hvm_gen_item_op_b2_symbol {
   byte reg;
 } hvm_gen_item_op_b2_symbol;
 // Alias
-typedef hvm_gen_item_op_b2_symbol hvm_gen_op_callsymbolic_symbol;
+typedef hvm_gen_item_op_b2_symbol hvm_gen_op_callsymbolic;
+typedef hvm_gen_item_op_b2_symbol hvm_gen_op_callprimitive;
 
 typedef struct hvm_gen_item_op_d1_label {
   HVM_GEN_ITEM_HEAD;
@@ -294,9 +296,10 @@ typedef union hvm_gen_item {
   hvm_gen_item_op_g_label   op_g_label;
   hvm_gen_item_op_h_data    op_h_data;
 
-  hvm_gen_op_call op_call;
-  hvm_gen_op_call_label op_call_label;
-  hvm_gen_op_callsymbolic_symbol op_callsymbolic_symbol;
+  hvm_gen_op_call          op_call;
+  hvm_gen_op_call_label    op_call_label;
+  hvm_gen_op_callsymbolic  op_callsymbolic;
+  hvm_gen_op_callprimitive op_callprimitive;
 
   hvm_gen_op_invokeprimitive op_invokeprimitive;
 
@@ -390,7 +393,9 @@ void hvm_gen_call_label(hvm_gen_item_block *block, char *label, byte ret);
 /// Generate a CALLSYMBOLIC to a subroutine with a given constant symbol. The
 /// symbol name is added to the chunk constant table, which is then
 /// symbolicated and adjusted at chunk load time.
-void hvm_gen_callsymbolic_symbol(hvm_gen_item_block *block, char *symbol, byte ret);
+void hvm_gen_callsymbolic(hvm_gen_item_block *block, char *symbol, byte ret);
+/// Same as `hvm_gen_callsymbolic` except with a primitive.
+void hvm_gen_callprimitive(hvm_gen_item_block *block, char *symbol, byte ret);
 
 void hvm_gen_if_label(hvm_gen_item_block *block, byte reg, char *label);
 void hvm_gen_catch_label(hvm_gen_item_block *block, char *label, byte reg);

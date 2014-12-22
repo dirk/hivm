@@ -307,11 +307,18 @@ void hvm_print_data(byte *data, uint64_t size) {
       case HVM_OP_CLEARCATCH: // 1B OP
         printf("clearcatch\n");
         break;
+      case HVM_OP_CALLPRIMITIVE:
       case HVM_OP_CALLSYMBOLIC:// 1B OP | 3B TAG | 4B CONST | 1B REG
         ret = data[i + 8];
         u32 = READ_U32(&data[i + 4]);
         i += 8;
-        printf("$%-3d = callsymbolic #%d\n", ret, u32);
+        {
+          char *name = "callsymbolic";
+          if(op == HVM_OP_CALLPRIMITIVE) {
+            name = "callprimitive";
+          }
+          printf("$%-3d = %s #%d\n", ret, name, u32);
+        }
         break;
       default:
         printf("%02X (%d)\n", op, op);

@@ -91,7 +91,7 @@ void hvm_gen_data_add_reloc(struct hvm_gen_data *gd, uint64_t relocation_idx) {
 // eg. WRITE_OP(a1) becomes:
 //   "__attribute(...) void write_op_a1(hvm_chunk, hvm_gen_item_op_a1 *op)"
 #define WRITE_OP(NAME) __attribute__((always_inline)) void write_op_##NAME \
-                         (hvm_chunk *chunk, struct hvm_gen_data *data, hvm_gen_item_op_##NAME *op) 
+                         (hvm_chunk *chunk, struct hvm_gen_data *data, hvm_gen_item_op_##NAME *op)
 
 #define WRITE_TAG() WRITE(1, &zero, byte); \
                     WRITE(2, &zero, byte); \
@@ -324,19 +324,22 @@ void hvm_gen_process_block(hvm_chunk *chunk, struct hvm_gen_data *data, hvm_gen_
         RELOCATION(2);
         chunk->size += 10;
         break;
-      case HVM_GEN_OP_CALLSYMBOLIC_SYMBOL:
+
+      // CALLPRIMITIVE and CALLSYMBOLIC have identical binary layouts
+      case HVM_GEN_OP_CALLPRIMITIVE:
+      case HVM_GEN_OP_CALLSYMBOLIC:
         ref = hvm_new_obj_ref();
         ref->type = HVM_SYMBOL;
-        ref->data.v = item->op_callsymbolic_symbol.symbol;
+        ref->data.v = item->op_callsymbolic.symbol;
         cnst = malloc(sizeof(hvm_chunk_constant));
         // 1 byte for the op, 3 bytes for tag
         cnst->index = chunk->size + 1 + HVM_SUBROUTINE_TAG_SIZE;
         cnst->object = ref;
         sub = hvm_gen_data_add_constant(data, cnst);
-        WRITE(0, &item->op_callsymbolic_symbol.op, byte);
+        WRITE(0, &item->op_callsymbolic.op, byte);
         WRITE_TAG();
         WRITE(1 + HVM_SUBROUTINE_TAG_SIZE, &sub, uint32_t);
-        WRITE(5 + HVM_SUBROUTINE_TAG_SIZE, &item->op_callsymbolic_symbol.reg, byte);
+        WRITE(5 + HVM_SUBROUTINE_TAG_SIZE, &item->op_callsymbolic.reg, byte);
         chunk->size += 6 + HVM_SUBROUTINE_TAG_SIZE;
         break;
 
@@ -440,7 +443,7 @@ void hvm_gen_process_block(hvm_chunk *chunk, struct hvm_gen_data *data, hvm_gen_
     u = g_list_next(u);
   }
   g_list_free(label_uses);
-  
+
   // Close out the final entry
   if(current_entry != NULL) {
     start = current_entry->ip;
@@ -482,13 +485,13 @@ struct hvm_chunk *hvm_gen_chunk(hvm_gen *gen) {
     consts[i] = g_array_index(gd.constants, hvm_chunk_constant*, i);
   }
   consts[gd.constants->len] = NULL;
-  
+
   hvm_chunk_symbol **syms = malloc(sizeof(hvm_chunk_symbol*) * (gd.symbols->len + 1));
   for(i = 0; i < gd.symbols->len; i++) {
     syms[i] = g_array_index(gd.symbols, hvm_chunk_symbol*, i);
   }
   syms[gd.symbols->len] = NULL;
-  
+
   hvm_chunk_debug_entry **entries = malloc(sizeof(hvm_chunk_debug_entry*) * (gd.debug_entries->len + 1));
   for(i = 0; i < gd.debug_entries->len; i++) {
     hvm_chunk_debug_entry* de = g_array_index(gd.debug_entries, hvm_chunk_debug_entry*, i);
@@ -597,7 +600,7 @@ void hvm_gen_invokeaddress(hvm_gen_item_block *block, byte addr, byte ret) {
   op->op   = HVM_OP_INVOKEADDRESS;
   op->addr = addr;
   op->ret  = ret;
-  GEN_PUSH_ITEM(op); 
+  GEN_PUSH_ITEM(op);
 }
 void hvm_gen_invokeprimitive(hvm_gen_item_block *block, byte sym, byte ret) {
   hvm_gen_op_invokeprimitive *op = malloc(sizeof(hvm_gen_op_invokeprimitive));
@@ -720,7 +723,7 @@ void hvm_gen_arraylen(hvm_gen_item_block *block, byte len, byte arr) {
   op->op   = HVM_OP_ARRAYLEN;
   op->reg1 = len;
   op->reg2 = arr;
-  GEN_PUSH_ITEM(op); 
+  GEN_PUSH_ITEM(op);
 }
 // 1B OP | 3B REGS
 void hvm_gen_arrayget(hvm_gen_item_block *block, byte reg, byte arr, byte idx) {
@@ -953,12 +956,20 @@ void hvm_gen_call_label(hvm_gen_item_block *block, char *label, byte ret) {
   call->reg  = ret;
   GEN_PUSH_ITEM(call);
 }
-void hvm_gen_callsymbolic_symbol(hvm_gen_item_block *block, char *symbol, byte ret) {
-  hvm_gen_op_callsymbolic_symbol *call = malloc(sizeof(hvm_gen_op_callsymbolic_symbol));
-  call->type = HVM_GEN_OP_CALLSYMBOLIC_SYMBOL;
+void hvm_gen_callsymbolic(hvm_gen_item_block *block, char *symbol, byte ret) {
+  hvm_gen_op_callsymbolic *call = malloc(sizeof(hvm_gen_op_callsymbolic));
+  call->type = HVM_GEN_OP_CALLSYMBOLIC;
   call->op = HVM_OP_CALLSYMBOLIC;
   call->symbol = symbol;
   call->reg = ret;
+  GEN_PUSH_ITEM(call);
+}
+void hvm_gen_callprimitive(hvm_gen_item_block *block, char *symbol, byte ret) {
+  hvm_gen_op_callprimitive *call = malloc(sizeof(hvm_gen_op_callprimitive));
+  call->type   = HVM_GEN_OP_CALLPRIMITIVE;
+  call->op     = HVM_OP_CALLPRIMITIVE;
+  call->symbol = symbol;
+  call->reg    = ret;
   GEN_PUSH_ITEM(call);
 }
 
