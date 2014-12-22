@@ -348,6 +348,74 @@ ALWAYS_INLINE void hvm_frame_initialize_returning(hvm_frame *frame, uint64_t ret
   frame->return_register = return_register;
 }
 
+typedef enum {
+  HVM_DISPATCH_PATH_NORMAL,
+  HVM_DISPATCH_PATH_JIT
+} hvm_dispatch_path;
+
+// Handle dispatching to JIT path if appropriate
+ALWAYS_INLINE hvm_dispatch_path hvm_dispatch_frame(hvm_vm *vm, hvm_frame *frame, hvm_subroutine_tag *tag, byte *caller_tag) {
+  uint64_t dest = vm->ip;
+  hvm_call_trace *trace;
+  // Check if we've reached the heat threshold
+  if(tag->heat > HVM_TRACE_THRESHOLD || vm->always_trace) {
+    // See if we have a completed trace available to compile and switch to
+    if(tag->trace_index > 0) {
+      // .trace_index is offset by one so that we can use 0 to mean
+      // no-trace-exists.
+      trace = vm->traces[tag->trace_index - 1];
+      // Guard that the trace really is completed
+      assert(trace->complete);
+      // If we don't already have a compiled function then compile it
+      if(trace->compiled_function == NULL) {
+        hvm_jit_compile_trace(vm, trace);
+        fprintf(stderr, "compiled trace for 0x%08llX\n", dest);
+      }
+      fprintf(stderr, "running compiled trace for 0x%08llX\n", dest);
+      hvm_jit_exit *result = hvm_jit_run_compiled_trace(vm, trace);
+      if(result->ret.status == HVM_JIT_EXIT_BAILOUT) {
+        // If it's a bailout then we need to return to normal execution
+        vm->ip = result->bailout.destination;
+        return HVM_DISPATCH_PATH_NORMAL;
+      } else {
+        assert(vm->stack_depth != 0);
+        // Otherwise it was a successful execution so pop off our frame and
+        // return to the caller
+        vm->ip = frame->return_addr;
+        vm->stack_depth -= 1;
+        vm->top = &vm->stack[vm->stack_depth];
+        hvm_vm_register_write(vm, frame->return_register, result->ret.value);
+        return HVM_DISPATCH_PATH_NORMAL;
+      }
+    }
+    // fprintf(stderr, "subroutine %s:0x%08llX has heat %d\n", sym_name, dest, tag.heat);
+    // Check if we need to start tracing
+    if(!vm->is_tracing) {
+      // If frame is already being traced
+      if(frame->trace != NULL) {
+        return HVM_DISPATCH_PATH_JIT;
+      }
+      fprintf(stderr, "switching to trace dispatch for 0x%08llX\n", dest);
+      trace = hvm_new_call_trace(vm);
+      trace->caller_tag = caller_tag;
+      frame->trace = trace;
+      vm->is_tracing = 1;
+      return HVM_DISPATCH_PATH_JIT;
+    }
+  }
+  return HVM_DISPATCH_PATH_NORMAL;
+}
+
+// Utility macro for properly dispatching a dispatch-path to the
+// regular dispatcher or the tracing-for-JIT dispatcher
+#define DISPATCH_PATH(DP)          \
+  switch(DP) {                     \
+    case HVM_DISPATCH_PATH_NORMAL: \
+    goto EXECUTE;                  \
+    case HVM_DISPATCH_PATH_JIT:    \
+    goto EXECUTE_JIT;              \
+  }
+
 // Utilities for reading bytes as arbitrary types from addresses
 #define READ_U32(V) *(uint32_t*)(V)
 #define READ_U64(V) *(uint64_t*)(V)
@@ -373,7 +441,6 @@ ALWAYS_INLINE void hvm_frame_initialize_returning(hvm_frame *frame, uint64_t ret
 
 #define CHECK_EXCEPTION if(vm->exception != NULL) { goto handle_exception; }
 
-
 void hvm_vm_run(hvm_vm *vm) {
   byte instr;
   byte *caller_tag;
@@ -388,7 +455,7 @@ void hvm_vm_run(hvm_vm *vm) {
   hvm_obj_ref *exc;
   char *msg;
   hvm_subroutine_tag tag;
-  hvm_call_trace *trace;
+  // hvm_call_trace *trace;
   // Variables needed by the debugger
 #ifdef HVM_VM_DEBUG
   bool should_continue;

@@ -66,10 +66,18 @@ void test_loop(hvm_gen *gen) {
 void test_exception_catch(hvm_gen *gen) {
   char z = hvm_vm_reg_gen(0), e = hvm_vm_reg_gen(1);
 
-  hvm_gen_catch_label(gen->block, "catch", hvm_vm_reg_null());
-  hvm_gen_set_symbol(gen->block, hvm_vm_reg_gen(2), "missing");
-  hvm_gen_getlocal(gen->block, hvm_vm_reg_gen(1), hvm_vm_reg_gen(2));
+  hvm_gen_goto_label(gen->block, "main");
+
+  hvm_gen_sub(gen->block, "thrower");
+     hvm_gen_catch_label(gen->block, "catch", hvm_vm_reg_null());
+     hvm_gen_set_symbol(gen->block, hvm_vm_reg_gen(2), "missing");
+     hvm_gen_getlocal(gen->block, hvm_vm_reg_gen(1), hvm_vm_reg_gen(2));
+     hvm_gen_return(gen->block, hvm_vm_reg_null());
+
+  hvm_gen_label(gen->block, "main");
+  hvm_gen_callsymbolic(gen->block, "thrower", hvm_vm_reg_null());
   hvm_gen_die(gen->block);
+
   // Exception handler
   hvm_gen_label(gen->block, "catch");
   hvm_gen_set_string(gen->block, hvm_vm_reg_arg(0), "Caught exception!\n");

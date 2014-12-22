@@ -115,7 +115,7 @@ EXECUTE:
       key = hvm_vm_get_const(vm, const_index);
       assert(key->type == HVM_SYMBOL);
       sym_id = key->data.u64;
-      char *sym_name = hvm_desymbolicate(vm->symbols, sym_id);
+      // char *sym_name = hvm_desymbolicate(vm->symbols, sym_id);
       // fprintf(stderr, "debug: %s:0x%08llX has heat %u\n", sym_name, dest, tag.heat);
       // Preserve the caller's tag for tracing stuff below
       caller_tag = &vm->program[vm->ip + 1];
@@ -134,50 +134,8 @@ EXECUTE:
       hvm_vm_copy_regs(vm);
       vm->ip = dest;
       vm->top = frame;
-      // Check if we've reached the heat threshold
-      if(tag.heat > HVM_TRACE_THRESHOLD || vm->always_trace) {
-        // See if we have a completed trace available to compile and switch to
-        if(tag.trace_index > 0) {
-          // .trace_index is offset by one so that we can use 0 to mean
-          // no-trace-exists.
-          trace = vm->traces[tag.trace_index - 1];
-          // Guard that the trace really is completed
-          assert(trace->complete);
-          // If we don't already have a compiled function then compile it
-          if(trace->compiled_function == NULL) {
-            hvm_jit_compile_trace(vm, trace);
-            fprintf(stderr, "compiled trace for %s:0x%08llX\n", sym_name, dest);
-          }
-          fprintf(stderr, "running compiled trace for %s:0x%08llX\n", sym_name, dest);
-          hvm_jit_exit *result = hvm_jit_run_compiled_trace(vm, trace);
-          if(result->ret.status == HVM_JIT_EXIT_BAILOUT) {
-            vm->ip = result->bailout.destination;
-            goto EXECUTE;
-          } else {
-            assert(vm->stack_depth != 0);
-            vm->ip = frame->return_addr;
-            vm->stack_depth -= 1;
-            vm->top = &vm->stack[vm->stack_depth];
-            hvm_vm_register_write(vm, frame->return_register, result->ret.value);
-            goto EXECUTE;
-          }
-        }
-        // fprintf(stderr, "subroutine %s:0x%08llX has heat %d\n", sym_name, dest, tag.heat);
-        // Check if we need to start tracing
-        if(!vm->is_tracing) {
-          // If frame is already being traced
-          if(frame->trace != NULL) {
-            goto EXECUTE_JIT;
-          }
-          fprintf(stderr, "switching to trace dispatch for %s:0x%08llX\n", sym_name, dest);
-          trace = hvm_new_call_trace(vm);
-          trace->caller_tag = caller_tag;
-          frame->trace = trace;
-          vm->is_tracing = 1;
-          goto EXECUTE_JIT;
-        }
-      }
-      goto EXECUTE;
+      hvm_dispatch_path path = hvm_dispatch_frame(vm, frame, &tag, caller_tag);
+      DISPATCH_PATH(path);
 
     case HVM_OP_INVOKESYMBOLIC:// 1B OP | 3B TAG | 1B REG | 1B REG
       PROCESS_TAG;
@@ -424,6 +382,7 @@ EXECUTE:
       hvm_vm_register_write(vm, areg, val);
       IN_JIT(
         if(vm->top->trace != NULL) {
+          printf("tracing: GETLOCAL %s\n", hvm_desymbolicate(vm->symbols, key->data.u64));
           hvm_jit_tracer_annotate_getlocal(vm, key->data.u64);
         }
       )
@@ -694,6 +653,7 @@ EXECUTE:
 
     default:
       fprintf(stderr, "Unknown instruction: %u\n", instr);
+      return;
   }
   vm->ip++;
   goto EXECUTE;
