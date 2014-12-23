@@ -176,6 +176,14 @@ LLVMValueRef hvm_jit_vm_call_primitive_llvm_value(hvm_compile_bundle *bundle) {
   return func;
 }
 
+LLVMValueRef hvm_jit_obj_cmp_and_llvm_value(hvm_compile_bundle *bundle) {
+  STATIC_VALUE(LLVMValueRef, func);
+  UNPACK_BUNDLE(bundle);
+  // (hvm_obj_ref*, hvm_obj_ref*) -> hvm_obj_ref*
+  ADD_FUNCTION(func, hvm_obj_cmp_and, obj_ref_ptr_type, 2, obj_ref_ptr_type, obj_ref_ptr_type);
+  return func;
+}
+
 LLVMValueRef hvm_jit_vm_copy_regs_llvm_value(hvm_compile_bundle *bundle) {
   STATIC_VALUE(LLVMValueRef, func);
   UNPACK_BUNDLE(bundle);
@@ -683,7 +691,6 @@ void hvm_jit_compile_pass_identify_blocks(hvm_call_trace *trace, hvm_compile_bun
   // Sanity guards
   assert(trace->sequence_length > 0);
 
-  bool found;
   uint64_t ip;
   hvm_trace_sequence_item *item;
   hvm_compile_sequence_data *data_item;
@@ -728,8 +735,7 @@ void hvm_jit_compile_pass_identify_blocks(hvm_call_trace *trace, hvm_compile_bun
           data_item->item_if.truthy_block = NULL;
         }
 
-        found = false;
-        ip    = item->head.ip + 10;// 10 bytes for op, register, and destination
+        ip = item->head.ip + 10;// 10 bytes for op, register, and destination
         if(hvm_jit_trace_contains_ip(trace, ip)) {
           // Setting up a FALSINESS block
           block = hvm_jit_compile_find_or_insert_block(parent_func, bundle, ip);
@@ -952,6 +958,7 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
         value1 = hvm_jit_load_general_reg_value(context, builder, reg1);
         value2 = hvm_jit_load_general_reg_value(context, builder, reg2);
         // Get the is-truthy call
+        /*
         func = hvm_jit_obj_is_truthy_llvm_value(bundle);
         // Transform value1 and value2 into booleans via `hvm_obj_is_truthy`
         value1 = LLVMBuildCall(builder, func, (LLVMValueRef[]){value1}, 1, "is_truthy");
@@ -973,9 +980,12 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
         // Convert it to the proper 64-bit integer pointer
         data_ptr = LLVMBuildPointerCast(builder, data_ptr, int64_pointer_type, "data_ptr");
         LLVMBuildStore(builder, value, data_ptr);
+        */
+        func  = hvm_jit_obj_cmp_and_llvm_value(bundle);
+        value = LLVMBuildCall(builder, func, (LLVMValueRef[]){value1, value2}, 2, "and");
         // hvm_jit_store_reg_value(context, builder, reg, value_returned);
         cv = hvm_compile_value_new(HVM_INTEGER, reg);
-        STORE(cv, value_returned);
+        STORE(cv, value);
         break;
 
       case HVM_TRACE_SEQUENCE_ITEM_ARRAYSET:
