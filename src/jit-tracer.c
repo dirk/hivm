@@ -126,14 +126,14 @@ void hvm_jit_call_trace_push_instruction(hvm_vm *vm, hvm_call_trace *trace) {
 
     case HVM_OP_ADD:
     case HVM_OP_EQ:
-    case HVM_OP_AND:
     case HVM_OP_GT:
     case HVM_OP_LT:
-      if(instr == HVM_OP_ADD) { item->add.type = HVM_TRACE_SEQUENCE_ITEM_ADD; }
-      if(instr == HVM_OP_EQ)  { item->eq.type  = HVM_TRACE_SEQUENCE_ITEM_EQ;  }
-      if(instr == HVM_OP_LT)  { item->eq.type  = HVM_TRACE_SEQUENCE_ITEM_LT;  }
-      if(instr == HVM_OP_GT)  { item->eq.type  = HVM_TRACE_SEQUENCE_ITEM_GT;  }
-      if(instr == HVM_OP_AND) { item->and.type = HVM_TRACE_SEQUENCE_ITEM_AND; }
+    case HVM_OP_AND:
+      if(instr == HVM_OP_ADD) { item->head.type = HVM_TRACE_SEQUENCE_ITEM_ADD; }
+      if(instr == HVM_OP_EQ)  { item->head.type = HVM_TRACE_SEQUENCE_ITEM_EQ;  }
+      if(instr == HVM_OP_LT)  { item->head.type = HVM_TRACE_SEQUENCE_ITEM_LT;  }
+      if(instr == HVM_OP_GT)  { item->head.type = HVM_TRACE_SEQUENCE_ITEM_GT;  }
+      if(instr == HVM_OP_AND) { item->head.type = HVM_TRACE_SEQUENCE_ITEM_AND; }
       item->add.register_return   = vm->program[vm->ip + 1];
       item->add.register_operand1 = vm->program[vm->ip + 2];
       item->add.register_operand2 = vm->program[vm->ip + 3];

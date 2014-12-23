@@ -778,10 +778,15 @@ void hvm_jit_compile_pass_identify_constant_registers(hvm_call_trace *trace, str
       case HVM_TRACE_SEQUENCE_ITEM_SETSYMBOL:
       case HVM_TRACE_SEQUENCE_ITEM_INVOKEPRIMITIVE:
       case HVM_TRACE_SEQUENCE_ITEM_ADD:
+      case HVM_TRACE_SEQUENCE_ITEM_EQ:
+      case HVM_TRACE_SEQUENCE_ITEM_LT:
+      case HVM_TRACE_SEQUENCE_ITEM_GT:
+      case HVM_TRACE_SEQUENCE_ITEM_AND:
       case HVM_TRACE_SEQUENCE_ITEM_ARRAYGET:
       case HVM_TRACE_SEQUENCE_ITEM_ARRAYLEN:
       case HVM_TRACE_SEQUENCE_ITEM_MOVE:
       case HVM_TRACE_SEQUENCE_ITEM_LITINTEGER:
+      case HVM_TRACE_SEQUENCE_ITEM_GETLOCAL:
         register_return = item->returning.register_return;
         writes[register_return] += 1;
         break;
@@ -981,11 +986,11 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
         data_ptr = LLVMBuildPointerCast(builder, data_ptr, int64_pointer_type, "data_ptr");
         LLVMBuildStore(builder, value, data_ptr);
         */
-        func  = hvm_jit_obj_cmp_and_llvm_value(bundle);
-        value = LLVMBuildCall(builder, func, (LLVMValueRef[]){value1, value2}, 2, "and");
+        func           = hvm_jit_obj_cmp_and_llvm_value(bundle);
+        value_returned = LLVMBuildCall(builder, func, (LLVMValueRef[]){value1, value2}, 2, "and");
         // hvm_jit_store_reg_value(context, builder, reg, value_returned);
         cv = hvm_compile_value_new(HVM_INTEGER, reg);
-        STORE(cv, value);
+        STORE(cv, value_returned);
         break;
 
       case HVM_TRACE_SEQUENCE_ITEM_ARRAYSET:
