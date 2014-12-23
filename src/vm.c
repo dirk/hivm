@@ -457,9 +457,9 @@ void hvm_vm_run(hvm_vm *vm) {
   hvm_subroutine_tag tag;
   // hvm_call_trace *trace;
   // Variables needed by the debugger
-#ifdef HVM_VM_DEBUG
-  bool should_continue;
-#endif
+  #ifdef HVM_VM_DEBUG
+    bool should_continue;
+  #endif
 
 // Plain dispatch loop
 #include "vm-dispatch.include.c"

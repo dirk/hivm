@@ -13,7 +13,7 @@ int main(int argc, char const *argv[]) {
   hvm_gen_return(gen->block, reg0);
 
   hvm_gen_label(gen->block, "main");
-  hvm_gen_callsymbolic_symbol(gen->block, "call", reg1);
+  hvm_gen_callsymbolic(gen->block, "call", reg1);
   hvm_gen_die(gen->block);
 
   hvm_vm *vm = gen_chunk_and_run(gen);
