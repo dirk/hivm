@@ -134,9 +134,7 @@ void hvm_jit_setup_llvm() {
 
 #define STATIC_VALUE(TYPE, NAME) \
   static TYPE NAME; \
-  if(NAME) { \
-    return NAME; \
-  }
+  if(NAME) { return NAME; }
 
 // NOTE: Last argument to LLVMFunctionType tells LLVM it's non-variadic.
 #define ADD_FUNCTION(FUNC, EXT_FUNCTION, RETURN_TYPE, NUM_PARAMS, PARAM_TYPES...) \
@@ -314,7 +312,7 @@ LLVMTypeRef hvm_jit_obj_ref_llvm_type() {
   LLVMTypeRef flags = LLVMIntType(sizeof(byte) * 8);
   LLVMTypeRef entry = LLVMIntType(sizeof(void*) * 8);
   LLVMTypeRef body[4] = {type, data, flags, entry};
-  // Last flag tells us it's not packed
+  // Last flag tells LLVM it's not packed
   LLVMStructSetBody(strct, body, 4, false);
   return strct;
 }
@@ -388,7 +386,7 @@ LLVMValueRef hvm_jit_load_symbol_id_from_obj_ref_value(LLVMBuilderRef builder, L
   LLVMValueRef data_ptr = LLVMBuildGEP(builder, value, (LLVMValueRef[]){i32_zero, i32_one}, 2, "data_ptr");
   LLVMValueRef data     = LLVMBuildLoad(builder, data_ptr, "");
   // Fetch out the .data as an int64 (same as hvm_symbol_id)
-  return LLVMBuildIntCast(builder, data, int64_type, "val_data");
+  return LLVMBuildIntCast(builder, data, int64_type, "data");
 }
 
 // #define JIT_SAVE_DATA_ITEM_AND_VALUE(REG, DATA_ITEM, VALUE) \
@@ -444,9 +442,6 @@ LLVMValueRef hvm_jit_load_general_reg_value(struct hvm_jit_compile_context *cont
   }
   LLVMValueRef gr = context->general_regs[reg];
   assert(gr != NULL);
-  // Get the pointer-to-pointer and load the object reference pointer out of it
-  // LLVMValueRef ptr = LLVMBuildGEP(builder, gr, (LLVMValueRef[]){i32_zero}, 1, "");
-  // return LLVMBuildLoad(builder, ptr, scratch);
   char scratch[40];
   sprintf(scratch, "general_reg[%d]", reg);
   return hvm_jit_load_slot(builder, gr, scratch);
@@ -568,8 +563,8 @@ void hvm_jit_build_bailout_return_to_ip(LLVMBuilderRef builder, LLVMValueRef exi
   LLVMValueRef status_value = LLVMConstInt(status_type, HVM_JIT_EXIT_BAILOUT, false);
   LLVMValueRef dest_value   = LLVMConstInt(int64_type, ip, false);
   // Get the pointers to the struct elements
-  LLVMValueRef status_ptr   = LLVMBuildGEP(builder, exit_value, (LLVMValueRef[]){i32_zero, LLVMConstInt(int32_type, 0, true)}, 2, NULL);
-  LLVMValueRef dest_ptr     = LLVMBuildGEP(builder, exit_value, (LLVMValueRef[]){i32_zero, LLVMConstInt(int32_type, 1, true)}, 2, NULL);
+  LLVMValueRef status_ptr   = LLVMBuildGEP(builder, exit_value, (LLVMValueRef[]){i32_zero, i32_zero}, 2, NULL);
+  LLVMValueRef dest_ptr     = LLVMBuildGEP(builder, exit_value, (LLVMValueRef[]){i32_zero, i32_one},  2, NULL);
   // And store the actual values in them
   LLVMBuildStore(builder, status_value, status_ptr);
   LLVMBuildStore(builder, dest_value,   dest_ptr);
@@ -625,8 +620,8 @@ hvm_jit_block *hvm_jit_compile_find_or_insert_block(LLVMValueRef parent_func, hv
   char name[32];
 
   if(bundle->blocks_head == NULL) {
-    // If there's not blocks whatsoever then create a new one and set it
-    // as the head and tail.
+    // If there's no blocks whatsoever then create a new one and set it
+    // as the head and tail
     block = malloc(sizeof(hvm_jit_block));
     block->next = NULL;
     bundle->blocks_head = block;
@@ -667,8 +662,15 @@ hvm_jit_block *hvm_jit_compile_find_or_insert_block(LLVMValueRef parent_func, hv
 
   block_inserted:
   sprintf(name, "block_0x%08llX", ip);
-  block->ip          = ip;
-  block->basic_block = LLVMAppendBasicBlockInContext(context, parent_func, name);
+  block->ip = ip;
+  if(block->next == NULL) {
+    // If we're at the end then append
+    block->basic_block = LLVMAppendBasicBlockInContext(context, parent_func, name);
+  } else {
+    // Otherwise insert before the next block
+    LLVMBasicBlockRef next_basic_block = block->next->basic_block;
+    block->basic_block = LLVMInsertBasicBlockInContext(context, next_basic_block, name);
+  }
   // Update the count
   bundle->blocks_length += 1;
   // Return the new block
