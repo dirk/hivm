@@ -472,15 +472,12 @@ EXECUTE:
     // BOOLEAN COMPARISON
     case HVM_OP_AND: // 1B OP | 3B REGS
       AREG; BREG; CREG;
-      b = _hvm_vm_register_read(vm, breg);
-      c = _hvm_vm_register_read(vm, creg);
-      // Integer value for the result
-      val = hvm_new_obj_int();
-      // Do our truthy test
-      val->data.i64 = (int64_t)((hvm_obj_is_truthy(b) && hvm_obj_is_truthy(c)) ? 1 : 0);
+      b   = _hvm_vm_register_read(vm, breg);
+      c   = _hvm_vm_register_read(vm, creg);
+      val = hvm_obj_cmp_and(b, c);
       // Add integer to GC object space and write to register
       hvm_obj_space_add_obj_ref(vm->obj_space, val);
-      hvm_vm_register_write(vm, areg, a);
+      hvm_vm_register_write(vm, areg, val);
       vm->ip += 3;
       break;
 

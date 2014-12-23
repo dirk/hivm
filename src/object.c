@@ -164,6 +164,14 @@ hvm_obj_ref *hvm_new_obj_int() {
   return ref;
 }
 
+hvm_obj_ref *hvm_obj_cmp_and(hvm_obj_ref *a, hvm_obj_ref *b) {
+  // Integer value for the result
+  hvm_obj_ref *val = hvm_new_obj_int();
+  // Do our truthy test
+  val->data.i64 = (int64_t)((hvm_obj_is_truthy(a) && hvm_obj_is_truthy(b)) ? 1 : 0);
+  return val;
+}
+
 #define INT_TYPE_CHECK assert(a != NULL); \
                        assert(b != NULL); \
                        if(a->type != HVM_INTEGER || b->type != HVM_INTEGER) { return NULL; }

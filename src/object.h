@@ -132,6 +132,8 @@ hvm_obj_ref *hvm_obj_int_lte(hvm_obj_ref*, hvm_obj_ref*);
 hvm_obj_ref *hvm_obj_int_gte(hvm_obj_ref*, hvm_obj_ref*);
 hvm_obj_ref *hvm_obj_int_eq (hvm_obj_ref*, hvm_obj_ref*);
 
+hvm_obj_ref *hvm_obj_cmp_and(hvm_obj_ref*, hvm_obj_ref*);
+
 void hvm_obj_array_push(hvm_obj_ref*, hvm_obj_ref*);
 void hvm_obj_array_unshift(hvm_obj_ref*, hvm_obj_ref*);
 hvm_obj_ref* hvm_obj_array_shift(hvm_obj_ref*);
@@ -163,11 +165,11 @@ const char *hvm_human_name_for_obj_type(hvm_obj_type type);
 
 // COMPOSITE
 // Metadata and dynamic slots. Dynamic slots are by default looked up in  a
-// compact hash stored inline with the object (need some very specific 
+// compact hash stored inline with the object (need some very specific
 // tuning for hash growth factors/stages).
 
 // COMPOSITE TYPED
-// Metadata, static slots, and dynamic slots. Static slots are stored as a 
+// Metadata, static slots, and dynamic slots. Static slots are stored as a
 // constant-sized table between the metadata and dynamic slot data. Operations
 // working with known types can therefore cache lookups into constant indexes
 // into the static slot table.
