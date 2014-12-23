@@ -760,6 +760,12 @@ void hvm_jit_compile_pass_identify_blocks(hvm_call_trace *trace, hvm_compile_bun
         continue;
     }
   }
+
+  // hvm_jit_block *b = bundle->blocks_head;
+  // while(b != NULL) {
+  //   printf("block at 0x%llx\n", b->ip);
+  //   b = b->next;
+  // }
 }
 
 void hvm_jit_compile_pass_identify_constant_registers(hvm_call_trace *trace, struct hvm_jit_compile_context *context) {
@@ -965,7 +971,6 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
         value1 = hvm_jit_load_general_reg_value(context, builder, reg1);
         value2 = hvm_jit_load_general_reg_value(context, builder, reg2);
         // Get the is-truthy call
-        /*
         func = hvm_jit_obj_is_truthy_llvm_value(bundle);
         // Transform value1 and value2 into booleans via `hvm_obj_is_truthy`
         value1 = LLVMBuildCall(builder, func, (LLVMValueRef[]){value1}, 1, "is_truthy");
@@ -987,9 +992,9 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
         // Convert it to the proper 64-bit integer pointer
         data_ptr = LLVMBuildPointerCast(builder, data_ptr, int64_pointer_type, "data_ptr");
         LLVMBuildStore(builder, value, data_ptr);
-        */
-        func           = hvm_jit_obj_cmp_and_llvm_value(bundle);
-        value_returned = LLVMBuildCall(builder, func, (LLVMValueRef[]){value1, value2}, 2, "and");
+        // Slow comparison path:
+        // func           = hvm_jit_obj_cmp_and_llvm_value(bundle);
+        // value_returned = LLVMBuildCall(builder, func, (LLVMValueRef[]){value1, value2}, 2, "and");
         // hvm_jit_store_reg_value(context, builder, reg, value_returned);
         cv = hvm_compile_value_new(HVM_INTEGER, reg);
         STORE(cv, value_returned);
@@ -1123,17 +1128,20 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
         // type in the LLVM IR.
         reg1   = trace_item->item_if.register_value;
         value1 = hvm_jit_load_general_reg_value(context, builder, reg1);
-        func   = hvm_jit_obj_is_truthy_llvm_value(bundle);
-        LLVMValueRef truthy_args[1] = {value1};
-        LLVMValueRef truthy         = LLVMBuildCall(builder, func, truthy_args, 1, "truthy");
-        // Truncate down to a int1/bool
-        truthy = LLVMBuildTrunc(builder, truthy, int1_type, "");
-        /*
+
+        // Slow thruthy path:
+        // func   = hvm_jit_obj_is_truthy_llvm_value(bundle);
+        // LLVMValueRef truthy_args[1] = {value1};
+        // LLVMValueRef truthy         = LLVMBuildCall(builder, func, truthy_args, 1, "truthy");
+        // // Truncate down to a int1/bool
+        // truthy = LLVMBuildTrunc(builder, truthy, int1_type, "");
+
+        // Fast truthy path:
         // Expects `hvm_obj_ref` pointer and should return a bool LLVM value ref
-        LLVMValueRef falsey = hvm_jit_compile_value_is_falsey(builder, val_ref);
+        LLVMValueRef falsey = hvm_jit_compile_value_is_falsey(builder, value1);
         // Invert for our truthy test
         LLVMValueRef truthy = LLVMBuildNot(builder, falsey, "truthy");
-        */
+
         // Get the TRUTHY block to branch to or set up a bailout
         LLVMBasicBlockRef truthy_block;
         if(data_item->item_if.truthy_block != NULL) {
