@@ -1104,7 +1104,7 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
         // TODO: Check for exception set by primitive or NULL return from it
         // JIT_SAVE_DATA_ITEM_AND_VALUE(reg_result, data_item, value_returned);
         // hvm_jit_store_reg_value(context, builder, reg, value_returned);
-        cv = hvm_compile_value_new(HVM_INTEGER, reg);
+        cv = hvm_compile_value_new(HVM_INTEGER, reg_result);
         STORE(cv, value_returned);
         break;
 
