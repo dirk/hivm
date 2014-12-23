@@ -28,6 +28,7 @@ static LLVMTypeRef  obj_type_enum_type;
 static LLVMTypeRef  pointer_type;
 static LLVMTypeRef  void_type;
 static LLVMTypeRef  byte_type;
+static LLVMTypeRef  bool_type;
 static LLVMTypeRef  int1_type;
 static LLVMTypeRef  int32_type;
 static LLVMTypeRef  int64_type;
@@ -59,6 +60,7 @@ void hvm_jit_define_constants() {
   const_hvm_integer  = LLVMConstInt(obj_type_enum_type, HVM_INTEGER, false);
   void_type          = LLVMVoidTypeInContext(hvm_shared_llvm_context);
   byte_type          = LLVMInt8TypeInContext(hvm_shared_llvm_context);
+  bool_type          = LLVMIntTypeInContext(hvm_shared_llvm_context, sizeof(bool) * 8);
   int1_type          = LLVMInt1TypeInContext(hvm_shared_llvm_context);
   int32_type         = LLVMInt32TypeInContext(hvm_shared_llvm_context);
   int64_type         = LLVMInt64TypeInContext(hvm_shared_llvm_context);
@@ -206,8 +208,8 @@ LLVMValueRef hvm_jit_obj_int_gt_llvm_value(hvm_compile_bundle *bundle) {
 LLVMValueRef hvm_jit_obj_is_truthy_llvm_value(hvm_compile_bundle *bundle) {
   STATIC_VALUE(LLVMValueRef, func);
   UNPACK_BUNDLE(bundle);
-  // (hvm_obj_ref*) -> byte/bool
-  ADD_FUNCTION(func, hvm_obj_is_truthy, byte_type, 1, obj_ref_ptr_type);
+  // (hvm_obj_ref*) -> bool
+  ADD_FUNCTION(func, hvm_obj_is_truthy, bool_type, 1, obj_ref_ptr_type);
   return func;
 }
 
@@ -1104,11 +1106,17 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
         // type in the LLVM IR.
         reg1   = trace_item->item_if.register_value;
         value1 = hvm_jit_load_general_reg_value(context, builder, reg1);
-        LLVMValueRef val_ref = LLVMBuildPointerCast(builder, value1, obj_ref_ptr_type, "ref");
+        func   = hvm_jit_obj_is_truthy_llvm_value(bundle);
+        LLVMValueRef truthy_args[1] = {value1};
+        LLVMValueRef truthy         = LLVMBuildCall(builder, func, truthy_args, 1, "truthy");
+        // Truncate down to a int1/bool
+        truthy = LLVMBuildTrunc(builder, truthy, int1_type, "");
+        /*
         // Expects `hvm_obj_ref` pointer and should return a bool LLVM value ref
         LLVMValueRef falsey = hvm_jit_compile_value_is_falsey(builder, val_ref);
         // Invert for our truthy test
         LLVMValueRef truthy = LLVMBuildNot(builder, falsey, "truthy");
+        */
         // Get the TRUTHY block to branch to or set up a bailout
         LLVMBasicBlockRef truthy_block;
         if(data_item->item_if.truthy_block != NULL) {
@@ -1185,7 +1193,6 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
           assert(slot != NULL);
           hvm_jit_store_slot(builder, (LLVMValueRef)slot, value, "");
         }
-        break;
         /*
         // Pull out the symbol ID from the value in reg_symbol
         value_symbol = hvm_jit_load_general_reg_value(context, builder, reg_symbol);
