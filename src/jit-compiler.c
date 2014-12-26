@@ -812,7 +812,7 @@ void hvm_jit_compile_pass_identify_constant_registers(hvm_call_trace *trace, str
 
 void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit_compile_context *context) {
   unsigned int i;
-  byte reg, reg_array, reg_index, reg_value, reg_symbol, reg_result, reg_source, reg1, reg2;
+  byte reg, reg_array, reg_index, reg_value, reg_symbol, reg_result, reg1, reg2;
   unsigned int type;
   uint64_t ip;
   hvm_symbol_id symbol_id;
