@@ -857,34 +857,39 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
       hvm_jit_store_value(context, COMPILE_VALUE); \
       hvm_jit_store_reg_value(context, builder, COMPILE_VALUE->reg, LLVM_VALUE);
 
+    #define DATA_ITEM_TYPE data_item->head.type
+
     // Do stuff with the item based upon its type.
     switch(trace_item->head.type) {
       case HVM_TRACE_SEQUENCE_ITEM_MOVE:
         data_item->head.type = HVM_COMPILE_DATA_MOVE;
-        reg_source = trace_item->move.register_source;
-        reg        = trace_item->move.register_return;
-        // fprintf(stderr, "0x%08llX move %d -> %d\n", trace_item->head.ip, reg_source, reg);
-        if(hvm_is_gen_reg(reg_source)) {
-          // Fetch the value from one and put it in the other
-          value = hvm_jit_load_general_reg_value(context, builder, reg_source);
-        } else if(hvm_is_param_reg(reg_source)) {
-          // Extract it from the argument registers array
-          unsigned int idx = reg_source - 146;
-          value_index      = LLVMConstInt(int32_type, idx, true);
-          // Fetch the parameter pointer from the parameter registers array
-          value = LLVMBuildExtractValue(builder, param_regs, idx, "param");
-          // Cast it from a simple *i8 pointer to a object reference pointer
-          value = LLVMBuildPointerCast(builder, value, obj_ref_ptr_type, "param_obj_ref");
-        } else {
-          fprintf(stderr, "Can't handle register %d\n", reg_source);
-          // Can't handle other register types yet
-          assert(false);
+        {
+          byte reg_source = trace_item->move.register_source;
+          byte reg_return = trace_item->move.register_return;
+          // fprintf(stderr, "0x%08llX move %d -> %d\n", trace_item->head.ip, reg_source, reg);
+          // Value read from general register or argument register
+          LLVMValueRef value;
+          if(hvm_is_gen_reg(reg_source)) {
+            // Fetch the value from one and put it in the other
+            value = hvm_jit_load_general_reg_value(context, builder, reg_source);
+          } else if(hvm_is_param_reg(reg_source)) {
+            // Extract it from the argument registers array
+            unsigned int idx = reg_source - 146;
+            // Fetch the parameter pointer from the parameter registers array
+            value = LLVMBuildExtractValue(builder, param_regs, idx, "param");
+            // Cast it from a simple *i8 pointer to a object reference pointer
+            value = LLVMBuildPointerCast(builder, value, obj_ref_ptr_type, "param_obj_ref");
+          } else {
+            fprintf(stderr, "Can't handle register %d\n", reg_source);
+            // Can't handle other register types yet
+            assert(false);
+          }
+          cv = hvm_compile_value_new(HVM_UNKNOWN_TYPE, reg_return);
+          data_item->move.register_return = reg_return;
+          data_item->move.value = cv;
+          // hvm_jit_store_reg_value(context, builder, reg, value);
+          STORE(cv, value);
         }
-        cv = hvm_compile_value_new(HVM_UNKNOWN_TYPE, reg);
-        data_item->move.register_return = reg;
-        data_item->move.value = cv;
-        // hvm_jit_store_reg_value(context, builder, reg, value);
-        STORE(cv, value);
         break;
 
       case HVM_TRACE_SEQUENCE_ITEM_SETSTRING:
