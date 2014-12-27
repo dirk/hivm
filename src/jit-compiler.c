@@ -1256,8 +1256,12 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
         {
           // Register that the symbol object is going to be in
           byte reg_value = trace_item->setlocal.register_value;
-          // Traced symbol ID
-          // FIXME: Right now we're assuming this is static!
+          // Get register of the symbol and the compile value
+          byte reg_symbol = trace_item->setlocal.register_symbol;
+          hvm_compile_value *cv_sym = hvm_jit_get_value(context, reg_symbol);
+          // Must be constant for us to use fast stack slot storage
+          assert(cv_sym->type == HVM_SYMBOL && cv_sym->constant);
+          // Look up symbol ID from the trace
           hvm_symbol_id symbol_id = trace_item->setlocal.symbol_value;
           // Read the value to be written into the slot
           LLVMValueRef value = hvm_jit_load_general_reg_value(context, builder, reg_value);
@@ -1286,8 +1290,14 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
         {
           // Where the local variable is going to end up
           byte reg_result = trace_item->getlocal.register_return;
-          // Traced symbol ID that's in the symbol register of the instr.
-          // FIXME: Currently we're assuming this is static
+          // Get the register containing the symbol then get the compile value
+          byte reg_symbol = trace_item->getlocal.register_symbol;
+          hvm_compile_value *cv_sym = hvm_jit_get_value(context, reg_symbol);
+          // We need to know this symbol will be constant to be able to
+          // use the fast stack slot storage
+          assert(cv_sym->type == HVM_SYMBOL && cv_sym->constant);
+          // printf("using direct slot code path at 0x%08llX\n", trace_item->head.ip);
+          // Look up the symbol ID from the trace
           hvm_symbol_id symbol_id = trace_item->setlocal.symbol_value;
           void *slot = hvm_obj_struct_internal_get(locals, symbol_id);
           assert(slot != NULL);
