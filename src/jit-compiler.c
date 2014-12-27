@@ -816,7 +816,6 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
   uint64_t ip;
   hvm_jit_block *jit_block;
   hvm_obj_ref *ref;
-  LLVMValueRef value, value_array, value_index, value_returned, value1, value2;
   LLVMValueRef data_ptr;//, frame_ptr;
   hvm_compile_value *cv;
   // 64 bytes to play with for making strings to pass to LLVM
@@ -931,12 +930,14 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
       case HVM_TRACE_SEQUENCE_ITEM_ARRAYGET:
         DATA_ITEM_TYPE = HVM_COMPILE_DATA_ARRAYGET;
         {
+          byte reg_array, reg_index;
+          LLVMValueRef value_array, value_index, value_returned;
           // Getting the pointer value to the array
-          byte reg_array = trace_item->arrayget.register_array;
-          value_array    = hvm_jit_load_general_reg_value(context, builder, reg_array);
+          reg_array   = trace_item->arrayget.register_array;
+          value_array = hvm_jit_load_general_reg_value(context, builder, reg_array);
           // Getting the index value
-          byte reg_index = trace_item->arrayget.register_index;
-          value_index    = hvm_jit_load_general_reg_value(context, builder, reg_index);
+          reg_index   = trace_item->arrayget.register_index;
+          value_index = hvm_jit_load_general_reg_value(context, builder, reg_index);
           // Get the function as a LLVM value we can work with
           func = hvm_jit_obj_array_get_llvm_value(bundle);
           LLVMValueRef arrayget_args[2] = {value_array, value_index};
@@ -952,11 +953,14 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
       case HVM_TRACE_SEQUENCE_ITEM_EQ:
         data_item->head.type = HVM_COMPILE_DATA_EQ;
         {
-          byte         reg    = trace_item->eq.register_return;
-          byte         reg1   = trace_item->eq.register_operand1;
-          byte         reg2   = trace_item->eq.register_operand2;
-          LLVMValueRef value1 = hvm_jit_load_general_reg_value(context, builder, reg1);
-          LLVMValueRef value2 = hvm_jit_load_general_reg_value(context, builder, reg2);
+          byte reg, reg1, reg2;
+          LLVMValueRef value1, value2, value;
+          // Unpack register and load
+          reg    = trace_item->eq.register_return;
+          reg1   = trace_item->eq.register_operand1;
+          reg2   = trace_item->eq.register_operand2;
+          value1 = hvm_jit_load_general_reg_value(context, builder, reg1);
+          value2 = hvm_jit_load_general_reg_value(context, builder, reg2);
           // fprintf(stderr, "value1: $%d %s\n", reg1, LLVMPrintTypeToString(LLVMTypeOf(value1)));
           // fprintf(stderr, "value2: $%d %s\n", reg2, LLVMPrintTypeToString(LLVMTypeOf(value2)));
           // Build the `hvm_obj_int_eq` call
@@ -972,11 +976,14 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
       case HVM_TRACE_SEQUENCE_ITEM_AND:
         data_item->head.type = HVM_COMPILE_DATA_AND;
         {
-          byte         reg    = trace_item->eq.register_return;
-          byte         reg1   = trace_item->eq.register_operand1;
-          byte         reg2   = trace_item->eq.register_operand2;
-          LLVMValueRef value1 = hvm_jit_load_general_reg_value(context, builder, reg1);
-          LLVMValueRef value2 = hvm_jit_load_general_reg_value(context, builder, reg2);
+          LLVMValueRef value, value1, value2, value_returned;
+          byte reg, reg1, reg2;
+          // Unpack register and build loads from JIT register slots
+          reg    = trace_item->eq.register_return;
+          reg1   = trace_item->eq.register_operand1;
+          reg2   = trace_item->eq.register_operand2;
+          value1 = hvm_jit_load_general_reg_value(context, builder, reg1);
+          value2 = hvm_jit_load_general_reg_value(context, builder, reg2);
           // Get the is-truthy call
           func = hvm_jit_obj_is_truthy_llvm_value(bundle);
           // Transform value1 and value2 into booleans via `hvm_obj_is_truthy`
@@ -1029,9 +1036,12 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
       case HVM_TRACE_SEQUENCE_ITEM_ARRAYLEN:
         data_item->head.type = HVM_COMPILE_DATA_ARRAYLEN;
         {
-          byte reg = trace_item->arraylen.register_return;
-          // Get the source array to get the length of
-          byte         reg_array   = trace_item->arraylen.register_array;
+          byte reg, reg_array;
+          LLVMValueRef value_returned;
+          // Unpack registers
+          reg       = trace_item->arraylen.register_return;
+          reg_array = trace_item->arraylen.register_array;
+          // Source array that we'll be getting the length of
           LLVMValueRef value_array = hvm_jit_load_general_reg_value(context, builder, reg_array);
           // Get the array-length function
           func = hvm_jit_obj_array_len_llvm_value(bundle);
@@ -1073,9 +1083,12 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
       case HVM_TRACE_SEQUENCE_ITEM_ADD:
         data_item->add.type = HVM_COMPILE_DATA_ADD;
         {
-          byte reg  = trace_item->add.register_return;
-          byte reg1 = trace_item->add.register_operand1;
-          byte reg2 = trace_item->add.register_operand2;
+          byte reg, reg1, reg2;
+          LLVMValueRef value1, value2, value_returned;
+          // Unpack registers
+          reg  = trace_item->add.register_return;
+          reg1 = trace_item->add.register_operand1;
+          reg2 = trace_item->add.register_operand2;
           // Fetch the meta-data about those values
           hvm_compile_value *ov1 = hvm_jit_get_value(context, reg1);
           hvm_compile_value *ov2 = hvm_jit_get_value(context, reg2);
@@ -1124,7 +1137,7 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
           // Call our comparator and store the result
           LLVMValueRef comparison_args[2] = {value1, value2};
           // sprintf(scratch, "$%-3d = $%-3d > $%-3d", reg_result, reg1, reg2);
-          value_returned = LLVMBuildCall(builder, func, comparison_args, 2, "gt");
+          LLVMValueRef value_returned = LLVMBuildCall(builder, func, comparison_args, 2, "gt");
           // TODO: Check for exception set by primitive or NULL return from it
           // JIT_SAVE_DATA_ITEM_AND_VALUE(reg_result, data_item, value_returned);
           // hvm_jit_store_reg_value(context, builder, reg, value_returned);
@@ -1240,7 +1253,7 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
           // FIXME: Right now we're assuming this is static!
           hvm_symbol_id symbol_id = trace_item->setlocal.symbol_value;
           // Read the value to be written into the slot
-          value = hvm_jit_load_general_reg_value(context, builder, reg_value);
+          LLVMValueRef value = hvm_jit_load_general_reg_value(context, builder, reg_value);
           // Look up and write to the slot
           void *slot = hvm_obj_struct_internal_get(locals, symbol_id);
           assert(slot != NULL);
@@ -1271,7 +1284,7 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
           hvm_symbol_id symbol_id = trace_item->setlocal.symbol_value;
           void *slot = hvm_obj_struct_internal_get(locals, symbol_id);
           assert(slot != NULL);
-          value = hvm_jit_load_slot(builder, slot, "");
+          LLVMValueRef value = hvm_jit_load_slot(builder, slot, "");
           cv = hvm_compile_value_new(HVM_UNKNOWN_TYPE, reg_result);
           STORE(cv, value);
         }
