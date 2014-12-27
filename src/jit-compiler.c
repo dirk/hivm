@@ -816,7 +816,7 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
   uint64_t ip;
   hvm_jit_block *jit_block;
   hvm_obj_ref *ref;
-  LLVMValueRef value, value_array, value_index, value_returned, value1, value2, value_vm;
+  LLVMValueRef value, value_array, value_index, value_returned, value1, value2;
   LLVMValueRef data_ptr;//, frame_ptr;
   hvm_compile_value *cv;
   // 64 bytes to play with for making strings to pass to LLVM
@@ -1048,9 +1048,10 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
       case HVM_TRACE_SEQUENCE_ITEM_INVOKEPRIMITIVE:
         data_item->invokeprimitive.type = HVM_COMPILE_DATA_INVOKEPRIMITIVE;
         {
+          LLVMValueRef value_vm, value_returned;
           byte reg = trace_item->invokeprimitive.register_return;
           // Get the source value information
-          byte         reg_symbol   = trace_item->invokeprimitive.register_symbol;
+          byte reg_symbol = trace_item->invokeprimitive.register_symbol;
           LLVMValueRef value_symbol = hvm_jit_load_general_reg_value(context, builder, reg_symbol);
           assert(value_symbol != NULL);
           // Make a pointer to our VM
@@ -1262,16 +1263,6 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
 
       case HVM_TRACE_SEQUENCE_ITEM_GETLOCAL:
         data_item->head.type = HVM_COMPILE_DATA_GETLOCAL;
-        /*
-        // Get the symbol ID
-        value_symbol = hvm_jit_load_general_reg_value(context, builder, reg_symbol);
-        value_symbol = hvm_jit_load_symbol_id_from_obj_ref_value(builder, value_symbol);
-        // Get the frame and read the local from it
-        frame_ptr = LLVMConstInt(int64_type, (unsigned long long)(bundle->frame), false);
-        frame_ptr = LLVMBuildIntToPtr(builder, frame_ptr, pointer_type, "frame");
-        func      = hvm_jit_get_local_llvm_value(bundle);
-        value     = LLVMBuildCall(builder, func, (LLVMValueRef[]){frame_ptr, value_symbol}, 2, "get_local");
-        */
         {
           // Where the local variable is going to end up
           byte reg_result = trace_item->getlocal.register_return;
@@ -1284,6 +1275,16 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
           cv = hvm_compile_value_new(HVM_UNKNOWN_TYPE, reg_result);
           STORE(cv, value);
         }
+        /*
+        // Get the symbol ID
+        value_symbol = hvm_jit_load_general_reg_value(context, builder, reg_symbol);
+        value_symbol = hvm_jit_load_symbol_id_from_obj_ref_value(builder, value_symbol);
+        // Get the frame and read the local from it
+        frame_ptr = LLVMConstInt(int64_type, (unsigned long long)(bundle->frame), false);
+        frame_ptr = LLVMBuildIntToPtr(builder, frame_ptr, pointer_type, "frame");
+        func      = hvm_jit_get_local_llvm_value(bundle);
+        value     = LLVMBuildCall(builder, func, (LLVMValueRef[]){frame_ptr, value_symbol}, 2, "get_local");
+        */
         break;
 
       default:
