@@ -1120,11 +1120,14 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
       case HVM_TRACE_SEQUENCE_ITEM_GT:
         // Extract the registers and values
         {
-          byte         reg_result = trace_item->add.register_return;
-          byte         reg1       = trace_item->add.register_operand1;
-          byte         reg2       = trace_item->add.register_operand2;
-          LLVMValueRef value1     = hvm_jit_load_general_reg_value(context, builder, reg1);
-          LLVMValueRef value2     = hvm_jit_load_general_reg_value(context, builder, reg2);
+          byte reg1, reg2, reg_result;
+          LLVMValueRef value1, value2, value_returned;
+          // Unpack and load
+          reg_result = trace_item->add.register_return;
+          reg1       = trace_item->add.register_operand1;
+          reg2       = trace_item->add.register_operand2;
+          value1     = hvm_jit_load_general_reg_value(context, builder, reg1);
+          value2     = hvm_jit_load_general_reg_value(context, builder, reg2);
           // Fetch the type for determining which comparison function to use
           type = trace_item->head.type;
           // Save the operation type and lookup the comparison function
@@ -1137,7 +1140,7 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
           // Call our comparator and store the result
           LLVMValueRef comparison_args[2] = {value1, value2};
           // sprintf(scratch, "$%-3d = $%-3d > $%-3d", reg_result, reg1, reg2);
-          LLVMValueRef value_returned = LLVMBuildCall(builder, func, comparison_args, 2, "gt");
+          value_returned = LLVMBuildCall(builder, func, comparison_args, 2, "gt");
           // TODO: Check for exception set by primitive or NULL return from it
           // JIT_SAVE_DATA_ITEM_AND_VALUE(reg_result, data_item, value_returned);
           // hvm_jit_store_reg_value(context, builder, reg, value_returned);
@@ -1200,17 +1203,21 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
       case HVM_TRACE_SEQUENCE_ITEM_RETURN:
         data_item->head.type = HVM_COMPILE_DATA_RETURN;
         {
-          byte         reg   = trace_item->item_return.register_return;
-          LLVMValueRef value = hvm_jit_load_general_reg_value(context, builder, reg);
+          byte reg;
+          LLVMTypeRef  status_type, er_ptr_type;
+          LLVMValueRef status_value, exit_return, status_ptr, value_ptr, value;
+          // Unpack and load
+          reg = trace_item->item_return.register_return;
+          value = hvm_jit_load_general_reg_value(context, builder, reg);
           // Set up the status
-          LLVMTypeRef  status_type  = LLVMIntType(sizeof(hvm_jit_exit_status) * 8);
-          LLVMValueRef status_value = LLVMConstInt(status_type, HVM_JIT_EXIT_RETURN, false);
+          status_type  = LLVMIntType(sizeof(hvm_jit_exit_status) * 8);
+          status_value = LLVMConstInt(status_type, HVM_JIT_EXIT_RETURN, false);
           // Cast exit value to exit return
-          LLVMTypeRef  er_ptr_type  = LLVMPointerType(hvm_jit_exit_return_llvm_type(), 0);
-          LLVMValueRef exit_return  = LLVMBuildPointerCast(builder, exit_value, er_ptr_type, "exit_return");
+          er_ptr_type  = LLVMPointerType(hvm_jit_exit_return_llvm_type(), 0);
+          exit_return  = LLVMBuildPointerCast(builder, exit_value, er_ptr_type, "exit_return");
           // Pointers into the struct
-          LLVMValueRef status_ptr   = LLVMBuildGEP(builder, exit_return, (LLVMValueRef[]){i32_zero, i32_zero}, 2, "status_ptr");
-          LLVMValueRef value_ptr    = LLVMBuildGEP(builder, exit_return, (LLVMValueRef[]){i32_zero, i32_one},  2, "value_ptr");
+          status_ptr   = LLVMBuildGEP(builder, exit_return, (LLVMValueRef[]){i32_zero, i32_zero}, 2, "status_ptr");
+          value_ptr    = LLVMBuildGEP(builder, exit_return, (LLVMValueRef[]){i32_zero, i32_one},  2, "value_ptr");
           // Set the status and return value into the struct
           LLVMBuildStore(builder, status_value, status_ptr);
           LLVMBuildStore(builder, value, value_ptr);
