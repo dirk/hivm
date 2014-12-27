@@ -810,25 +810,40 @@ void hvm_jit_compile_pass_identify_constant_registers(hvm_call_trace *trace, str
   }
 }
 
+void hvm_jit_position_builder_at_entry(hvm_call_trace *trace, struct hvm_jit_compile_context *context, LLVMBuilderRef builder) {
+  hvm_trace_sequence_item *entry;
+  hvm_jit_block *entry_block;
+  LLVMBasicBlockRef entry_basic_block;
+  // Get the entry item and its associated block
+  entry             = &trace->sequence[0];
+  entry_block       = hvm_jit_get_current_block(context->bundle, entry->head.ip);
+  entry_basic_block = entry_block->basic_block;
+  LLVMPositionBuilderAtEnd(builder, entry_basic_block);
+}
+
 void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit_compile_context *context) {
   unsigned int i;
   unsigned int type;
   uint64_t ip;
   hvm_jit_block *jit_block;
   hvm_obj_ref *ref;
-  LLVMValueRef data_ptr;//, frame_ptr;
   hvm_compile_value *cv;
   // 64 bytes to play with for making strings to pass to LLVM
   char scratch[64];
+  // Function-pointer-as-value
+  LLVMValueRef func;
 
   hvm_compile_bundle *bundle      = context->bundle;
   hvm_compile_sequence_data *data = bundle->data;
   hvm_obj_struct *locals          = context->locals;
+  LLVMBuilderRef builder          = bundle->llvm_builder;
 
-  // Function-pointer-as-value
-  LLVMValueRef func;
+  hvm_jit_position_builder_at_entry(trace, context, builder);
 
-  LLVMBuilderRef builder = bundle->llvm_builder;
+  // Pre-compute a pointer to our VM instance
+  LLVMValueRef value_vm_ptr_int   = LLVMConstInt(int64_type, (unsigned long long)vm, false);
+  const LLVMValueRef value_vm_ptr = LLVMBuildIntToPtr(builder, value_vm_ptr_int, pointer_type, "vm");
+
   // Get the top-level basic block and its parent function
   LLVMValueRef   parent_func = bundle->llvm_function;
   // Extract our pointer to `hvm_jit_exit` struct from the function
@@ -976,7 +991,7 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
       case HVM_TRACE_SEQUENCE_ITEM_AND:
         data_item->head.type = HVM_COMPILE_DATA_AND;
         {
-          LLVMValueRef value, value1, value2, value_returned;
+          LLVMValueRef value, value1, value2, value_returned, data_ptr;
           byte reg, reg1, reg2;
           // Unpack register and build loads from JIT register slots
           reg    = trace_item->eq.register_return;
@@ -1058,21 +1073,18 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
       case HVM_TRACE_SEQUENCE_ITEM_INVOKEPRIMITIVE:
         data_item->invokeprimitive.type = HVM_COMPILE_DATA_INVOKEPRIMITIVE;
         {
-          LLVMValueRef value_vm, value_returned;
+          LLVMValueRef value_returned;
           byte reg = trace_item->invokeprimitive.register_return;
           // Get the source value information
           byte reg_symbol = trace_item->invokeprimitive.register_symbol;
           LLVMValueRef value_symbol = hvm_jit_load_general_reg_value(context, builder, reg_symbol);
           assert(value_symbol != NULL);
-          // Make a pointer to our VM
-          value_vm = LLVMConstInt(int64_type, (unsigned long long)vm, false);
-          value_vm = LLVMBuildIntToPtr(builder, value_vm, pointer_type, "vm");
           // Build and run the call to copy the registers
           func = hvm_jit_vm_copy_regs_llvm_value(bundle);
-          LLVMBuildCall(builder, func, (LLVMValueRef[]){value_vm}, 1, "");
+          LLVMBuildCall(builder, func, (LLVMValueRef[]){value_vm_ptr}, 1, "");
           // Build the call to `hvm_vm_call_primitive`.
           func = hvm_jit_vm_call_primitive_llvm_value(bundle);
-          LLVMValueRef invokeprimitive_args[2] = {value_vm, value_symbol};
+          LLVMValueRef invokeprimitive_args[2] = {value_vm_ptr, value_symbol};
           value_returned = LLVMBuildCall(builder, func, invokeprimitive_args, 2, "result");
           // hvm_jit_store_reg_value(context, builder, reg, value_returned);
           cv = hvm_compile_value_new(HVM_UNKNOWN_TYPE, reg);
@@ -1351,16 +1363,10 @@ void hvm_jit_compile_pass_identify_locals(hvm_call_trace *trace, struct hvm_jit_
   void *slot;
   hvm_trace_sequence_item *item;
 
-  hvm_jit_block *entry_block;
-  LLVMBasicBlockRef entry_basic_block;
-  // Get the entry block to write into; these allocations need to happen at
+  // Position the builder at the entry; these allocations need to happen at
   // the beginning of the function so that the slots will be available for
   // subsequent instructions in the function body
-  item = &trace->sequence[0];
-  uint64_t entry_ip = item->head.ip;
-  entry_block       = hvm_jit_get_current_block(context->bundle, entry_ip);
-  entry_basic_block = entry_block->basic_block;
-  LLVMPositionBuilderAtEnd(builder, entry_basic_block);
+  hvm_jit_position_builder_at_entry(trace, context, builder);
 
   unsigned int i;
   for(i = 0; i < trace->sequence_length; i++) {
