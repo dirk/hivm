@@ -76,7 +76,7 @@ end
 
 objects = [
   # Source
-  'src/vm.o', 'src/object-jemalloc.o', 'src/symbol.o', 'src/frame.o', 'src/chunk.o',
+  'src/vm.o', 'src/object.o', 'src/symbol.o', 'src/frame.o', 'src/chunk.o',
   'src/generator.o', 'src/bootstrap.o', 'src/exception.o', 'src/gc1.o',
   'src/jit-tracer.o', 'src/jit-compiler-llvm.o',
   # Generated source
@@ -97,7 +97,7 @@ file 'libhivm.a' => objects, &static_archiver
 file 'libhivm-db.a' => debug_objects, &static_archiver
 
 
-# Don't use the giant LLVM-bundled JIT compiler object
+# Don't use the giant LLVM-bundled JIT compiler object in the dynamic library
 shared_objects = objects.map do |file|
   (file == 'src/jit-compiler-llvm.o') ? 'src/jit-compiler.o' : file
 end
@@ -105,16 +105,17 @@ end
 file $shared_library => shared_objects do |t|
   objects = t.prerequisites.join ' '
   # Static libraries
-  ldflags = "-liconv -lz -lpthread -ledit -lcurses -lm -lc++ "
-  ldflags += `pkg-config --libs glib-2.0 lua5.1 libprotobuf-c`.strip+" "
+  ldflags = '-liconv -lz -lpthread -ledit -lcurses -lm -lc++ '
+  ldflags << `pkg-config --libs glib-2.0 lua5.1 libprotobuf-c`.strip+' '
   # Add the LLVM dynamic library
   llvm_version = `#{$llvm_config} --version`.strip
-  ldflags += "-L#{$llvm_libdir} -lLLVM-#{llvm_version} "
+  ldflags << "-L#{$llvm_libdir} -lLLVM-#{llvm_version} "
   if `uname -s`.strip == 'Darwin'
     ldflags += " -macosx_version_min 10.10"
   end
   sh "#{$ld} #{objects} #{ldflags} -dylib -o #{t.name}"
 end
+
 
 file 'src/jit-compiler-llvm.o' => 'src/jit-compiler.o' do |t|
   llvm_libs    = `#{$llvm_config} --libs #{$llvm_modules}`.gsub("\n", '').strip
@@ -123,11 +124,11 @@ file 'src/jit-compiler-llvm.o' => 'src/jit-compiler.o' do |t|
   sh "#{$ld} #{t.prerequisites.first} #{llvm_ldflags} -r -o #{t.name}"
 end
 
-file 'src/object-jemalloc.o' => 'src/object.o' do |t|
-  # Remerge to pull in jemalloc
-  jemalloc = find_jemalloc
-  sh "#{$ld} #{t.prerequisites.first} #{jemalloc} -r -o #{t.name}"
-end
+# file 'src/object-jemalloc.o' => 'src/object.o' do |t|
+#   # Remerge to pull in jemalloc
+#   jemalloc = find_jemalloc
+#   sh "#{$ld} #{t.prerequisites.first} #{jemalloc} -r -o #{t.name}"
+# end
 
 file "src/chunk.pb-c.c" => ["src/chunk.proto"] do |t|
   sh "protoc-c --c_out=. #{t.prerequisites.first}"
@@ -150,6 +151,13 @@ rule '.o' => ['.c'] do |t|
   #   ]
   #   sh "#{$ld} -r #{t.name} #{libs.join ' '} -o #{t.name}"
   # end
+  jemalloc = find_jemalloc
+  if File.basename(t.name) == 'object.o'
+    # a.o -> a.tmp.o
+    tmp = t.name.sub /\.o$/, '.tmp.o'
+    sh "mv #{t.name} #{tmp}"
+    sh "#{$ld} #{tmp} #{jemalloc} -r -o #{t.name}"
+  end
 end
 
 # Compiling the debug version of vm.c (include the dispatcher as a dependency)
