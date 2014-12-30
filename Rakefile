@@ -76,7 +76,7 @@ end
 
 objects = [
   # Source
-  'src/vm.o', 'src/object.o', 'src/symbol.o', 'src/frame.o', 'src/chunk.o',
+  'src/vm.o', 'src/object-jemalloc.o', 'src/symbol.o', 'src/frame.o', 'src/chunk.o',
   'src/generator.o', 'src/bootstrap.o', 'src/exception.o', 'src/gc1.o',
   'src/jit-tracer.o', 'src/jit-compiler-llvm.o',
   # Generated source
@@ -116,11 +116,17 @@ file $shared_library => shared_objects do |t|
   sh "#{$ld} #{objects} #{ldflags} -dylib -o #{t.name}"
 end
 
-file "src/jit-compiler-llvm.o" => "src/jit-compiler.o" do |t|
+file 'src/jit-compiler-llvm.o' => 'src/jit-compiler.o' do |t|
   llvm_libs    = `#{$llvm_config} --libs #{$llvm_modules}`.gsub("\n", '').strip
   llvm_ldflags = "-L#{$llvm_libdir} #{llvm_libs}"
   # -r remerges into new file
   sh "#{$ld} #{t.prerequisites.first} #{llvm_ldflags} -r -o #{t.name}"
+end
+
+file 'src/object-jemalloc.o' => 'src/object.o' do |t|
+  # Remerge to pull in jemalloc
+  jemalloc = find_jemalloc
+  sh "#{$ld} #{t.prerequisites.first} #{jemalloc} -r -o #{t.name}"
 end
 
 file "src/chunk.pb-c.c" => ["src/chunk.proto"] do |t|
@@ -144,12 +150,6 @@ rule '.o' => ['.c'] do |t|
   #   ]
   #   sh "#{$ld} -r #{t.name} #{libs.join ' '} -o #{t.name}"
   # end
-
-  if File.basename(t.name) == 'object.o'
-    # Remerge to pull in jemalloc
-    jemalloc = find_jemalloc
-    # sh "#{$ld} #{t.name} #{jemalloc} -r -o #{t.name}"
-  end
 end
 
 # Compiling the debug version of vm.c (include the dispatcher as a dependency)
