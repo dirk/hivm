@@ -21,11 +21,16 @@ $llvm_libdir  = `#{$llvm_config} --libdir`.strip
 $version = `cat ./VERSION`.strip
 $shared_library = "libhivm-#{$version}.so"
 
+$is_linux = `uname -s`.strip == 'Linux'
+
 def cflags_for file
   basename = File.basename file
   cflags = $cflags
   if %w{object.o generator.o exception.o debug.o bootstrap.o}.include? basename
     cflags += " #{`pkg-config --cflags glib-2.0`.strip}"
+  end
+  if basename == 'object.o' && $is_linux
+    cflags += ' -I/usr/local/include'
   end
   # TODO: Refactor to make this unnecessary
   if basename == "generator.o" || basename == "bootstrap.o" || basename == "debug.o"
