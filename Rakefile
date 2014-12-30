@@ -139,6 +139,12 @@ rule '.o' => ['.c'] do |t|
   #   ]
   #   sh "#{$ld} -r #{t.name} #{libs.join ' '} -o #{t.name}"
   # end
+
+  if File.basename(t.name) == 'object.o'
+    # Remerge to pull in jemalloc
+    jemalloc = find_jemalloc
+    sh "#{$ld} #{t.name} #{jemalloc} -r -o #{t.name}"
+  end
 end
 
 # Compiling the debug version of vm.c (include the dispatcher as a dependency)
@@ -173,4 +179,18 @@ namespace "doc" do
   task "clean" do
     sh "rm -rf doc/*"
   end
+end
+
+
+# Utility functions:
+
+def find_jemalloc
+  paths = [
+    '/usr/local/lib/libjemalloc.a',
+    '/usr/local/libjemalloc.a'
+  ]
+  paths.each do |p|
+    return p if File.exists? p
+  end
+  raise 'libjemalloc.a not found'
 end
