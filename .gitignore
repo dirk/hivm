@@ -4,6 +4,7 @@
 *.so
 *.dSYM
 
+deps/jemalloc*
 src/chunk.pb-c.*
 doc/*
 include/*
