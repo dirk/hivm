@@ -6,7 +6,8 @@ $cpp = ENV['CPP'].nil? ? 'clang++' : ENV['CPP']
 $ar = 'ar'
 $ld = 'ld'
 # $ldflags = "-lpthread -L. #{include_env 'LDFLAGS'}".strip
-$cflags  = "-g -fPIC -Wall -Wextra -Wconversion -std=c99 -I. #{include_env 'CFLAGS'}".strip
+warnings = '-Wall -Wextra -Wconversion'
+$cflags  = "-g -fPIC #{warnings} -std=c99 -I. #{include_env 'CFLAGS'}".strip
 
 $lua = 'lua5.1'
 
@@ -15,10 +16,7 @@ if `uname -s`.strip == 'Darwin'
   $llvm_config = "#{`brew --prefix llvm`.strip}/bin/llvm-config"
 end
 $llvm_modules = 'core analysis mcjit native'
-
-llvm_libs = `#{$llvm_config} --libs #{$llvm_modules}`.gsub("\n", '').strip
-$llvm_libdir = `#{$llvm_config} --libdir`.strip
-$llvm_ldflags = "-L#{$llvm_libdir} #{llvm_libs}"
+$llvm_libdir  = `#{$llvm_config} --libdir`.strip
 
 $version = `cat ./VERSION`.strip
 $shared_library = "libhivm-#{$version}.so"
@@ -114,7 +112,10 @@ file $shared_library => shared_objects do |t|
 end
 
 file "src/jit-compiler-llvm.o" => "src/jit-compiler.o" do |t|
-  sh "#{$ld} #{t.prerequisites.first} #{$llvm_ldflags} -r -o #{t.name}"
+  llvm_libs    = `#{$llvm_config} --libs #{$llvm_modules}`.gsub("\n", '').strip
+  llvm_ldflags = "-L#{$llvm_libdir} #{llvm_libs}"
+  # -r remerges into new file
+  sh "#{$ld} #{t.prerequisites.first} #{llvm_ldflags} -r -o #{t.name}"
 end
 
 file "src/chunk.pb-c.c" => ["src/chunk.proto"] do |t|
