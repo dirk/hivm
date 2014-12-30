@@ -1,6 +1,6 @@
 
 $cflags  = "-g -Wall -std=c99 -I../../include #{`pkg-config --cflags glib-2.0 lua5.1`.strip}"
-$ldflags = "../../libhivm-db.a -liconv -lz -lcurses #{`pkg-config --libs glib-2.0 lua5.1`.strip} -dead_strip"
+$ldflags = "../../libhivm-db.a -liconv -lz -lcurses -ljemalloc #{`pkg-config --libs glib-2.0 lua5.1`.strip} -dead_strip"
 
 task 'default' => ['test_sorting']
 

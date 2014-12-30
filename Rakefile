@@ -148,7 +148,7 @@ rule '.o' => ['.c'] do |t|
   if File.basename(t.name) == 'object.o'
     # Remerge to pull in jemalloc
     jemalloc = find_jemalloc
-    sh "#{$ld} #{t.name} #{jemalloc} -r -o #{t.name}"
+    # sh "#{$ld} #{t.name} #{jemalloc} -r -o #{t.name}"
   end
 end
 
