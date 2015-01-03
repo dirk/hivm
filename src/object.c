@@ -119,10 +119,10 @@ hvm_obj_ref* hvm_obj_array_pop(hvm_obj_ref *a) {
   return ptr;
 }
 
-hvm_obj_ref* hvm_obj_array_len(hvm_obj_ref *a) {
+hvm_obj_ref* hvm_obj_array_len(hvm_vm *vm, hvm_obj_ref *a) {
   hvm_obj_array *arr = a->data.v;
   guint len = arr->array->len;
-  hvm_obj_ref *intval = hvm_new_obj_int();
+  hvm_obj_ref *intval = hvm_new_obj_int(vm);
   intval->data.i64 = (int64_t)len;
   return intval;
 }
@@ -175,17 +175,17 @@ hvm_obj_ref* hvm_obj_struct_delete(hvm_obj_ref *sref, hvm_obj_ref *key) {
 }
 
 
-hvm_obj_ref *hvm_new_obj_int() {
+hvm_obj_ref *hvm_new_obj_int(hvm_vm *vm) {
   static int64_t zero = 0;
-  hvm_obj_ref *ref = hvm_new_obj_ref();
+  hvm_obj_ref *ref = hvm_obj_ref_new_from_pool(vm);
   ref->type = HVM_INTEGER;
   ref->data.i64 = zero;
   return ref;
 }
 
-hvm_obj_ref *hvm_obj_cmp_and(hvm_obj_ref *a, hvm_obj_ref *b) {
+hvm_obj_ref *hvm_obj_cmp_and(hvm_vm *vm, hvm_obj_ref *a, hvm_obj_ref *b) {
   // Integer value for the result
-  hvm_obj_ref *val = hvm_new_obj_int();
+  hvm_obj_ref *val = hvm_new_obj_int(vm);
   // Do our truthy test (using always-inlined _hvm_obj_is_truthy)
   val->data.i64 = (int64_t)((_hvm_obj_is_truthy(a) && _hvm_obj_is_truthy(b)) ? 1 : 0);
   return val;

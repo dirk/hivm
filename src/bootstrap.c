@@ -158,7 +158,7 @@ hvm_obj_ref *hvm_prim_time_as_int(hvm_vm *vm) {
   struct timeval tv;
   gettimeofday(&tv, NULL);
   sec = (1000000 * tv.tv_sec) + tv.tv_usec;
-  ret = hvm_new_obj_int();
+  ret = hvm_new_obj_int(vm);
   ret->data.i64 = sec;
   return ret;
 }
@@ -203,7 +203,7 @@ hvm_obj_ref *hvm_prim_gc_run(hvm_vm *vm) {
 hvm_obj_ref *hvm_prim_rand(hvm_vm *vm) {
   int ret = rand();
   // Create the full object reference with our random integer
-  hvm_obj_ref *ref = hvm_new_obj_int();
+  hvm_obj_ref *ref = hvm_new_obj_int(vm);
   ref->data.i64 = (int64_t)ret;
   // Make sure it's in the object space
   hvm_obj_space_add_obj_ref(vm->obj_space, ref);

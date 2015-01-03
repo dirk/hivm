@@ -54,8 +54,8 @@ typedef struct hvm_obj_ref {
 } hvm_obj_ref;
 
 
-/// Each zone will hold 32,768 `hvm_obj_ref`
-#define HVM_OBJ_REF_POOL_ZONE_SIZE 32768
+/// Each zone will hold 65,536 `hvm_obj_ref`
+#define HVM_OBJ_REF_POOL_ZONE_SIZE 65536
 #define HVM_OBJ_REF_POOL_ZONE_FULL HVM_OBJ_REF_POOL_ZONE_SIZE
 
 typedef struct hvm_obj_ref_pool_zone {
@@ -148,7 +148,7 @@ hvm_obj_ref *hvm_obj_ref_new_from_pool(hvm_vm*);
 hvm_obj_ref_pool *hvm_obj_ref_pool_new();
 void hvm_obj_ref_free(hvm_vm*, hvm_obj_ref*);
 
-hvm_obj_ref *hvm_new_obj_int();
+hvm_obj_ref *hvm_new_obj_int(hvm_vm*);
 hvm_obj_ref *hvm_obj_int_add(hvm_vm*, hvm_obj_ref*, hvm_obj_ref*);
 hvm_obj_ref *hvm_obj_int_sub(hvm_vm*, hvm_obj_ref*, hvm_obj_ref*);
 hvm_obj_ref *hvm_obj_int_mul(hvm_vm*, hvm_obj_ref*, hvm_obj_ref*);
@@ -160,7 +160,7 @@ hvm_obj_ref *hvm_obj_int_lte(hvm_vm*, hvm_obj_ref*, hvm_obj_ref*);
 hvm_obj_ref *hvm_obj_int_gte(hvm_vm*, hvm_obj_ref*, hvm_obj_ref*);
 hvm_obj_ref *hvm_obj_int_eq (hvm_vm*, hvm_obj_ref*, hvm_obj_ref*);
 
-hvm_obj_ref *hvm_obj_cmp_and(hvm_obj_ref*, hvm_obj_ref*);
+hvm_obj_ref *hvm_obj_cmp_and(hvm_vm*, hvm_obj_ref*, hvm_obj_ref*);
 
 void hvm_obj_array_push(hvm_obj_ref*, hvm_obj_ref*);
 void hvm_obj_array_unshift(hvm_obj_ref*, hvm_obj_ref*);
@@ -169,7 +169,7 @@ hvm_obj_ref* hvm_obj_array_pop(hvm_obj_ref*);
 hvm_obj_ref* hvm_obj_array_get(hvm_obj_ref*, hvm_obj_ref*);
 void hvm_obj_array_set(hvm_obj_ref*, hvm_obj_ref*, hvm_obj_ref*);
 hvm_obj_ref* hvm_obj_array_remove(hvm_obj_ref*, hvm_obj_ref*);
-hvm_obj_ref* hvm_obj_array_len(hvm_obj_ref*);
+hvm_obj_ref* hvm_obj_array_len(hvm_vm*, hvm_obj_ref*);
 
 uint64_t hvm_obj_array_internal_len(hvm_obj_array*);
 hvm_obj_ref* hvm_obj_array_internal_get(hvm_obj_array*, uint64_t);

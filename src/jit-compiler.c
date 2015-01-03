@@ -162,7 +162,7 @@ LLVMValueRef hvm_jit_obj_array_set_llvm_value(hvm_compile_bundle *bundle) {
 LLVMValueRef hvm_jit_obj_array_len_llvm_value(hvm_compile_bundle *bundle) {
   STATIC_VALUE(LLVMValueRef, func);
   UNPACK_BUNDLE(bundle);
-  ADD_FUNCTION(func, hvm_obj_array_len, obj_ref_ptr_type, 1, obj_ref_ptr_type);
+  ADD_FUNCTION(func, hvm_obj_array_len, obj_ref_ptr_type, 2, pointer_type, obj_ref_ptr_type);
   return func;
 }
 
@@ -178,7 +178,7 @@ LLVMValueRef hvm_jit_obj_cmp_and_llvm_value(hvm_compile_bundle *bundle) {
   STATIC_VALUE(LLVMValueRef, func);
   UNPACK_BUNDLE(bundle);
   // (hvm_obj_ref*, hvm_obj_ref*) -> hvm_obj_ref*
-  ADD_FUNCTION(func, hvm_obj_cmp_and, obj_ref_ptr_type, 2, obj_ref_ptr_type, obj_ref_ptr_type);
+  ADD_FUNCTION(func, hvm_obj_cmp_and, obj_ref_ptr_type, 3, pointer_type, obj_ref_ptr_type, obj_ref_ptr_type);
   return func;
 }
 
@@ -193,21 +193,21 @@ LLVMValueRef hvm_jit_vm_copy_regs_llvm_value(hvm_compile_bundle *bundle) {
 LLVMValueRef hvm_jit_obj_int_add_llvm_value(hvm_compile_bundle *bundle) {
   STATIC_VALUE(LLVMValueRef, func);
   UNPACK_BUNDLE(bundle);
-  ADD_FUNCTION(func, hvm_obj_int_add, obj_ref_ptr_type, 2, obj_ref_ptr_type, obj_ref_ptr_type);
+  ADD_FUNCTION(func, hvm_obj_int_add, obj_ref_ptr_type, 3, pointer_type, obj_ref_ptr_type, obj_ref_ptr_type);
   return func;
 }
 
 LLVMValueRef hvm_jit_obj_int_eq_llvm_value(hvm_compile_bundle *bundle) {
   STATIC_VALUE(LLVMValueRef, func);
   UNPACK_BUNDLE(bundle);
-  ADD_FUNCTION(func, hvm_obj_int_eq, obj_ref_ptr_type, 2, obj_ref_ptr_type, obj_ref_ptr_type);
+  ADD_FUNCTION(func, hvm_obj_int_eq, obj_ref_ptr_type, 3, pointer_type, obj_ref_ptr_type, obj_ref_ptr_type);
   return func;
 }
 
 LLVMValueRef hvm_jit_obj_int_gt_llvm_value(hvm_compile_bundle *bundle) {
   STATIC_VALUE(LLVMValueRef, func);
   UNPACK_BUNDLE(bundle);
-  ADD_FUNCTION(func, hvm_obj_int_gt, obj_ref_ptr_type, 2, obj_ref_ptr_type, obj_ref_ptr_type);
+  ADD_FUNCTION(func, hvm_obj_int_gt, obj_ref_ptr_type, 3, pointer_type, obj_ref_ptr_type, obj_ref_ptr_type);
   return func;
 }
 
@@ -239,7 +239,8 @@ LLVMValueRef hvm_jit_new_obj_int_llvm_value(hvm_compile_bundle *bundle) {
   STATIC_VALUE(LLVMValueRef, func);
   UNPACK_BUNDLE(bundle);
   // () -> hvm_obj_ref*
-  LLVMTypeRef func_type = LLVMFunctionType(pointer_type, NULL, 0, false);
+  LLVMTypeRef param_types[] = {pointer_type};
+  LLVMTypeRef func_type = LLVMFunctionType(pointer_type, param_types, 1, false);
   func = LLVMAddFunction(module, "hvm_new_obj_int", func_type);
   LLVMAddGlobalMapping(engine, func, &hvm_new_obj_int);
   return func;
@@ -1243,7 +1244,7 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
           LLVMValueRef value;
           byte reg = trace_item->litinteger.register_return;
           // Create a new object reference and store the literal value in it
-          ref = hvm_new_obj_int();
+          ref = hvm_new_obj_int(vm);
           // Mark it as a constant to be exempt from GC.
           ref->flags = ref->flags | HVM_OBJ_FLAG_CONSTANT;
           // TODO: Add it to the object space so that the VM and GC will still

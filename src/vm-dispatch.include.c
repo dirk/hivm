@@ -327,7 +327,7 @@ EXECUTE:
     case HVM_OP_LITINTEGER: // 1B OP | 1B REG | 8B LIT
       reg = vm->program[vm->ip + 1];
       i64 = READ_I64(&vm->program[vm->ip + 2]);
-      val = hvm_new_obj_int();
+      val = hvm_new_obj_int(vm);
       val->data.i64 = i64;
       hvm_obj_space_add_obj_ref(vm->obj_space, val);
       hvm_vm_register_write(vm, reg, val);
@@ -486,7 +486,7 @@ EXECUTE:
       AREG; BREG; CREG;
       b   = _hvm_vm_register_read(vm, breg);
       c   = _hvm_vm_register_read(vm, creg);
-      val = hvm_obj_cmp_and(b, c);
+      val = hvm_obj_cmp_and(vm, b, c);
       // Add integer to GC object space and write to register
       hvm_obj_space_add_obj_ref(vm->obj_space, val);
       hvm_vm_register_write(vm, areg, val);
@@ -565,7 +565,7 @@ EXECUTE:
       AREG; BREG;
       a = _hvm_vm_register_read(vm, breg);
       assert(a->type == HVM_ARRAY);
-      val = hvm_obj_array_len(a);
+      val = hvm_obj_array_len(vm, a);
       hvm_obj_space_add_obj_ref(vm->obj_space, val);
       hvm_vm_register_write(vm, areg, val);
       vm->ip += 2;

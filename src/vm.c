@@ -337,7 +337,7 @@ void hvm_vm_copy_regs(hvm_vm *vm) {
   // Set special $pn register.
   // TODO: Make sure this works with the object space properly so that it
   //       doesn't get leaked.
-  hvm_obj_ref *pn = hvm_new_obj_int();
+  hvm_obj_ref *pn = hvm_new_obj_int(vm);
   pn->data.i64 = i + 1;
   vm->param_regs[HVM_PARAMETER_REGISTERS - 1] = pn;
 }
