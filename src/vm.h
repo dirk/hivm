@@ -121,6 +121,8 @@ typedef struct hvm_vm {
   struct hvm_obj_ref* arg_regs[HVM_ARGUMENT_REGISTERS];
   struct hvm_obj_ref* param_regs[HVM_PARAMETER_REGISTERS];
 
+  /// Pool for object references to be allocated and freed
+  struct hvm_obj_ref_pool *ref_pool;
   /// Object space for the garbage collector
   struct hvm_gc1_obj_space *obj_space;
 

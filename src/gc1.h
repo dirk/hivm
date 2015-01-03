@@ -13,6 +13,7 @@
 #define HVM_GC1_HEAP_MEMORY_SIZE(S) (S * sizeof(hvm_gc1_heap_entry))
 
 typedef struct hvm_gc1_heap {
+  /// Base of entries area
   struct hvm_gc1_heap_entry *entries;
   /// Number of entries allocated
   unsigned int size;

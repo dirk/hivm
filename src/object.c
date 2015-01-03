@@ -195,9 +195,9 @@ hvm_obj_ref *hvm_obj_cmp_and(hvm_obj_ref *a, hvm_obj_ref *b) {
                        assert(b != NULL); \
                        if(a->type != HVM_INTEGER || b->type != HVM_INTEGER) { return NULL; }
 
-hvm_obj_ref *hvm_obj_int_add(hvm_obj_ref *a, hvm_obj_ref *b) {
+hvm_obj_ref *hvm_obj_int_add(hvm_vm *vm, hvm_obj_ref *a, hvm_obj_ref *b) {
   INT_TYPE_CHECK;
-  hvm_obj_ref *c = hvm_new_obj_ref();
+  hvm_obj_ref *c = hvm_obj_ref_new_from_pool(vm);
   int64_t av, bv, cv;
   av = a->data.i64;
   bv = b->data.i64;
@@ -206,9 +206,9 @@ hvm_obj_ref *hvm_obj_int_add(hvm_obj_ref *a, hvm_obj_ref *b) {
   c->data.i64 = cv;
   return c;
 }
-hvm_obj_ref *hvm_obj_int_sub(hvm_obj_ref *a, hvm_obj_ref *b) {
+hvm_obj_ref *hvm_obj_int_sub(hvm_vm *vm, hvm_obj_ref *a, hvm_obj_ref *b) {
   INT_TYPE_CHECK;
-  hvm_obj_ref *c = hvm_new_obj_ref();
+  hvm_obj_ref *c = hvm_obj_ref_new_from_pool(vm);
   int64_t av, bv, cv;
   av = a->data.i64;
   bv = b->data.i64;
@@ -217,9 +217,9 @@ hvm_obj_ref *hvm_obj_int_sub(hvm_obj_ref *a, hvm_obj_ref *b) {
   c->data.i64 = cv;
   return c;
 }
-hvm_obj_ref *hvm_obj_int_mul(hvm_obj_ref *a, hvm_obj_ref *b) {
+hvm_obj_ref *hvm_obj_int_mul(hvm_vm *vm, hvm_obj_ref *a, hvm_obj_ref *b) {
   INT_TYPE_CHECK;
-  hvm_obj_ref *c = hvm_new_obj_ref();
+  hvm_obj_ref *c = hvm_obj_ref_new_from_pool(vm);
   int64_t av, bv, cv;
   av = a->data.i64;
   bv = b->data.i64;
@@ -228,9 +228,9 @@ hvm_obj_ref *hvm_obj_int_mul(hvm_obj_ref *a, hvm_obj_ref *b) {
   c->data.i64 = cv;
   return c;
 }
-hvm_obj_ref *hvm_obj_int_div(hvm_obj_ref *a, hvm_obj_ref *b) {
+hvm_obj_ref *hvm_obj_int_div(hvm_vm *vm, hvm_obj_ref *a, hvm_obj_ref *b) {
   INT_TYPE_CHECK;
-  hvm_obj_ref *c = hvm_new_obj_ref();
+  hvm_obj_ref *c = hvm_obj_ref_new_from_pool(vm);
   int64_t av, bv, cv;
   av = a->data.i64;
   bv = b->data.i64;
@@ -239,9 +239,9 @@ hvm_obj_ref *hvm_obj_int_div(hvm_obj_ref *a, hvm_obj_ref *b) {
   c->data.i64 = cv;
   return c;
 }
-hvm_obj_ref *hvm_obj_int_mod(hvm_obj_ref *a, hvm_obj_ref *b) {
+hvm_obj_ref *hvm_obj_int_mod(hvm_vm *vm, hvm_obj_ref *a, hvm_obj_ref *b) {
   INT_TYPE_CHECK;
-  hvm_obj_ref *c = hvm_new_obj_ref();
+  hvm_obj_ref *c = hvm_obj_ref_new_from_pool(vm);
   int64_t av, bv, cv;
   av = a->data.i64;
   bv = b->data.i64;
@@ -250,40 +250,40 @@ hvm_obj_ref *hvm_obj_int_mod(hvm_obj_ref *a, hvm_obj_ref *b) {
   c->data.i64 = cv;
   return c;
 }
-#define INT_COMPARISON_OP_HEAD hvm_obj_ref *c = hvm_new_obj_ref(); \
+#define INT_COMPARISON_OP_HEAD hvm_obj_ref *c = hvm_obj_ref_new_from_pool(vm); \
                                c->type = HVM_INTEGER; \
                                int64_t av, bv, cv; \
                                av = a->data.i64; \
                                bv = b->data.i64;
-hvm_obj_ref *hvm_obj_int_lt(hvm_obj_ref *a, hvm_obj_ref *b) {
+hvm_obj_ref *hvm_obj_int_lt(hvm_vm *vm, hvm_obj_ref *a, hvm_obj_ref *b) {
   INT_TYPE_CHECK;
   INT_COMPARISON_OP_HEAD;
   cv = av < bv;
   c->data.i64 = cv;
   return c;
 }
-hvm_obj_ref *hvm_obj_int_gt(hvm_obj_ref *a, hvm_obj_ref *b) {
+hvm_obj_ref *hvm_obj_int_gt(hvm_vm *vm, hvm_obj_ref *a, hvm_obj_ref *b) {
   INT_TYPE_CHECK;
   INT_COMPARISON_OP_HEAD;
   cv = av > bv;
   c->data.i64 = cv;
   return c;
 }
-hvm_obj_ref *hvm_obj_int_lte(hvm_obj_ref *a, hvm_obj_ref *b) {
+hvm_obj_ref *hvm_obj_int_lte(hvm_vm *vm, hvm_obj_ref *a, hvm_obj_ref *b) {
   INT_TYPE_CHECK;
   INT_COMPARISON_OP_HEAD;
   cv = av <= bv;
   c->data.i64 = cv;
   return c;
 }
-hvm_obj_ref *hvm_obj_int_gte(hvm_obj_ref *a, hvm_obj_ref *b) {
+hvm_obj_ref *hvm_obj_int_gte(hvm_vm *vm, hvm_obj_ref *a, hvm_obj_ref *b) {
   INT_TYPE_CHECK;
   INT_COMPARISON_OP_HEAD;
   cv = av >= bv;
   c->data.i64 = cv;
   return c;
 }
-hvm_obj_ref *hvm_obj_int_eq(hvm_obj_ref *a, hvm_obj_ref *b) {
+hvm_obj_ref *hvm_obj_int_eq(hvm_vm *vm, hvm_obj_ref *a, hvm_obj_ref *b) {
   INT_TYPE_CHECK;
   INT_COMPARISON_OP_HEAD;
   cv = av == bv;
@@ -367,6 +367,8 @@ void hvm_obj_print_structure(hvm_vm *vm, hvm_obj_struct *strct) {
   }
 }
 
+// OBJECT REFERENCES ----------------------------------------------------------
+
 hvm_obj_ref *hvm_new_obj_ref() {
   hvm_obj_ref *ref = je_malloc(sizeof(hvm_obj_ref));
   ref->type = HVM_NULL;
@@ -388,7 +390,83 @@ hvm_obj_ref *hvm_new_obj_ref_string_data(char *data) {
   return obj;
 }
 
-// DESTRUCTORS
+
+
+#define ZONE hvm_obj_ref_pool_zone
+#define POOL hvm_obj_ref_pool
+
+// Forward delcarations of private functions
+ZONE *_hvm_obj_ref_pool_find_next_earliest_free(POOL *pool, ZONE *zone);
+
+ZONE *hvm_obj_ref_pool_zone_new() {
+  ZONE *zone          = je_malloc(sizeof(ZONE));
+  zone->refs          = je_malloc(sizeof(hvm_obj_ref) * HVM_OBJ_REF_POOL_ZONE_SIZE);
+  zone->earliest_free = 0;
+  zone->prev          = NULL;
+  zone->next          = NULL;
+  return zone;
+}
+
+hvm_obj_ref_pool *hvm_obj_ref_pool_new() {
+  hvm_obj_ref_pool_zone *zone = hvm_obj_ref_pool_zone_new();
+  hvm_obj_ref_pool *pool = je_malloc(sizeof(hvm_obj_ref_pool));
+  pool->head          = zone;
+  pool->tail          = zone;
+  pool->earliest_free = zone;
+  return pool;
+}
+hvm_obj_ref *hvm_obj_ref_new_from_pool(hvm_vm *vm) {
+  hvm_obj_ref_pool *pool = vm->ref_pool;
+  // Get the earliest zone with free slots
+  ZONE *zone = pool->earliest_free;
+  // Get the earliest free slot of that zone as our reference
+  hvm_obj_ref *ref = &zone->refs[zone->earliest_free];
+  // Calculate the next earliest free zone since the current is now invalid
+  pool->earliest_free = _hvm_obj_ref_pool_find_next_earliest_free(pool, zone);
+  // Make sure the ref is all sanitized
+  assert(ref->type == HVM_NULL);
+  ref->data.v = 0x0;
+  ref->flags  = 0x0;
+  ref->entry  = 0x0;
+  return ref;
+}
+
+ZONE *_hvm_obj_ref_pool_find_next_earliest_free(POOL *pool, ZONE *zone) {
+  ZONE *last_zone = zone;
+  // Bump it forward since we just used the current free slot in
+  // the caller (`hvm_obj_ref_new_from_pool`).
+  zone->earliest_free += 1;
+  while(zone != NULL) {
+    // Make sure this zone is recorded as the last being processed in case
+    // it turns out to be the last in the list
+    last_zone = zone;
+    // Check if we're out of space
+    if(zone->earliest_free == HVM_OBJ_REF_POOL_ZONE_FULL) {
+      // Advance to the next zone if we're out of space
+      zone = zone->next;
+      continue;
+    }
+    hvm_obj_ref *ref = &zone->refs[zone->earliest_free];
+    if(ref->type == HVM_NULL) {
+      return zone;
+    }
+    zone->earliest_free += 1;
+  }
+  // Make sure we've actually run out of zones
+  assert(zone == NULL);
+  zone = hvm_obj_ref_pool_zone_new();
+  // Update the double-links
+  zone->prev = last_zone;
+  assert(last_zone->next == NULL);
+  last_zone->next = zone;
+  // Update the pool
+  pool->tail = zone;
+  return zone;
+}
+
+
+// DESTRUCTORS ----------------------------------------------------------------
+
 void hvm_obj_free(hvm_obj_ref *ref) {
   // Make sure it's not a special data type
   assert(ref->type != HVM_NULL && ref->type != HVM_SYMBOL && ref->type != HVM_INTERNAL);
@@ -415,7 +493,7 @@ void hvm_obj_struct_free(hvm_obj_struct *strct) {
 }
 
 
-// UTILITIES
+// UTILITIES ------------------------------------------------------------------
 
 const char *hvm_human_name_for_obj_type(hvm_obj_type type) {
   static char *string  = "string",

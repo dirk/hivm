@@ -53,7 +53,30 @@ typedef struct hvm_obj_ref {
   void *entry;
 } hvm_obj_ref;
 
-// TYPES
+
+/// Each zone will hold 32,768 `hvm_obj_ref`
+#define HVM_OBJ_REF_POOL_ZONE_SIZE 32768
+#define HVM_OBJ_REF_POOL_ZONE_FULL HVM_OBJ_REF_POOL_ZONE_SIZE
+
+typedef struct hvm_obj_ref_pool_zone {
+  hvm_obj_ref *refs;
+  /// Index of the first free slot in this zone, set this to
+  /// HVM_OBJ_REF_POOL_ZONE_FULL to indicate that this zone is full
+  unsigned int earliest_free;
+  // Doubly-linked-list to preceding and following zones
+  void *prev;
+  void *next;
+} hvm_obj_ref_pool_zone;
+
+typedef struct hvm_obj_ref_pool {
+  hvm_obj_ref_pool_zone *head;
+  hvm_obj_ref_pool_zone *tail;
+  /// First zone with empty slots
+  hvm_obj_ref_pool_zone *earliest_free;
+} hvm_obj_ref_pool;
+
+// TYPES ----------------------------------------------------------------------
+
 typedef struct hvm_obj_string {
   /// Raw string data (NULL-terminated)
   char* data;
@@ -120,17 +143,21 @@ void hvm_obj_print_structure(hvm_vm *vm, hvm_obj_struct *strct);
 hvm_obj_ref *hvm_new_obj_ref();
 void hvm_obj_ref_set_string(hvm_obj_ref*, hvm_obj_string*);
 
+/// New pool-based `hvm_obj_ref` allocator
+hvm_obj_ref *hvm_obj_ref_new_from_pool(hvm_vm*);
+hvm_obj_ref_pool *hvm_obj_ref_pool_new();
+
 hvm_obj_ref *hvm_new_obj_int();
-hvm_obj_ref *hvm_obj_int_add(hvm_obj_ref*, hvm_obj_ref*);
-hvm_obj_ref *hvm_obj_int_sub(hvm_obj_ref*, hvm_obj_ref*);
-hvm_obj_ref *hvm_obj_int_mul(hvm_obj_ref*, hvm_obj_ref*);
-hvm_obj_ref *hvm_obj_int_div(hvm_obj_ref*, hvm_obj_ref*);
-hvm_obj_ref *hvm_obj_int_mod(hvm_obj_ref*, hvm_obj_ref*);
-hvm_obj_ref *hvm_obj_int_lt (hvm_obj_ref*, hvm_obj_ref*);
-hvm_obj_ref *hvm_obj_int_gt (hvm_obj_ref*, hvm_obj_ref*);
-hvm_obj_ref *hvm_obj_int_lte(hvm_obj_ref*, hvm_obj_ref*);
-hvm_obj_ref *hvm_obj_int_gte(hvm_obj_ref*, hvm_obj_ref*);
-hvm_obj_ref *hvm_obj_int_eq (hvm_obj_ref*, hvm_obj_ref*);
+hvm_obj_ref *hvm_obj_int_add(hvm_vm*, hvm_obj_ref*, hvm_obj_ref*);
+hvm_obj_ref *hvm_obj_int_sub(hvm_vm*, hvm_obj_ref*, hvm_obj_ref*);
+hvm_obj_ref *hvm_obj_int_mul(hvm_vm*, hvm_obj_ref*, hvm_obj_ref*);
+hvm_obj_ref *hvm_obj_int_div(hvm_vm*, hvm_obj_ref*, hvm_obj_ref*);
+hvm_obj_ref *hvm_obj_int_mod(hvm_vm*, hvm_obj_ref*, hvm_obj_ref*);
+hvm_obj_ref *hvm_obj_int_lt (hvm_vm*, hvm_obj_ref*, hvm_obj_ref*);
+hvm_obj_ref *hvm_obj_int_gt (hvm_vm*, hvm_obj_ref*, hvm_obj_ref*);
+hvm_obj_ref *hvm_obj_int_lte(hvm_vm*, hvm_obj_ref*, hvm_obj_ref*);
+hvm_obj_ref *hvm_obj_int_gte(hvm_vm*, hvm_obj_ref*, hvm_obj_ref*);
+hvm_obj_ref *hvm_obj_int_eq (hvm_vm*, hvm_obj_ref*, hvm_obj_ref*);
 
 hvm_obj_ref *hvm_obj_cmp_and(hvm_obj_ref*, hvm_obj_ref*);
 

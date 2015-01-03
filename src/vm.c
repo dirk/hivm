@@ -20,7 +20,7 @@
 #define bool char
 #endif
 
-// Prefix a function definition with this to force its inling into caller.
+// Prefix a function definition with this to force its inling into caller
 #define ALWAYS_INLINE __attribute__((always_inline))
 
 struct hvm_obj_ref* hvm_const_null = &(hvm_obj_ref){
@@ -66,10 +66,13 @@ hvm_vm *hvm_new_vm() {
   vm->const_pool.size = HVM_CONSTANT_POOL_INITIAL_SIZE;
   vm->const_pool.entries = malloc(sizeof(hvm_obj_ref*) * vm->const_pool.size);
   // Variables
-  vm->globals      = hvm_new_obj_struct();
-  vm->symbols      = hvm_new_symbol_store();
-  vm->primitives   = hvm_new_obj_struct();
-  vm->obj_space    = hvm_new_obj_space();
+  vm->globals    = hvm_new_obj_struct();
+  vm->symbols    = hvm_new_symbol_store();
+  vm->primitives = hvm_new_obj_struct();
+
+  // Setup allocator and garbage collector
+  vm->obj_space = hvm_new_obj_space();
+  vm->ref_pool  = hvm_obj_ref_pool_new();
 
   vm->stack = calloc(HVM_STACK_SIZE, sizeof(struct hvm_frame));
   vm->stack_depth = 0;

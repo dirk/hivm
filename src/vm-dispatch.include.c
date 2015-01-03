@@ -439,11 +439,11 @@ EXECUTE:
       b = _hvm_vm_register_read(vm, breg);
       c = _hvm_vm_register_read(vm, creg);
       // TODO: Add float support
-      if(instr == HVM_OP_ADD)      { a = hvm_obj_int_add(b, c); }
-      else if(instr == HVM_OP_SUB) { a = hvm_obj_int_sub(b, c); }
-      else if(instr == HVM_OP_MUL) { a = hvm_obj_int_mul(b, c); }
-      else if(instr == HVM_OP_DIV) { a = hvm_obj_int_div(b, c); }
-      else if(instr == HVM_OP_MOD) { a = hvm_obj_int_mod(b, c); }
+      if(instr == HVM_OP_ADD)      { a = hvm_obj_int_add(vm, b, c); }
+      else if(instr == HVM_OP_SUB) { a = hvm_obj_int_sub(vm, b, c); }
+      else if(instr == HVM_OP_MUL) { a = hvm_obj_int_mul(vm, b, c); }
+      else if(instr == HVM_OP_DIV) { a = hvm_obj_int_div(vm, b, c); }
+      else if(instr == HVM_OP_MOD) { a = hvm_obj_int_mod(vm, b, c); }
       if(a == NULL) {
         // Bad type
         vm->exception = hvm_new_operand_not_integer_exception(vm);
@@ -466,11 +466,11 @@ EXECUTE:
       a = NULL;
       b = _hvm_vm_register_read(vm, breg);
       c = _hvm_vm_register_read(vm, creg);
-      if(instr == HVM_OP_LT)       { a = hvm_obj_int_lt(b, c); }
-      else if(instr == HVM_OP_GT)  { a = hvm_obj_int_gt(b, c); }
-      else if(instr == HVM_OP_LTE) { a = hvm_obj_int_lte(b, c); }
-      else if(instr == HVM_OP_GTE) { a = hvm_obj_int_gte(b, c); }
-      else if(instr == HVM_OP_EQ)  { a = hvm_obj_int_eq(b, c); }
+      if(instr == HVM_OP_LT)       { a = hvm_obj_int_lt (vm, b, c); }
+      else if(instr == HVM_OP_GT)  { a = hvm_obj_int_gt (vm, b, c); }
+      else if(instr == HVM_OP_LTE) { a = hvm_obj_int_lte(vm, b, c); }
+      else if(instr == HVM_OP_GTE) { a = hvm_obj_int_gte(vm, b, c); }
+      else if(instr == HVM_OP_EQ)  { a = hvm_obj_int_eq (vm, b, c); }
       // TODO: Check if those comparison functions set an exception?
       if(a == NULL) {
         vm->exception = hvm_new_operand_not_integer_exception(vm);
