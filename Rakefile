@@ -1,7 +1,7 @@
 def include_env v
   ENV[v].to_s
 end
-$cc  = ENV['CC'].nil? ? 'clang' : ENV['CC']
+$cc  = ENV['CC'].nil?  ? 'clang' : ENV['CC']
 $cpp = ENV['CPP'].nil? ? 'clang++' : ENV['CPP']
 $ar = 'ar'
 $ld = 'ld'
@@ -39,10 +39,14 @@ def cflags_for file
   if basename == "vm-db.o" || basename == "debug.o"
     cflags += " -DHVM_VM_DEBUG #{`pkg-config --cflags #{$lua}`.strip}"
   end
-
   if basename == "jit-compiler.o"
     cflags += " "+`#{$llvm_config} --cflags`.strip
   end
+  # Optimization passes on some objects
+  if basename =~ /^vm/ || basename == "gc1.o"
+    cflags += ' -O2'
+  end
+
   return cflags
 end
 
