@@ -219,8 +219,13 @@ EXECUTE:
       break;
     case HVM_OP_SETEXCEPTION: // 1B OP | 1B REG
       reg = vm->program[vm->ip + 1];
-      // TODO: Throw new exception if no current exception.
-      assert(vm->exception != NULL);
+      // Throw new exception if there's no current exception
+      if(vm->exception == NULL) {
+        msg = "Attempt to SETEXCEPTION with no exception state";
+        hvm_obj_ref *message = hvm_new_obj_ref_string_data(hvm_util_strclone(msg));
+        vm->exception = hvm_exception_new(vm, message);
+        goto EXCEPTION;
+      }
       // val = hvm_obj_for_exception(vm, vm->exception);
       val = vm->exception;
       hvm_vm_register_write(vm, reg, val);
@@ -230,6 +235,13 @@ EXECUTE:
       AREG;
       // Get the object to be associated with the execption
       val = _hvm_vm_register_read(vm, areg);
+      // Make sure it's a structure
+      if(val->type != HVM_STRUCTURE) {
+        msg = "Expected structure when throwing exception";
+        hvm_obj_ref *message = hvm_new_obj_ref_string_data(hvm_util_strclone(msg));
+        vm->exception = hvm_exception_new(vm, message);
+        goto EXCEPTION;
+      }
       assert(val->type == HVM_STRUCTURE);
       // Create the exception and set the object
       // exc = hvm_new_exception();
@@ -254,7 +266,6 @@ EXECUTE:
       if(vm->stack_depth == 0) {
         msg = "Attempt to return from stack root";
         hvm_obj_ref *message = hvm_new_obj_ref_string_data(hvm_util_strclone(msg));
-        // Raise the exception
         vm->exception = hvm_exception_new(vm, message);
         goto EXCEPTION;
       }
@@ -303,11 +314,12 @@ EXECUTE:
         }
       )
       if(dont_branch) {
-        // Falsey, add on the 9 bytes for the instruction parameters and continue onwards.
+        // Falsey; add on the 9 bytes for the instruction parameters and
+        // continue onwards
         vm->ip += 9;
         break;
       } else {
-        // Truthy, go straight to destination.
+        // Truthy; go straight to destination
         vm->ip = dest;
         goto EXECUTE;
       }
