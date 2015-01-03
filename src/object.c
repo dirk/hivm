@@ -12,6 +12,9 @@
 #include "frame.h"
 #include "exception.h"
 
+// Prefix to force inlining
+#define ALWAYS_INLINE __attribute__((always_inline))
+
 // TODO: Flywheelize this.
 hvm_obj_string *hvm_new_obj_string() {
   hvm_obj_string *str = je_malloc(sizeof(hvm_obj_string));
@@ -21,7 +24,7 @@ hvm_obj_string *hvm_new_obj_string() {
 
 // BOOLEANS -------------------------------------------------------------------
 
-bool hvm_obj_is_falsey(hvm_obj_ref *ref) {
+ALWAYS_INLINE bool _hvm_obj_is_falsey(hvm_obj_ref *ref) {
   // Falsey values are null and integer zero
   if(ref->type == HVM_NULL) {
     return true;
@@ -31,9 +34,37 @@ bool hvm_obj_is_falsey(hvm_obj_ref *ref) {
     return false;
   }
 }
-bool hvm_obj_is_truthy(hvm_obj_ref *ref) {
-  return !hvm_obj_is_falsey(ref);
+ALWAYS_INLINE bool _hvm_obj_is_truthy(hvm_obj_ref *ref) {
+  return !_hvm_obj_is_falsey(ref);
 }
+
+bool hvm_obj_is_falsey(hvm_obj_ref *ref) {
+  return _hvm_obj_is_falsey(ref);
+}
+bool hvm_obj_is_truthy(hvm_obj_ref *ref) {
+  return _hvm_obj_is_truthy(ref);
+}
+
+// Internal array API
+
+uint64_t hvm_obj_array_internal_len(hvm_obj_array *arr) {
+  guint len = arr->array->len;
+  return (uint64_t)len;
+}
+
+ALWAYS_INLINE hvm_obj_ref* _hvm_obj_array_internal_get(hvm_obj_array *arr, uint64_t _idx) {
+  guint idx, len;
+  idx = (guint)_idx;
+  len = arr->array->len;
+  assert(idx < len);
+  hvm_obj_ref *ptr = g_array_index(arr->array, hvm_obj_ref*, idx);
+  return ptr;
+}
+hvm_obj_ref* hvm_obj_array_internal_get(hvm_obj_array *arr, uint64_t _idx) {
+  return _hvm_obj_array_internal_get(arr, _idx);
+}
+
+// Public array API
 
 hvm_obj_array *hvm_new_obj_array() {
   hvm_obj_array *arr = je_malloc(sizeof(hvm_obj_array));
@@ -98,7 +129,7 @@ hvm_obj_ref* hvm_obj_array_len(hvm_obj_ref *a) {
 
 hvm_obj_ref* hvm_obj_array_get(hvm_obj_ref *arrref, hvm_obj_ref *idxref) {
   assert(arrref->type == HVM_ARRAY); assert(idxref->type == HVM_INTEGER);
-  return hvm_obj_array_internal_get(arrref->data.v, (uint64_t)(idxref->data.i64));
+  return _hvm_obj_array_internal_get(arrref->data.v, (uint64_t)(idxref->data.i64));
 }
 
 hvm_obj_ref* hvm_obj_array_remove(hvm_obj_ref *arrref, hvm_obj_ref *idxref) {
@@ -122,19 +153,6 @@ void hvm_obj_array_set(hvm_obj_ref *arrref, hvm_obj_ref *idxref, hvm_obj_ref *va
   assert(idx < len);
   hvm_obj_ref **el = &g_array_index(arr->array, hvm_obj_ref*, idx);
   *el = valref;
-}
-
-uint64_t hvm_obj_array_internal_len(hvm_obj_array *arr) {
-  guint len = arr->array->len;
-  return (uint64_t)len;
-}
-hvm_obj_ref* hvm_obj_array_internal_get(hvm_obj_array *arr, uint64_t _idx) {
-  guint idx, len;
-  idx = (guint)_idx;
-  len = arr->array->len;
-  assert(idx < len);
-  hvm_obj_ref *ptr = g_array_index(arr->array, hvm_obj_ref*, idx);
-  return ptr;
 }
 
 void hvm_obj_struct_set(hvm_obj_ref *sref, hvm_obj_ref *key, hvm_obj_ref *val) {
@@ -168,8 +186,8 @@ hvm_obj_ref *hvm_new_obj_int() {
 hvm_obj_ref *hvm_obj_cmp_and(hvm_obj_ref *a, hvm_obj_ref *b) {
   // Integer value for the result
   hvm_obj_ref *val = hvm_new_obj_int();
-  // Do our truthy test
-  val->data.i64 = (int64_t)((hvm_obj_is_truthy(a) && hvm_obj_is_truthy(b)) ? 1 : 0);
+  // Do our truthy test (using always-inlined _hvm_obj_is_truthy)
+  val->data.i64 = (int64_t)((_hvm_obj_is_truthy(a) && _hvm_obj_is_truthy(b)) ? 1 : 0);
   return val;
 }
 

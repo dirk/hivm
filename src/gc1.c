@@ -16,8 +16,17 @@
 
 #define FLAG_GC_MARKED 0x1
 
+// 0000 0001
+#define MARK_ENTRY(E)   E->flags = E->flags | 0x1;
+// 1111 1110
+#define UNMARK_ENTRY(E) E->flags = E->flags & 0xFE;
+
 // Dereferences an entry pointer and returns the first byte of the struct.
 #define FIRST_BYTE_OF_ENTRY(V) *(char*)(V)
+
+// Prefix for performance
+#define ALWAYS_INLINE __attribute__((always_inline))
+
 
 hvm_gc1_obj_space *hvm_new_obj_space() {
   hvm_gc1_obj_space *space = malloc(sizeof(hvm_gc1_obj_space));
@@ -31,7 +40,8 @@ void hvm_gc1_obj_space_mark_reset(hvm_gc1_obj_space *space) {
   unsigned int id = 0;
   while(id < space->heap.length) {
     hvm_gc1_heap_entry *entry = &space->heap.entries[id];
-    entry->flags = entry->flags & 0xFE; // 1111 1110
+    // entry->flags = entry->flags & 0xFE;
+    UNMARK_ENTRY(entry);
     id += 1;
   }
 }
@@ -51,7 +61,7 @@ static inline void _gc1_mark_obj_ref(hvm_obj_ref *obj) {
   // Check if already marked
   if(FLAGTRUE(entry->flags, FLAG_GC_MARKED)) { return; }
   // Mark the GC entry
-  entry->flags = entry->flags | 0x1; // 0000 0001
+  MARK_ENTRY(entry);
   // Handle complex data structures
   if(obj->type == HVM_STRUCTURE) {
     _gc1_mark_struct(obj->data.v);
@@ -80,7 +90,7 @@ void _gc1_mark_array(hvm_obj_array *arr) {
   }
 }
 
-static inline void _gc1_mark_registers(hvm_vm *vm) {
+ALWAYS_INLINE void hvm_gc1_mark_registers(hvm_vm *vm) {
   uint32_t i;
   for(i = 0; i < HVM_GENERAL_REGISTERS; i++) {
     hvm_obj_ref* obj = vm->general_regs[i];
@@ -96,7 +106,7 @@ static inline void _gc1_mark_registers(hvm_vm *vm) {
   }
 }
 
-static inline void _gc1_mark_stack(hvm_vm *vm) {
+ALWAYS_INLINE void hvm_gc1_mark_stack(hvm_vm *vm) {
   uint32_t i;
   for(i = 0; i <= vm->stack_depth; i++) {
     struct hvm_frame *frame = &vm->stack[i];
@@ -105,7 +115,7 @@ static inline void _gc1_mark_stack(hvm_vm *vm) {
   }
 }
 
-static inline void _gc1_free(hvm_gc1_heap_entry *entry) {
+void hvm_gc1_free(hvm_gc1_heap_entry *entry) {
   // Free the object referenced
   hvm_obj_free(entry->obj);
   // Then clear out the entry
@@ -114,34 +124,34 @@ static inline void _gc1_free(hvm_gc1_heap_entry *entry) {
   FIRST_BYTE_OF_ENTRY(entry) = 0;
 }
 
-static inline void _gc1_sweep(hvm_gc1_obj_space *space) {
+void hvm_gc1_sweep(hvm_gc1_obj_space *space) {
   for(uint32_t id = 0; id < space->heap.length; id++) {
     hvm_gc1_heap_entry *entry = &space->heap.entries[id];
     if(FLAGFALSE(entry->flags, FLAG_GC_MARKED)) {
       fprintf(stderr, "freeing:%d\n", id);
-      _gc1_free(entry);
+      hvm_gc1_free(entry);
     }
   }
 }
 
-static inline bool _gc1_entry_is_null(hvm_gc1_obj_space *space, uint32_t idx) {
+ALWAYS_INLINE bool hvm_gc1_entry_is_null(hvm_gc1_obj_space *space, uint32_t idx) {
   hvm_gc1_heap_entry *entry = &space->heap.entries[idx];
   return FIRST_BYTE_OF_ENTRY(entry) == 0;
 }
 
-static inline void _gc1_compact_find_next_free_entry(hvm_gc1_obj_space *space, uint32_t *free_entry) {
+ALWAYS_INLINE void hvm_gc1_compact_find_next_free_entry(hvm_gc1_obj_space *space, uint32_t *free_entry) {
   uint32_t idx = *free_entry;
-  while(idx < space->heap.length && !_gc1_entry_is_null(space, idx)) {
+  while(idx < space->heap.length && !hvm_gc1_entry_is_null(space, idx)) {
     idx += 1;
   }
   *free_entry = idx;
 }
-static inline bool _gc1_compact_has_used_entry_after(hvm_gc1_obj_space *space, uint32_t free_entry, uint32_t *used_entry) {
+static inline bool hvm_gc1_compact_has_used_entry_after(hvm_gc1_obj_space *space, uint32_t free_entry, uint32_t *used_entry) {
   // Start at the index after the free entry index
   uint32_t idx = free_entry + 1;
   // Make sure we have space left to search
   while(idx < space->heap.length) {
-    if(_gc1_entry_is_null(space, idx)) {
+    if(hvm_gc1_entry_is_null(space, idx)) {
       // Pass over free entry
       idx += 1;
       continue;
@@ -154,7 +164,7 @@ static inline bool _gc1_compact_has_used_entry_after(hvm_gc1_obj_space *space, u
   return false; // No space left
 }
 
-static inline void _gc1_relocate(hvm_gc1_obj_space *space, uint32_t free_entry, uint32_t used_entry) {
+static inline void hvm_gc1_relocate(hvm_gc1_obj_space *space, uint32_t free_entry, uint32_t used_entry) {
   assert(free_entry < used_entry);
   hvm_gc1_heap_entry *dest   = &space->heap.entries[free_entry];
   hvm_gc1_heap_entry *source = &space->heap.entries[used_entry];
@@ -167,17 +177,17 @@ static inline void _gc1_relocate(hvm_gc1_obj_space *space, uint32_t free_entry, 
   obj->entry = dest;
 }
 
-static inline void _gc1_compact(hvm_gc1_obj_space *space) {
+ALWAYS_INLINE void hvm_gc1_compact(hvm_gc1_obj_space *space) {
   uint32_t free_entry = 0;
   uint32_t used_entry = 0;
-  _gc1_compact_find_next_free_entry(space, &free_entry);
-  while(_gc1_compact_has_used_entry_after(space, free_entry, &used_entry)) {
+  hvm_gc1_compact_find_next_free_entry(space, &free_entry);
+  while(hvm_gc1_compact_has_used_entry_after(space, free_entry, &used_entry)) {
     // Move the used entry to the free entry
-    _gc1_relocate(space, free_entry, used_entry);
+    hvm_gc1_relocate(space, free_entry, used_entry);
     fprintf(stderr, "relocating from used:%d to free:%d\n", used_entry, free_entry);
     // Find the next free entry after this one
     free_entry += 1;
-    _gc1_compact_find_next_free_entry(space, &free_entry);
+    hvm_gc1_compact_find_next_free_entry(space, &free_entry);
   }
   fprintf(stderr, "free entry:%d\n", free_entry);
   space->heap.length = free_entry;
@@ -185,9 +195,9 @@ static inline void _gc1_compact(hvm_gc1_obj_space *space) {
 
 void hvm_gc1_obj_space_mark(hvm_vm *vm) {
   // Go through the registers
-  _gc1_mark_registers(vm);
+  hvm_gc1_mark_registers(vm);
   // Climb through each of the stack frames
-  _gc1_mark_stack(vm);
+  hvm_gc1_mark_stack(vm);
 }
 
 void hvm_gc1_run(hvm_vm *vm, hvm_gc1_obj_space *space) {
@@ -197,15 +207,17 @@ void hvm_gc1_run(hvm_vm *vm, hvm_gc1_obj_space *space) {
   // Mark objects
   hvm_gc1_obj_space_mark(vm);
   // Free unmarked objects
-  _gc1_sweep(space);
+  hvm_gc1_sweep(space);
   // Compact the object space
-  _gc1_compact(space);
+  hvm_gc1_compact(space);
   // fprintf(stderr, "gc1_run.end\n");
   // TODO: Shrink the object space
 }
 
 void hvm_obj_space_grow(hvm_gc1_obj_space *space) {
+  unsigned int old_size = space->heap.size;
   space->heap.size = HVM_GC1_HEAP_GROW_FUNCTION(space->heap.size);
+  fprintf(stderr, "gc1: growing from %u to %u\n", old_size, space->heap.size);
   space->heap.entries = realloc(space->heap.entries, HVM_GC1_HEAP_MEMORY_SIZE(space->heap.size));
 }
 

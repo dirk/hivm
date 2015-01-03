@@ -9,7 +9,7 @@
 // locking with the VM.
 
 #define HVM_GC1_INITIAL_HEAP_SIZE 1024
-#define HVM_GC1_HEAP_GROW_FUNCTION(V) (V * 2)
+#define HVM_GC1_HEAP_GROW_FUNCTION(V) (V * 8)
 #define HVM_GC1_HEAP_MEMORY_SIZE(S) (S * sizeof(hvm_gc1_heap_entry))
 
 typedef struct hvm_gc1_heap {
@@ -21,7 +21,9 @@ typedef struct hvm_gc1_heap {
 } hvm_gc1_heap;
 
 typedef struct hvm_gc1_heap_entry {
-  hvm_obj_ref  *obj;
+  /// Object this entry is tied to
+  hvm_obj_ref *obj;
+  /// Flags pertaining to the entry and its object
   byte flags;
 } hvm_gc1_heap_entry;
 
