@@ -261,10 +261,10 @@ void test_generator() {
   hvm_bootstrap_primitives(vm);
 
   printf("LOADING...\n");
-  hvm_vm_load_chunk(vm, chunk);
+  // hvm_vm_load_chunk(vm, chunk);
 
-  printf("AFTER LOADING:\n");
-  hvm_print_data(vm->program, vm->program_size);
+  // printf("AFTER LOADING:\n");
+  // hvm_print_data(vm->program, vm->program_size);
   // return;
 
   //hvm_debug_begin(vm);
@@ -281,10 +281,29 @@ void test_generator() {
 }
 
 
+void test_ref_pool() {
+  hvm_vm *vm = hvm_new_vm();
+  hvm_obj_ref *middle;
+  int i;
+  int max = 1000000;
+
+  for(i = 0; i < max; i++) {
+    hvm_obj_ref *ref = hvm_obj_ref_new_from_pool(vm);
+    if(i == (max / 2)) {
+      middle = ref;
+    }
+  }
+  printf("middle = %p\n", middle);
+
+  hvm_obj_ref_free(vm, middle);
+}
+
 
 int main(int argc, char **argv) {
-  test_generator();
+  // test_generator();
   // test_heap();
+
+  test_ref_pool();
 
   /*
   hvm_vm *vm = hvm_new_vm();

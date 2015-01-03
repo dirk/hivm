@@ -464,6 +464,48 @@ ZONE *_hvm_obj_ref_pool_find_next_earliest_free(POOL *pool, ZONE *zone) {
   return zone;
 }
 
+void hvm_obj_ref_free(hvm_vm *vm, hvm_obj_ref *ref) {
+  POOL *pool = vm->ref_pool;
+  // Now we need to find the zone for this ref; going to start backwards
+  // from the latest-zone
+  ZONE *zone = pool->tail;
+  while(zone != NULL) {
+    hvm_obj_ref *start = zone->refs;
+    hvm_obj_ref *end   = zone->refs + 32768;
+    if(ref >= start && ref < end) {
+      // Found the right zone!
+      break;
+    }
+    zone = zone->prev;
+  }
+  assert(zone != NULL);
+  // Use the address difference from the base of the zone to the pointer to
+  // calculate the index of that pointer
+  intptr_t diff = ref - zone->refs;
+  assert(diff >= 0 && diff < 32768);
+  unsigned int idx = (unsigned int)diff;
+  // Now let's mark it as HVM_NULL and check if we need to update the
+  // .earliest_free of the zone
+  ref->type = HVM_NULL;
+  if(idx < zone->earliest_free) {
+    zone->earliest_free = idx;
+  }
+  // Check if one of this zone's successors is marked as the earliest free zone
+  bool is_earliest = false;
+  ZONE *succ = zone->next;
+  while(succ != NULL) {
+    // Successor is marked as earliest, so this means we're the new earliest
+    if(succ == pool->earliest_free) {
+      is_earliest = true;
+      break;
+    }
+    succ = succ->next;
+  }
+  // We are the earliest free zone in the whole pool
+  if(is_earliest) {
+    pool->earliest_free = zone;
+  }
+}
 
 // DESTRUCTORS ----------------------------------------------------------------
 
