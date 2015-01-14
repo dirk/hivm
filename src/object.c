@@ -471,7 +471,7 @@ void hvm_obj_ref_free(hvm_vm *vm, hvm_obj_ref *ref) {
   ZONE *zone = pool->tail;
   while(zone != NULL) {
     hvm_obj_ref *start = zone->refs;
-    hvm_obj_ref *end   = zone->refs + 32768;
+    hvm_obj_ref *end   = zone->refs + HVM_OBJ_REF_POOL_ZONE_SIZE;
     if(ref >= start && ref < end) {
       // Found the right zone!
       break;
@@ -482,7 +482,7 @@ void hvm_obj_ref_free(hvm_vm *vm, hvm_obj_ref *ref) {
   // Use the address difference from the base of the zone to the pointer to
   // calculate the index of that pointer
   intptr_t diff = ref - zone->refs;
-  assert(diff >= 0 && diff < 32768);
+  assert(diff >= 0 && diff < HVM_OBJ_REF_POOL_ZONE_SIZE);
   unsigned int idx = (unsigned int)diff;
   // Now let's mark it as HVM_NULL and check if we need to update the
   // .earliest_free of the zone
