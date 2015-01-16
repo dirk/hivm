@@ -478,11 +478,20 @@ void hvm_obj_ref_free(hvm_vm *vm, hvm_obj_ref *ref) {
     }
     zone = zone->prev;
   }
-  assert(zone != NULL);
+  if(zone == NULL) {
+    fprintf(stderr, "Failed to find zone containing object reference\n");
+    assert(zone != NULL);
+  }
   // Use the address difference from the base of the zone to the pointer to
   // calculate the index of that pointer
   intptr_t diff = ref - zone->refs;
-  assert(diff >= 0 && diff < HVM_OBJ_REF_POOL_ZONE_SIZE);
+
+  bool valid_diff = (diff >= 0 && diff < HVM_OBJ_REF_POOL_ZONE_SIZE);
+  if(!valid_diff) {
+    fprintf(stderr, "Invalid reference index into zone\n");
+    assert(valid_diff);
+  }
+  // Convert the pointer to an integer offset (ie. index)
   unsigned int idx = (unsigned int)diff;
   // Now let's mark it as HVM_NULL and check if we need to update the
   // .earliest_free of the zone

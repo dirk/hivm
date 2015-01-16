@@ -301,6 +301,7 @@ hvm_jit_block *hvm_jit_get_block_by_ip(hvm_compile_bundle *bundle, uint64_t ip) 
     if(block->ip == ip) { return block; }
     block = block->next;
   }
+  fprintf(stderr, "Failed to get block with IP %08llX\n", ip);
   assert(false);
   return NULL;
 }
