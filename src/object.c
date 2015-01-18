@@ -424,7 +424,10 @@ hvm_obj_ref *hvm_obj_ref_new_from_pool(hvm_vm *vm) {
   // Calculate the next earliest free zone since the current is now invalid
   pool->earliest_free = _hvm_obj_ref_pool_find_next_earliest_free(pool, zone);
   // Make sure the ref is all sanitized
-  assert(ref->type == HVM_NULL);
+  if(ref->type != HVM_NULL) {
+    fprintf(stderr, "Encountered non-sanitized object reference\n");
+    assert(ref->type == HVM_NULL);
+  }
   ref->data.v = 0x0;
   ref->flags  = 0x0;
   ref->entry  = 0x0;
@@ -453,7 +456,10 @@ ZONE *_hvm_obj_ref_pool_find_next_earliest_free(POOL *pool, ZONE *zone) {
     zone->earliest_free += 1;
   }
   // Make sure we've actually run out of zones
-  assert(zone == NULL);
+  if(zone != NULL) {
+    fprintf(stderr, "Failed to fully scan pool zones\n");
+    assert(zone == NULL);
+  }
   zone = hvm_obj_ref_pool_zone_new();
   // Update the double-links
   zone->prev = last_zone;
