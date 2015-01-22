@@ -484,12 +484,12 @@ end:
 
 // TODO: Deal with endianness (right now this is little-endian-only)
 #if defined(__LITTLE_ENDIAN__)
-uint32_t _hvm_tag_read_endian(byte *tag_start) {
+static uint32_t tag_read_endian(byte *tag_start) {
   // Strip off the first byte
   uint32_t raw = READ_U32(tag_start) & 0x00FFFFFF;
   return raw;
 }
-void _hvm_tag_write_endian(byte *tag_start, uint32_t value) {
+static void tag_write_endian(byte *tag_start, uint32_t value) {
   // Get the current 4 bytes (with the 3 bytes for the new tag zeroed out)
   uint32_t source = READ_U32(tag_start) & 0xFF000000;
   // Compute the 4 bytes to write
@@ -502,10 +502,10 @@ void _hvm_tag_write_endian(byte *tag_start, uint32_t value) {
 #endif
 
 void hvm_subroutine_read_tag(byte *tag_start, hvm_subroutine_tag *tag) {
-  uint32_t raw = _hvm_tag_read_endian(tag_start);
+  uint32_t raw = tag_read_endian(tag_start);
   // Get the top 8 bits for the heat field
   uint32_t heat = (raw & 0x00FF0000) >> 16;
-  tag->heat   = (unsigned short)heat;
+  tag->heat     = (unsigned short)heat;
   // Then the bottom 16 are for the trace index
   tag->trace_index = raw & 0x0000FFFF;
   // fprintf(stderr, "read:  tag->heat = %u\n", tag->heat);
@@ -517,7 +517,7 @@ void hvm_subroutine_write_tag(byte *tag_start, hvm_subroutine_tag *tag) {
   uint32_t trace_index = (uint32_t)(tag->trace_index);
   // Build up the raw (with the highest byte cleared out for safety)
   uint32_t value = (heat | trace_index) & 0x00FFFFFF;
-  _hvm_tag_write_endian(tag_start, value);
+  tag_write_endian(tag_start, value);
   // fprintf(stderr, "write: tag->heat = %u\n", tag->heat);
   // fprintf(stderr, "raw: 0x%08X\n", raw);
 }
