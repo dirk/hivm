@@ -1,8 +1,10 @@
 
-$libhivm = '../../libhivm-db.a'
+libhivm = '../../libhivm-db.a'
 
 $cflags = "-g -Wall -std=c99 -I../../include"
-$ldflags = "#{$libhivm} -liconv -lz -lcurses #{`pkg-config --libs glib-2.0 lua5.1`.strip} -dead_strip"
+
+packageLibs = `pkg-config --libs glib-2.0 lua5.1`.strip
+$ldflags = "#{libhivm} -liconv -lz -lcurses #{packageLibs} -dead_strip"
 
 test_bins = []
 
@@ -14,7 +16,7 @@ tests.each do |src|
   test_bins << bin
 
   desc "Build #{bin} test binary"
-  file bin => [src, 'preamble.h', $libhivm] do |t|
+  file bin => [src, 'preamble.h', libhivm] do |t|
     sh "clang -c #{src} #{$cflags}"
     sh "clang++ #{obj} #{$ldflags} -o #{bin}"
   end
