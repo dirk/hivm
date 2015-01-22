@@ -51,7 +51,7 @@ def cflags_for file
 end
 
 desc "Build"
-task "build" => ["libhivm.a", "libhivm-db.a"]#, "libhivm.so"]
+task "build" => ['libhivm.a', 'libhivm-db.a']#, "libhivm.so"]
 task "default" => ["build", "build:include"]
 
 headers = {
@@ -141,7 +141,7 @@ end
 # Let Rake know that debug.o depends on debug-lua.include.c
 file 'src/debug.o' => 'src/debug-lua.include.c'
 # Ditto for vm-dispatch
-file 'src/vm.o' => 'src/vm-dispatch.include.c'
+file 'src/vm.o' => ['src/vm.c', 'src/vm-dispatch.include.c']
 
 # Generic compilation of object files
 rule '.o' => ['.c'] do |t|
