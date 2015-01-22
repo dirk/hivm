@@ -391,16 +391,16 @@ hvm_obj_ref *hvm_new_obj_ref_string_data(char *data) {
 }
 
 
-
 #define ZONE hvm_obj_ref_pool_zone
 #define POOL hvm_obj_ref_pool
 
 // Forward delcarations of private functions
-ZONE *_hvm_obj_ref_pool_find_next_earliest_free(POOL *pool, ZONE *zone);
+static ZONE *pool_find_next_earliest_free(POOL *pool, ZONE *zone);
 
 ZONE *hvm_obj_ref_pool_zone_new() {
   ZONE *zone          = je_malloc(sizeof(ZONE));
   zone->refs          = je_malloc(sizeof(hvm_obj_ref) * HVM_OBJ_REF_POOL_ZONE_SIZE);
+  // Earliest free index in the zone is the first since it's empty
   zone->earliest_free = 0;
   zone->prev          = NULL;
   zone->next          = NULL;
@@ -408,8 +408,10 @@ ZONE *hvm_obj_ref_pool_zone_new() {
 }
 
 hvm_obj_ref_pool *hvm_obj_ref_pool_new() {
-  hvm_obj_ref_pool_zone *zone = hvm_obj_ref_pool_zone_new();
   hvm_obj_ref_pool *pool = je_malloc(sizeof(hvm_obj_ref_pool));
+  // Create the initial zone for the pool too
+  hvm_obj_ref_pool_zone *zone = hvm_obj_ref_pool_zone_new();
+  // And set it to all the right slots
   pool->head          = zone;
   pool->tail          = zone;
   pool->earliest_free = zone;
@@ -422,7 +424,7 @@ hvm_obj_ref *hvm_obj_ref_new_from_pool(hvm_vm *vm) {
   // Get the earliest free slot of that zone as our reference
   hvm_obj_ref *ref = &zone->refs[zone->earliest_free];
   // Calculate the next earliest free zone since the current is now invalid
-  pool->earliest_free = _hvm_obj_ref_pool_find_next_earliest_free(pool, zone);
+  pool->earliest_free = pool_find_next_earliest_free(pool, zone);
   // Make sure the ref is all sanitized
   if(ref->type != HVM_NULL) {
     fprintf(stderr, "Encountered non-sanitized object reference\n");
@@ -434,7 +436,7 @@ hvm_obj_ref *hvm_obj_ref_new_from_pool(hvm_vm *vm) {
   return ref;
 }
 
-ZONE *_hvm_obj_ref_pool_find_next_earliest_free(POOL *pool, ZONE *zone) {
+ZONE *pool_find_next_earliest_free(POOL *pool, ZONE *zone) {
   ZONE *last_zone = zone;
   // Bump it forward since we just used the current free slot in
   // the caller (`hvm_obj_ref_new_from_pool`).
