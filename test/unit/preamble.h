@@ -30,6 +30,7 @@ void assert_true(bool val, const char *msg) {
     _assertion_errv[i] = msg;
     _assertion_errc += 1;
     fputs("x", stdout);
+    fprintf(stderr, "%s\n", msg);
   } else {
     fputs(".", stdout);
   }
@@ -37,7 +38,7 @@ void assert_true(bool val, const char *msg) {
 
 int done() {
   fputs("\n", stdout);
-  return 0;
+  return (_assertion_errc > 0) ? 1 : 0;
 }
 
 
