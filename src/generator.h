@@ -302,6 +302,7 @@ typedef union hvm_gen_item {
   hvm_gen_op_callprimitive op_callprimitive;
 
   hvm_gen_op_invokeprimitive op_invokeprimitive;
+  hvm_gen_op_invokeaddress   op_invokeaddress;
 
   // hvm_gen_item_macro macro;
   hvm_gen_item_label label;
@@ -335,6 +336,7 @@ void hvm_gen_gotoaddress(hvm_gen_item_block *block, byte reg);
 void hvm_gen_call(hvm_gen_item_block *block, uint64_t dest, byte ret);
 void hvm_gen_invokesymbolic(hvm_gen_item_block *block, byte sym, byte ret);
 void hvm_gen_invokeprimitive(hvm_gen_item_block *block, byte sym, byte ret);
+void hvm_gen_invokeaddress(hvm_gen_item_block *block, byte addr, byte ret);
 void hvm_gen_if(hvm_gen_item_block *block, byte val, uint64_t dest);
 void hvm_gen_return(hvm_gen_item_block *block, byte reg);
 void hvm_gen_move(hvm_gen_item_block *block, byte dest, byte src);
@@ -405,6 +407,8 @@ void hvm_gen_catch_label(hvm_gen_item_block *block, char *label, byte reg);
 // for the sub-routine.
 void hvm_gen_sub(hvm_gen_item_block *block, char *name);
 
+/// Create a LITINTEGER instruction with a relocated address for the given
+/// label in the chunk.
 void hvm_gen_litinteger_label(hvm_gen_item_block *block, byte reg, char *label);
 
 // Debug information generators

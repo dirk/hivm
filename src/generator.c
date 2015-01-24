@@ -343,6 +343,14 @@ void hvm_gen_process_block(hvm_chunk *chunk, struct hvm_gen_data *data, hvm_gen_
         chunk->size += 6 + HVM_SUBROUTINE_TAG_SIZE;
         break;
 
+      case HVM_GEN_OP_INVOKEADDRESS:// 1B OP | 3B TAG | 1B REG | 1B REG
+        WRITE(0, &item->op_invokeaddress.op, byte);
+        WRITE_TAG();
+        WRITE(1 + HVM_SUBROUTINE_TAG_SIZE, &item->op_invokeaddress.addr, byte);
+        WRITE(2 + HVM_SUBROUTINE_TAG_SIZE, &item->op_invokeaddress.ret,  byte);
+        chunk->size += 3 + HVM_SUBROUTINE_TAG_SIZE;
+        break;        
+
       case HVM_GEN_OP_INVOKEPRIMITIVE:// 1B OP | 1B REG | 1B REG
         WRITE(0, &item->op_invokeprimitive.op, byte);
         WRITE(1, &item->op_invokeprimitive.sym, byte);
