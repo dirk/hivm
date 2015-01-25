@@ -1,8 +1,9 @@
 #include "preamble.h"
 
 int main(int argc, char const *argv[]) {
-  int64_t val = 1;
   hvm_gen *gen = hvm_new_gen();
+
+  int64_t val = 1;
   byte reg0 = hvm_vm_reg_gen(0);
   byte reg1 = hvm_vm_reg_gen(1);
   hvm_obj_ref *obj0, *obj1;
