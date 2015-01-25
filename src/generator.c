@@ -430,8 +430,8 @@ void hvm_gen_process_block(hvm_chunk *chunk, struct hvm_gen_data *data, hvm_gen_
 
       case HVM_GEN_OP_CALL_LABEL:// Same as OP_CALL
         {
-          uint64_t dest_idx = chunk->size + HVM_SUBROUTINE_TAG_SIZE + 4;
-          dest = GET_LABEL(item->op_call_label.label, dest_idx);
+          uint64_t destip = chunk->size + HVM_SUBROUTINE_TAG_SIZE + 4;
+          dest = GET_LABEL(item->op_call_label.label, destip);
 
           WRITE(0, &item->op_call_label.op, byte);
           WRITE_TAG();
