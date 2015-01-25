@@ -1,6 +1,7 @@
 #include "preamble.h"
 
 int main(int argc, char const *argv[]) {
+  int64_t val = 1;
   hvm_gen *gen = hvm_new_gen();
   byte reg0 = hvm_vm_reg_gen(0);
   byte reg1 = hvm_vm_reg_gen(1);
@@ -12,12 +13,13 @@ int main(int argc, char const *argv[]) {
 
   // Setup the invoke subroutine
   hvm_gen_sub(gen->block, invoke_label);
-  hvm_gen_litinteger(gen->block, reg0, 1);
+  hvm_gen_litinteger(gen->block, reg0, val);
   hvm_gen_return(gen->block, reg0);
 
   hvm_gen_label(gen->block, main_label);
   // Save the address for the invoke label in a register for use
   hvm_gen_litinteger_label(gen->block, reg1, invoke_label);
+  // Call INVOKEADDRESS with result in reg0
   hvm_gen_invokeaddress(gen->block, reg1, reg0);
   hvm_gen_die(gen->block);
 
@@ -25,16 +27,16 @@ int main(int argc, char const *argv[]) {
 
   // Assertions
 
-  // Make sure we have an integer in register 1 and it's an okay-looking value
+  // Make sure that an okay-looking address value was set in reg1
   obj1 = vm->general_regs[reg1];
   int64_t addr = obj1->data.i64;
   assert_true(obj1->type == HVM_INTEGER, "Expected integer in register 1");
   assert_true(addr > 0 && addr < 32, "Expected reasonable value in register 1");
 
-  // Make sure that the invocation returned the expected value
+  // Make sure that the invocation returned the expected value (in reg0)
   obj0 = vm->general_regs[reg0];
   assert_true(obj0->type == HVM_INTEGER, "Expected integer in register 0");
-  assert_true(obj0->data.i64 == 1, "Expected register 0 to contain value 1");
+  assert_true(obj0->data.i64 == val, "Expected register 0 to contain value 1");
 
   return done();
 }
