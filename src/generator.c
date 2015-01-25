@@ -428,6 +428,20 @@ void hvm_gen_process_block(hvm_chunk *chunk, struct hvm_gen_data *data, hvm_gen_
         chunk->size += 10 + HVM_SUBROUTINE_TAG_SIZE;
         break;
 
+      case HVM_GEN_OP_CALL_LABEL:// Same as OP_CALL
+        {
+          uint64_t dest_idx = chunk->size + HVM_SUBROUTINE_TAG_SIZE + 4;
+          dest = GET_LABEL(item->op_call_label.label, dest_idx);
+
+          WRITE(0, &item->op_call_label.op, byte);
+          WRITE_TAG();
+          WRITE(1 + HVM_SUBROUTINE_TAG_SIZE, &dest, uint64_t);
+          WRITE(9 + HVM_SUBROUTINE_TAG_SIZE, &item->op_call_label.reg, byte);
+          RELOCATION(1 + HVM_SUBROUTINE_TAG_SIZE);
+          chunk->size += 10 + HVM_SUBROUTINE_TAG_SIZE;
+        }
+        break;
+
       default:
         // Bail out *hard* if we run into something unexpected
         fprintf(stderr, "Don't know what to do with item type: %d\n", item->base.type);
