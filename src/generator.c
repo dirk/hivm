@@ -51,6 +51,7 @@ struct hvm_gen_data {
   char *current_name;
   char *current_file;
 };
+
 void hvm_gen_data_add_debug_entry(struct hvm_gen_data *gd, uint64_t start, uint64_t end, uint64_t line, char *name, unsigned char flags) {
   hvm_chunk_debug_entry *de = malloc(sizeof(hvm_chunk_debug_entry));
   de->start = start;
@@ -79,8 +80,8 @@ void hvm_gen_data_add_symbol(struct hvm_gen_data *gd, char *sym, uint64_t idx) {
   cs->name = gen_strclone(sym);
   g_array_append_val(gd->symbols, cs);
 }
+
 uint32_t hvm_gen_data_add_constant(struct hvm_gen_data *gd, hvm_chunk_constant *constant) {
-  // TODO: Dedup.
   g_array_append_val(gd->constants, constant);
   return (uint32_t)(gd->constants->len - 1);
 }

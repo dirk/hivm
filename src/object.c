@@ -15,7 +15,8 @@
 // Prefix to force inlining
 #define ALWAYS_INLINE __attribute__((always_inline))
 
-// TODO: Flywheelize this.
+// TODO: Set up flywheeling of string objects to reduce memory overhead
+
 hvm_obj_string *hvm_new_obj_string() {
   hvm_obj_string *str = je_malloc(sizeof(hvm_obj_string));
   str->data = NULL;
