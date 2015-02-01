@@ -48,7 +48,7 @@ bool hvm_obj_is_truthy(hvm_obj_ref *ref) {
 
 // Internal array API
 
-uint64_t hvm_obj_array_internal_len(hvm_obj_array *arr) {
+uint64_t hvm_array_len(hvm_obj_array *arr) {
   guint len = arr->array->len;
   return (uint64_t)len;
 }

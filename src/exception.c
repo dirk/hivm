@@ -120,7 +120,7 @@ void hvm_print_backtrace_array(hvm_obj_ref *backtrace) {
   assert(backtrace->type = HVM_ARRAY);
   hvm_obj_array *arr = backtrace->data.v;
   unsigned int i;
-  uint64_t len = hvm_obj_array_internal_len(arr);
+  uint64_t len = hvm_array_len(arr);
 
   for(i = 0; i < len; i++) {
     hvm_obj_ref *locref = hvm_obj_array_internal_get(arr, i);

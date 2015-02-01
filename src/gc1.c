@@ -83,7 +83,7 @@ void _gc1_mark_struct(hvm_obj_struct *strct) {
 }
 void _gc1_mark_array(hvm_obj_array *arr) {
   uint64_t idx, len;
-  len = hvm_obj_array_internal_len(arr);
+  len = hvm_array_len(arr);
   for(idx = 0; idx < len; idx++) {
     hvm_obj_ref *ptr = hvm_obj_array_internal_get(arr, idx);
     _gc1_mark_obj_ref(ptr);

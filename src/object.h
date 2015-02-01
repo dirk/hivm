@@ -171,7 +171,7 @@ void hvm_obj_array_set(hvm_obj_ref*, hvm_obj_ref*, hvm_obj_ref*);
 hvm_obj_ref* hvm_obj_array_remove(hvm_obj_ref*, hvm_obj_ref*);
 hvm_obj_ref* hvm_obj_array_len(hvm_vm*, hvm_obj_ref*);
 
-uint64_t hvm_obj_array_internal_len(hvm_obj_array*);
+uint64_t hvm_array_len(hvm_obj_array *arr);
 hvm_obj_ref* hvm_obj_array_internal_get(hvm_obj_array*, uint64_t);
 
 // UTILITIES ------------------------------------------------------------------
