@@ -47,10 +47,10 @@ void hvm_gc1_obj_space_mark_reset(hvm_gc1_obj_space *space) {
 }
 
 // Forward declaration
-static inline void _gc1_mark_struct(hvm_obj_struct *strct);
-static inline void _gc1_mark_array(hvm_obj_array *arr);
+static inline void mark_struct(hvm_obj_struct *strct);
+static inline void mark_array(hvm_obj_array *arr);
 
-static inline void _gc1_mark_obj_ref(hvm_obj_ref *obj) {
+static inline void mark_obj_ref(hvm_obj_ref *obj) {
   if(FLAGTRUE(obj->flags, HVM_OBJ_FLAG_CONSTANT) ||
      FLAGFALSE(obj->flags, HVM_OBJ_FLAG_GC_TRACKED)
   ) {
@@ -64,54 +64,54 @@ static inline void _gc1_mark_obj_ref(hvm_obj_ref *obj) {
   MARK_ENTRY(entry);
   // Handle complex data structures
   if(obj->type == HVM_STRUCTURE) {
-    _gc1_mark_struct(obj->data.v);
+    mark_struct(obj->data.v);
   } else if(obj->type == HVM_ARRAY) {
-    _gc1_mark_array(obj->data.v);
+    mark_array(obj->data.v);
   } else if(obj->type == HVM_EXCEPTION) {
     hvm_exception *exc = obj->data.v;
-    _gc1_mark_obj_ref(exc->data);
+    mark_obj_ref(exc->data);
   }
 }
 
-void _gc1_mark_struct(hvm_obj_struct *strct) {
+void mark_struct(hvm_obj_struct *strct) {
   unsigned int idx;
   for(idx = 0; idx < strct->heap_length; idx++) {
     hvm_obj_struct_heap_pair *pair = strct->heap[idx];
     hvm_obj_ref *obj = pair->obj;
-    _gc1_mark_obj_ref(obj);
+    mark_obj_ref(obj);
   }
 }
-void _gc1_mark_array(hvm_obj_array *arr) {
+void mark_array(hvm_obj_array *arr) {
   uint64_t idx, len;
   len = hvm_array_len(arr);
   for(idx = 0; idx < len; idx++) {
     hvm_obj_ref *ptr = hvm_obj_array_internal_get(arr, idx);
-    _gc1_mark_obj_ref(ptr);
+    mark_obj_ref(ptr);
   }
 }
 
-ALWAYS_INLINE void hvm_gc1_mark_registers(hvm_vm *vm) {
+static inline void mark_registers(hvm_vm *vm) {
   uint32_t i;
   for(i = 0; i < HVM_GENERAL_REGISTERS; i++) {
     hvm_obj_ref* obj = vm->general_regs[i];
-    if(obj != NULL) { _gc1_mark_obj_ref(obj); }
+    if(obj != NULL) { mark_obj_ref(obj); }
   }
   for(i = 0; i < HVM_ARGUMENT_REGISTERS; i++) {
     hvm_obj_ref* obj = vm->arg_regs[i];
-    if(obj != NULL) { _gc1_mark_obj_ref(obj); }
+    if(obj != NULL) { mark_obj_ref(obj); }
   }
   for(i = 0; i < HVM_PARAMETER_REGISTERS; i++) {
     hvm_obj_ref* obj = vm->param_regs[i];
-    if(obj != NULL) { _gc1_mark_obj_ref(obj); }
+    if(obj != NULL) { mark_obj_ref(obj); }
   }
 }
 
-ALWAYS_INLINE void hvm_gc1_mark_stack(hvm_vm *vm) {
+static inline void mark_stack(hvm_vm *vm) {
   uint32_t i;
   for(i = 0; i <= vm->stack_depth; i++) {
     struct hvm_frame *frame = &vm->stack[i];
     hvm_obj_struct *locals = frame->locals;
-    _gc1_mark_struct(locals);
+    mark_struct(locals);
   }
 }
 
@@ -139,7 +139,7 @@ ALWAYS_INLINE bool hvm_gc1_entry_is_null(hvm_gc1_obj_space *space, uint32_t idx)
   return FIRST_BYTE_OF_ENTRY(entry) == 0;
 }
 
-ALWAYS_INLINE void hvm_gc1_compact_find_next_free_entry(hvm_gc1_obj_space *space, uint32_t *free_entry) {
+static inline void find_next_free_entry(hvm_gc1_obj_space *space, uint32_t *free_entry) {
   uint32_t idx = *free_entry;
   while(idx < space->heap.length && !hvm_gc1_entry_is_null(space, idx)) {
     idx += 1;
@@ -180,14 +180,14 @@ static inline void hvm_gc1_relocate(hvm_gc1_obj_space *space, uint32_t free_entr
 ALWAYS_INLINE void hvm_gc1_compact(hvm_gc1_obj_space *space) {
   uint32_t free_entry = 0;
   uint32_t used_entry = 0;
-  hvm_gc1_compact_find_next_free_entry(space, &free_entry);
+  find_next_free_entry(space, &free_entry);
   while(hvm_gc1_compact_has_used_entry_after(space, free_entry, &used_entry)) {
     // Move the used entry to the free entry
     hvm_gc1_relocate(space, free_entry, used_entry);
     fprintf(stderr, "relocating from used:%d to free:%d\n", used_entry, free_entry);
     // Find the next free entry after this one
     free_entry += 1;
-    hvm_gc1_compact_find_next_free_entry(space, &free_entry);
+    find_next_free_entry(space, &free_entry);
   }
   fprintf(stderr, "free entry:%d\n", free_entry);
   space->heap.length = free_entry;
@@ -195,9 +195,9 @@ ALWAYS_INLINE void hvm_gc1_compact(hvm_gc1_obj_space *space) {
 
 void hvm_gc1_obj_space_mark(hvm_vm *vm) {
   // Go through the registers
-  hvm_gc1_mark_registers(vm);
+  mark_registers(vm);
   // Climb through each of the stack frames
-  hvm_gc1_mark_stack(vm);
+  mark_stack(vm);
 }
 
 void hvm_gc1_run(hvm_vm *vm, hvm_gc1_obj_space *space) {
