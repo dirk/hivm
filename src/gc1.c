@@ -36,7 +36,7 @@ hvm_gc1_obj_space *hvm_new_obj_space() {
   return space;
 }
 
-void hvm_gc1_obj_space_mark_reset(hvm_gc1_obj_space *space) {
+static inline void obj_space_reset_marks(hvm_gc1_obj_space *space) {
   unsigned int id = 0;
   while(id < space->heap.length) {
     hvm_gc1_heap_entry *entry = &space->heap.entries[id];
@@ -124,7 +124,7 @@ void hvm_gc1_free(hvm_gc1_heap_entry *entry) {
   FIRST_BYTE_OF_ENTRY(entry) = 0;
 }
 
-void hvm_gc1_sweep(hvm_gc1_obj_space *space) {
+static inline void sweep_space(hvm_gc1_obj_space *space) {
   for(uint32_t id = 0; id < space->heap.length; id++) {
     hvm_gc1_heap_entry *entry = &space->heap.entries[id];
     if(FLAGFALSE(entry->flags, FLAG_GC_MARKED)) {
@@ -177,7 +177,7 @@ static inline void hvm_gc1_relocate(hvm_gc1_obj_space *space, uint32_t free_entr
   obj->entry = dest;
 }
 
-ALWAYS_INLINE void hvm_gc1_compact(hvm_gc1_obj_space *space) {
+static inline void compact_space(hvm_gc1_obj_space *space) {
   uint32_t free_entry = 0;
   uint32_t used_entry = 0;
   find_next_free_entry(space, &free_entry);
@@ -193,7 +193,7 @@ ALWAYS_INLINE void hvm_gc1_compact(hvm_gc1_obj_space *space) {
   space->heap.length = free_entry;
 }
 
-void hvm_gc1_obj_space_mark(hvm_vm *vm) {
+static inline void obj_space_mark(hvm_vm *vm) {
   // Go through the registers
   mark_registers(vm);
   // Climb through each of the stack frames
@@ -203,13 +203,13 @@ void hvm_gc1_obj_space_mark(hvm_vm *vm) {
 void hvm_gc1_run(hvm_vm *vm, hvm_gc1_obj_space *space) {
   // fprintf(stderr, "gc1_run.start\n");
   // Reset all of our markings
-  hvm_gc1_obj_space_mark_reset(space);
+  obj_space_reset_marks(space);
   // Mark objects
-  hvm_gc1_obj_space_mark(vm);
+  obj_space_mark(vm);
   // Free unmarked objects
-  hvm_gc1_sweep(space);
+  sweep_space(space);
   // Compact the object space
-  hvm_gc1_compact(space);
+  compact_space(space);
   // fprintf(stderr, "gc1_run.end\n");
   // TODO: Shrink the object space
 }
