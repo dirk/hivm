@@ -143,7 +143,7 @@ static inline void find_next_free_entry(hvm_gc1_obj_space *space, uint32_t *free
   }
   *free_entry = idx;
 }
-static inline bool hvm_gc1_compact_has_used_entry_after(hvm_gc1_obj_space *space, uint32_t free_entry, uint32_t *used_entry) {
+static inline bool has_used_entry_after(hvm_gc1_obj_space *space, uint32_t free_entry, uint32_t *used_entry) {
   // Start at the index after the free entry index
   uint32_t idx = free_entry + 1;
   // Make sure we have space left to search
@@ -161,7 +161,7 @@ static inline bool hvm_gc1_compact_has_used_entry_after(hvm_gc1_obj_space *space
   return false; // No space left
 }
 
-static inline void hvm_gc1_relocate(hvm_gc1_obj_space *space, uint32_t free_entry, uint32_t used_entry) {
+static inline void relocate_entry(hvm_gc1_obj_space *space, uint32_t free_entry, uint32_t used_entry) {
   assert(free_entry < used_entry);
   hvm_gc1_heap_entry *dest   = &space->heap.entries[free_entry];
   hvm_gc1_heap_entry *source = &space->heap.entries[used_entry];
@@ -178,9 +178,9 @@ static inline void compact_space(hvm_gc1_obj_space *space) {
   uint32_t free_entry = 0;
   uint32_t used_entry = 0;
   find_next_free_entry(space, &free_entry);
-  while(hvm_gc1_compact_has_used_entry_after(space, free_entry, &used_entry)) {
+  while(has_used_entry_after(space, free_entry, &used_entry)) {
     // Move the used entry to the free entry
-    hvm_gc1_relocate(space, free_entry, used_entry);
+    relocate_entry(space, free_entry, used_entry);
     fprintf(stderr, "relocating from used:%d to free:%d\n", used_entry, free_entry);
     // Find the next free entry after this one
     free_entry += 1;
