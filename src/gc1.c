@@ -24,9 +24,6 @@
 // Dereferences an entry pointer and returns the first byte of the struct.
 #define FIRST_BYTE_OF_ENTRY(V) *(char*)(V)
 
-// Prefix for performance
-#define ALWAYS_INLINE __attribute__((always_inline))
-
 
 hvm_gc1_obj_space *hvm_new_obj_space() {
   hvm_gc1_obj_space *space = malloc(sizeof(hvm_gc1_obj_space));
@@ -134,14 +131,14 @@ static inline void sweep_space(hvm_gc1_obj_space *space) {
   }
 }
 
-ALWAYS_INLINE bool hvm_gc1_entry_is_null(hvm_gc1_obj_space *space, uint32_t idx) {
+static inline bool entry_is_null(hvm_gc1_obj_space *space, uint32_t idx) {
   hvm_gc1_heap_entry *entry = &space->heap.entries[idx];
   return FIRST_BYTE_OF_ENTRY(entry) == 0;
 }
 
 static inline void find_next_free_entry(hvm_gc1_obj_space *space, uint32_t *free_entry) {
   uint32_t idx = *free_entry;
-  while(idx < space->heap.length && !hvm_gc1_entry_is_null(space, idx)) {
+  while(idx < space->heap.length && !entry_is_null(space, idx)) {
     idx += 1;
   }
   *free_entry = idx;
@@ -151,7 +148,7 @@ static inline bool hvm_gc1_compact_has_used_entry_after(hvm_gc1_obj_space *space
   uint32_t idx = free_entry + 1;
   // Make sure we have space left to search
   while(idx < space->heap.length) {
-    if(hvm_gc1_entry_is_null(space, idx)) {
+    if(entry_is_null(space, idx)) {
       // Pass over free entry
       idx += 1;
       continue;
