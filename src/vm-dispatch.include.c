@@ -232,20 +232,22 @@ EXECUTE:
       vm->ip += 1;
       break;
     case HVM_OP_THROW: // 1B OP | 1B REG
-      AREG;
-      // Get the object to be associated with the execption
-      val = _hvm_vm_register_read(vm, areg);
-      // Make sure it's a structure
-      if(val->type != HVM_STRUCTURE) {
-        msg = "Expected structure when throwing exception";
-        hvm_obj_ref *message = hvm_new_obj_ref_string_data(hvm_util_strclone(msg));
-        vm->exception = hvm_exception_new(vm, message);
+      {
+        AREG;
+        // Get the object to be associated with the execption
+        hvm_obj_ref *val = _hvm_vm_register_read(vm, areg);
+        // Make sure it's a structure
+        if(val->type != HVM_STRUCTURE) {
+          msg = "Expected structure when throwing exception";
+          hvm_obj_ref *message = hvm_new_obj_ref_string_data(hvm_util_strclone(msg));
+          vm->exception = hvm_exception_new(vm, message);
+          goto EXCEPTION;
+        }
+        assert(val->type == HVM_STRUCTURE);
+        // Set the exception and jump to the handler
+        vm->exception = val;
         goto EXCEPTION;
       }
-      assert(val->type == HVM_STRUCTURE);
-      // Set the exception and jump to the handler
-      vm->exception = exc;
-      goto EXCEPTION;
     case HVM_OP_GETEXCEPTIONDATA: // 1B OP | 1B REG | 1B REG
       // AREG; BREG;
       // b = _hvm_vm_register_read(vm, breg);
