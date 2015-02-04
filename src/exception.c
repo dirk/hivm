@@ -13,16 +13,6 @@
 #include "gc1.h"
 #include "exception.h"
 
-/*
-hvm_exception *hvm_new_exception() {
-  hvm_exception *exc = malloc(sizeof(hvm_exception));
-  exc->message   = NULL;
-  exc->data      = hvm_const_null;
-  exc->backtrace = g_array_new(TRUE, TRUE, sizeof(hvm_location*));
-  return exc;
-}
-*/
-
 hvm_obj_ref *hvm_exception_new(hvm_vm *vm, hvm_obj_ref *message) {
   hvm_obj_ref *exc = hvm_new_obj_ref();
   hvm_obj_struct *excstruct = hvm_new_obj_struct();
@@ -59,7 +49,7 @@ void hvm_exception_push_location(hvm_vm *vm, hvm_obj_ref *exc, hvm_location *loc
   hvm_obj_array_push(locations, locref);
 }
 
-hvm_chunk_debug_entry *hvm_vm_find_debug_entry(hvm_vm *vm, uint64_t ip) {
+static inline hvm_chunk_debug_entry *find_debug_entry(hvm_vm *vm, uint64_t ip) {
   hvm_chunk_debug_entry *de;
   for(uint64_t i = 0; i < vm->debug_entries_size; i++) {
     de = &vm->debug_entries[i];
@@ -92,7 +82,7 @@ void hvm_exception_build_backtrace(hvm_obj_ref *exc, hvm_vm *vm) {
     hvm_frame* frame = &vm->stack[i];
     uint64_t ip = frame->current_addr;
 
-    entry = hvm_vm_find_debug_entry(vm, ip);
+    entry = find_debug_entry(vm, ip);
     if(entry != NULL && FLAG_IS_SET(entry->flags, HVM_DEBUG_FLAG_HIDE_BACKTRACE)) {
       goto tail;
     }

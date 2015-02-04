@@ -243,9 +243,6 @@ EXECUTE:
         goto EXCEPTION;
       }
       assert(val->type == HVM_STRUCTURE);
-      // Create the exception and set the object
-      // exc = hvm_new_exception();
-      // exc->data = val;
       // Set the exception and jump to the handler
       vm->exception = exc;
       goto EXCEPTION;
