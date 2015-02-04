@@ -565,7 +565,14 @@ void hvm_gen_clearexception(hvm_gen_item_block *block) {
 void hvm_gen_setexception(hvm_gen_item_block *block, byte reg) {
   hvm_gen_item_op_a1 *op = malloc(sizeof(hvm_gen_item_op_a1));
   op->type = HVM_GEN_OPA1;
-  op->op = HVM_OP_SETEXCEPTION;
+  op->op   = HVM_OP_SETEXCEPTION;
+  op->reg1 = reg;
+  GEN_PUSH_ITEM(op);
+}
+void hvm_gen_throw(hvm_gen_item_block *block, byte reg) {
+  hvm_gen_item_op_a1 *op = malloc(sizeof(hvm_gen_item_op_a1));
+  op->type = HVM_GEN_OPA1;
+  op->op   = HVM_OP_THROW;
   op->reg1 = reg;
   GEN_PUSH_ITEM(op);
 }
