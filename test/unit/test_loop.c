@@ -5,7 +5,7 @@ int main(int argc, char const *argv[]) {
 
   int64_t val_start = 0;
   int64_t val_iterations = 5;
-  int64_t incr = 2;
+  int64_t val_incr = 2;
 
   byte reg0    = hvm_vm_reg_gen(0);
   byte reg_ctr = hvm_vm_reg_gen(1);
@@ -24,7 +24,7 @@ int main(int argc, char const *argv[]) {
   hvm_gen_if_label(gen->block, reg0, "end");
 
   // Do the summation and increment the counter
-  hvm_gen_litinteger(gen->block, reg0, incr);
+  hvm_gen_litinteger(gen->block, reg0, val_incr);
   hvm_gen_add(gen->block, reg_acc, reg_acc, reg0);
   hvm_gen_litinteger(gen->block, reg0, 1);
   hvm_gen_add(gen->block, reg_ctr, reg_ctr, reg0);
@@ -40,7 +40,7 @@ int main(int argc, char const *argv[]) {
   assert_true(obj->data.i64 == val_iterations, "Expected counter to equal number of iterations");
 
   obj = vm->general_regs[reg_acc];
-  assert_true(obj->data.i64 == (val_iterations * incr), "Expected accumulator to be correct value");
+  assert_true(obj->data.i64 == (val_iterations * val_incr), "Expected accumulator to be correct value");
 
   return done();
 }
