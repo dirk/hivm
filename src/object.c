@@ -86,9 +86,12 @@ hvm_obj_array *hvm_new_obj_array_with_length(hvm_obj_ref *lenref) {
     fprintf(stderr, "Invalid object type for length\n");
     assert(false);
   }
-  // printf("new array len: %d\n", len);
   arr->array = g_array_sized_new(TRUE, TRUE, sizeof(hvm_obj_ref*), len);
-  // printf("arr->array->len: %d\n", arr->array->len);
+  // Pre-fill the array with nulls
+  // TODO: See if we can use `g_array_append_vals` to make this faster
+  for(guint i = 0; i < len; i++) {
+    g_array_append_val(arr->array, hvm_const_null);
+  }
   return arr;
 }
 
@@ -146,10 +149,12 @@ hvm_obj_ref* hvm_obj_array_remove(hvm_obj_ref *arrref, hvm_obj_ref *idxref) {
 }
 
 void hvm_obj_array_set(hvm_obj_ref *arrref, hvm_obj_ref *idxref, hvm_obj_ref *valref) {
-  assert(arrref->type == HVM_ARRAY); assert(idxref->type == HVM_INTEGER);
+  assert(arrref->type == HVM_ARRAY);
+  assert(idxref->type == HVM_INTEGER);
   hvm_obj_array *arr = arrref->data.v;
   guint idx, len;
   idx = (guint)(idxref->data.i64);
+  // Look up the length of the array
   len = arr->array->len;
   assert(idx < len);
   hvm_obj_ref **el = &g_array_index(arr->array, hvm_obj_ref*, idx);

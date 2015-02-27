@@ -551,14 +551,16 @@ EXECUTE:
     case HVM_OP_ARRAYNEW: // 1B OP | 2B REGS
       // arraynew A L
       AREG; BREG;
-      val = _hvm_vm_register_read(vm, breg);
-      hvm_obj_array *arr = hvm_new_obj_array_with_length(val);
-      a = hvm_new_obj_ref();
-      a->type = HVM_ARRAY;
-      a->data.v = arr;
-      hvm_obj_space_add_obj_ref(vm->obj_space, a);
-      hvm_vm_register_write(vm, areg, a);
-      vm->ip += 2;
+      {
+        hvm_obj_ref *val       = _hvm_vm_register_read(vm, breg);
+        hvm_obj_array *arr     = hvm_new_obj_array_with_length(val);
+        hvm_obj_ref *obj_array = hvm_new_obj_ref();
+        obj_array->type = HVM_ARRAY;
+        obj_array->data.v = arr;
+        hvm_obj_space_add_obj_ref(vm->obj_space, obj_array);
+        hvm_vm_register_write(vm, areg, obj_array);
+        vm->ip += 2;
+      }
       break;
     case HVM_OP_ARRAYLEN: // 1B OP | 2B REGS
       AREG; BREG;
