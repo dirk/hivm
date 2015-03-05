@@ -1,5 +1,5 @@
 
-$LOAD_PATH.push File.expand_path(__dir__)
+$LOAD_PATH.push File.expand_path(File.dirname(__FILE__))
 require 'lib/rake/util'
 require 'lib/rake/env'
 

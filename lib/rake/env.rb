@@ -1,6 +1,6 @@
 
 # Setting up global constants
-CC       = ENV['CC'].nil?  ? 'clang'   : ENV['CC']
+CC       = ENV['CC'].nil? ? 'clang' : ENV['CC']
 # cpp    = ENV['CPP'].nil? ? 'clang++' : ENV['CPP']
 AR       = 'ar'
 LD       = 'ld'
