@@ -43,4 +43,4 @@ The Hivm project aims to overcome these and provide a new, better virtual machin
 
 ## License
 
-Licensed under the [Mozilla Public License Version 2.0](http://www.mozilla.org/MPL/2.0/). See [LICENSE](LICENSE) for details.
+Licensed under the [Mozilla Public License Version 2.0](http://www.mozilla.org/MPL/2.0/). See [LICENSE](./LICENSE) for details.
