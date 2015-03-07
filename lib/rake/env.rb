@@ -8,8 +8,8 @@ IS_LINUX = `uname -s`.strip == 'Linux'
 VERSION  = `cat ./VERSION`.strip
 
 # $ldflags = "-lpthread -L. #{include_env 'LDFLAGS'}".strip
-warnings = '-Wall -Wextra -Wconversion'
-cflags   = "-g -fPIC #{warnings} -std=c99 -I. #{include_env 'CFLAGS'}".strip
+warnings = '-Wall -Wextra -Wsign-conversion -Wconversion'
+cflags   = "-g -fPIC -std=c11 -I. #{warnings} #{include_env 'CFLAGS'}".strip
 
 # Expose cflags and Lua for `cflags_for`
 CFLAGS = cflags
