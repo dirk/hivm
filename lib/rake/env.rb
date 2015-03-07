@@ -1,6 +1,6 @@
 
 # Setting up global constants
-CC       = ENV['CC'].nil? ? 'clang' : ENV['CC']
+cc       = ENV['CC'].nil?  ? 'clang'   : ENV['CC']
 # cpp    = ENV['CPP'].nil? ? 'clang++' : ENV['CPP']
 AR       = 'ar'
 LD       = 'ld'
@@ -15,11 +15,16 @@ cflags   = "-g -fPIC -std=c11 -I. #{warnings} #{include_env 'CFLAGS'}".strip
 CFLAGS = cflags
 LUA    = 'lua5.1'
 
+IS_DARWIN = `uname -s`.strip == 'Darwin'
+
 # Settings for LLVM
 llvm_config = 'llvm-config'
-if `uname -s`.strip == 'Darwin'
+if IS_DARWIN
   llvm_config = "#{`brew --prefix llvm`.strip}/bin/llvm-config"
 end
 LLVM_CONFIG  = llvm_config
 LLVM_MODULES = 'core analysis mcjit native'
 LLVM_LIBDIR  = `#{llvm_config} --libdir`.strip
+
+# Constantify some stuff
+CC = cc
