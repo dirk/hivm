@@ -26,22 +26,27 @@ typedef enum {
   HVM_TRACE_SEQUENCE_ITEM_SETGLOBAL       = 21
 } hvm_trace_sequence_item_type;
 
-#define HVM_TRACE_SEQUENCE_ITEM_HEAD hvm_trace_sequence_item_type type; \
-                                     uint64_t ip;
 
+/// Initial components of every sequence item
 typedef struct hvm_trace_sequence_item_head {
-  HVM_TRACE_SEQUENCE_ITEM_HEAD;
+  hvm_trace_sequence_item_type type;
+  uint64_t ip;
 } hvm_trace_sequence_item_head;
 
-// All instructions that write back to a register must have the HEAD and
-// .register_return as their first fields!
+/// @brief Common prefix for instructions returning a value to a register.
+///
+/// All instructions that write back to a register must confirm to the
+/// `hvm_trace_sequence_item_returning` form. The form is a
+/// `struct hvm_trace_sequence_item_head` followed immediately by
+/// a register_return byte field for the register into which will go
+/// the returned value.
 typedef struct hvm_trace_sequence_item_returning {
-  HVM_TRACE_SEQUENCE_ITEM_HEAD;
+  hvm_trace_sequence_item_head head;
   byte register_return;
 } hvm_trace_sequence_item_returning;
 
 typedef struct hvm_trace_sequence_item_setstring {
-  HVM_TRACE_SEQUENCE_ITEM_HEAD;
+  hvm_trace_sequence_item_head head;
   /// Destination register for the constant
   byte register_return;
   /// Index into the constant table
@@ -52,7 +57,7 @@ typedef struct hvm_trace_sequence_item_setstring {
 typedef struct hvm_trace_sequence_item_setstring hvm_trace_sequence_item_setsymbol;
 
 typedef struct hvm_trace_sequence_item_return {
-  HVM_TRACE_SEQUENCE_ITEM_HEAD;
+  hvm_trace_sequence_item_head head;
   /// Register we're returning from
   byte register_return;
   /// Type of the object being returned
@@ -60,7 +65,7 @@ typedef struct hvm_trace_sequence_item_return {
 } hvm_trace_sequence_item_return;
 
 typedef struct hvm_trace_sequence_item_invokeprimitive {
-  HVM_TRACE_SEQUENCE_ITEM_HEAD;
+  hvm_trace_sequence_item_head head;
   /// Register for the return value
   byte register_return;
   /// Register with the symbol for the primitive
@@ -72,7 +77,7 @@ typedef struct hvm_trace_sequence_item_invokeprimitive {
 } hvm_trace_sequence_item_invokeprimitive;
 
 typedef struct hvm_trace_sequence_item_if {
-  HVM_TRACE_SEQUENCE_ITEM_HEAD;
+  hvm_trace_sequence_item_head head;
   /// Register with the value we're checking
   byte register_value;
   /// Destination we're jumping to if true
@@ -82,13 +87,13 @@ typedef struct hvm_trace_sequence_item_if {
 } hvm_trace_sequence_item_if;
 
 typedef struct hvm_trace_sequence_item_goto {
-  HVM_TRACE_SEQUENCE_ITEM_HEAD;
+  hvm_trace_sequence_item_head head;
   /// Destination we're jumping to
   uint64_t destination;
 } hvm_trace_sequence_item_goto;
 
 typedef struct hvm_trace_sequence_item_add {
-  HVM_TRACE_SEQUENCE_ITEM_HEAD;
+  hvm_trace_sequence_item_head head;
   byte register_return;
   byte register_operand1;
   byte register_operand2;
@@ -101,71 +106,77 @@ typedef hvm_trace_sequence_item_add hvm_trace_sequence_item_lt;
 typedef hvm_trace_sequence_item_add hvm_trace_sequence_item_gt;
 
 typedef struct hvm_trace_sequence_item_arrayset {
-  HVM_TRACE_SEQUENCE_ITEM_HEAD;
+  hvm_trace_sequence_item_head head;
   byte register_array;
   byte register_index;
   byte register_value;
 } hvm_trace_sequence_item_arrayset;
 
 typedef struct hvm_trace_sequence_item_arrayget {
-  HVM_TRACE_SEQUENCE_ITEM_HEAD;
+  hvm_trace_sequence_item_head head;
   byte register_return;
   byte register_array;
   byte register_index;
 } hvm_trace_sequence_item_arrayget;
 
 typedef struct hvm_trace_sequence_item_arraylen {
-  HVM_TRACE_SEQUENCE_ITEM_HEAD;
+  hvm_trace_sequence_item_head head;
   byte register_return;
   byte register_array;
 } hvm_trace_sequence_item_arraylen;
 
 typedef struct hvm_trace_sequence_item_arraypush {
-  HVM_TRACE_SEQUENCE_ITEM_HEAD;
+  hvm_trace_sequence_item_head head;
   byte register_array;
   byte register_value;
 } hvm_trace_sequence_item_arraypush;
 
 typedef struct hvm_trace_sequence_item_move {
-  HVM_TRACE_SEQUENCE_ITEM_HEAD;
+  hvm_trace_sequence_item_head head;
   byte register_return;
   byte register_source;
 } hvm_trace_sequence_item_move;
 
 typedef struct hvm_trace_sequence_item_litinteger {
-  HVM_TRACE_SEQUENCE_ITEM_HEAD;
+  hvm_trace_sequence_item_head head;
   byte register_return;
   int64_t literal_value;
 } hvm_trace_sequence_item_litinteger;
 
 typedef struct hvm_trace_sequence_item_getlocal {
-  HVM_TRACE_SEQUENCE_ITEM_HEAD;
+  hvm_trace_sequence_item_head head;
   byte register_return;
   byte register_symbol;
-  // Symbol of the local being looked up
+  /// Symbol of the local being looked up
   hvm_symbol_id symbol_value;
 } hvm_trace_sequence_item_getlocal;
 
 typedef struct hvm_trace_sequence_item_setlocal {
-  HVM_TRACE_SEQUENCE_ITEM_HEAD;
+  hvm_trace_sequence_item_head head;
   byte register_symbol;
   byte register_value;
-  // Symbol of the local being set
+  /// Symbol of the local being set
   hvm_symbol_id symbol_value;
 } hvm_trace_sequence_item_setlocal;
 
 typedef struct hvm_trace_sequence_item_getglobal {
-  HVM_TRACE_SEQUENCE_ITEM_HEAD;
+  hvm_trace_sequence_item_head head;
   byte register_return;
   byte register_symbol;
 } hvm_trace_sequence_item_getglobal;
 
 typedef struct hvm_trace_sequence_item_setglobal {
-  HVM_TRACE_SEQUENCE_ITEM_HEAD;
+  hvm_trace_sequence_item_head head;
   byte register_symbol;
   byte register_value;
 } hvm_trace_sequence_item_setglobal;
 
+
+/// @brief Item in a traced instruction sequence.
+///
+/// Big union of all the different instructions that could be traced. The
+/// first field will always be a hvm_trace_sequence_item_type identifying
+/// the kind instruction the item is storing.
 typedef union hvm_trace_sequence_item {
   hvm_trace_sequence_item_head             head;
   hvm_trace_sequence_item_returning        returning;

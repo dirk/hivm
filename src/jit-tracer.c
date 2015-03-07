@@ -65,9 +65,9 @@ void hvm_jit_call_trace_push_instruction(hvm_vm *vm, hvm_call_trace *trace) {
     case HVM_OP_SETSYMBOL:
       // TODO: Append a hvm_trace_sequence_item_setstring to our trace->sequence.
       if(instr == HVM_OP_SETSTRING) {
-        item->setstring.type = HVM_TRACE_SEQUENCE_ITEM_SETSTRING;
+        item->setstring.head.type = HVM_TRACE_SEQUENCE_ITEM_SETSTRING;
       } else if(instr == HVM_OP_SETSYMBOL) {
-        item->setsymbol.type = HVM_TRACE_SEQUENCE_ITEM_SETSYMBOL;
+        item->setsymbol.head.type = HVM_TRACE_SEQUENCE_ITEM_SETSYMBOL;
       }
       // 1B OP | 1B REG | 4B CONST
       item->setstring.register_return = vm->program[vm->ip + 1];
@@ -75,7 +75,7 @@ void hvm_jit_call_trace_push_instruction(hvm_vm *vm, hvm_call_trace *trace) {
       break;
 
     case HVM_OP_INVOKEPRIMITIVE:
-      item->invokeprimitive.type = HVM_TRACE_SEQUENCE_ITEM_INVOKEPRIMITIVE;
+      item->invokeprimitive.head.type = HVM_TRACE_SEQUENCE_ITEM_INVOKEPRIMITIVE;
       item->invokeprimitive.register_symbol = vm->program[vm->ip + 1];
       item->invokeprimitive.register_return = vm->program[vm->ip + 2];
       // Look up the symbol of the primitive we're going to be invoking
@@ -87,7 +87,7 @@ void hvm_jit_call_trace_push_instruction(hvm_vm *vm, hvm_call_trace *trace) {
       break;
 
     case HVM_OP_RETURN:
-      item->item_return.type = HVM_TRACE_SEQUENCE_ITEM_RETURN;
+      item->item_return.head.type = HVM_TRACE_SEQUENCE_ITEM_RETURN;
       item->item_return.register_return = vm->program[vm->ip + 1];
       // Look up the object being returned so we can annotate the trace
       // with its type.
@@ -113,14 +113,14 @@ void hvm_jit_call_trace_push_instruction(hvm_vm *vm, hvm_call_trace *trace) {
       break;
 
     case HVM_OP_IF:
-      item->item_if.type = HVM_TRACE_SEQUENCE_ITEM_IF;
+      item->item_if.head.type = HVM_TRACE_SEQUENCE_ITEM_IF;
       item->item_if.register_value = vm->program[vm->ip + 1];
       item->item_if.destination    = *(uint64_t*)(&vm->program[vm->ip + 2]);
       item->item_if.branched       = false;
       break;
 
     case HVM_OP_GOTO:
-      item->item_goto.type = HVM_TRACE_SEQUENCE_ITEM_GOTO;
+      item->item_goto.head.type   = HVM_TRACE_SEQUENCE_ITEM_GOTO;
       item->item_goto.destination = *(uint64_t*)(&vm->program[vm->ip + 1]);
       break;
 
@@ -140,63 +140,63 @@ void hvm_jit_call_trace_push_instruction(hvm_vm *vm, hvm_call_trace *trace) {
       break;
 
     case HVM_OP_ARRAYSET:
-      item->arrayset.type = HVM_TRACE_SEQUENCE_ITEM_ARRAYSET;
+      item->arrayset.head.type = HVM_TRACE_SEQUENCE_ITEM_ARRAYSET;
       item->arrayset.register_array = vm->program[vm->ip + 1];
       item->arrayset.register_index = vm->program[vm->ip + 2];
       item->arrayset.register_value = vm->program[vm->ip + 3];
       break;
 
     case HVM_OP_ARRAYGET:
-      item->arrayget.type = HVM_TRACE_SEQUENCE_ITEM_ARRAYGET;
+      item->arrayget.head.type = HVM_TRACE_SEQUENCE_ITEM_ARRAYGET;
       item->arrayget.register_return = vm->program[vm->ip + 1];
       item->arrayget.register_array = vm->program[vm->ip + 2];
       item->arrayget.register_index = vm->program[vm->ip + 3];
       break;
 
     case HVM_OP_ARRAYLEN:
-      item->arraylen.type = HVM_TRACE_SEQUENCE_ITEM_ARRAYLEN;
+      item->arraylen.head.type = HVM_TRACE_SEQUENCE_ITEM_ARRAYLEN;
       item->arraylen.register_return = vm->program[vm->ip + 1];
       item->arraylen.register_array  = vm->program[vm->ip + 2];
       break;
 
     case HVM_OP_ARRAYPUSH:
-      item->arraypush.type = HVM_TRACE_SEQUENCE_ITEM_ARRAYPUSH;
+      item->arraypush.head.type = HVM_TRACE_SEQUENCE_ITEM_ARRAYPUSH;
       item->arraypush.register_array = vm->program[vm->ip + 1];
       item->arraypush.register_value = vm->program[vm->ip + 2];
       break;
 
     case HVM_OP_MOVE:
-      item->move.type = HVM_TRACE_SEQUENCE_ITEM_MOVE;
+      item->move.head.type = HVM_TRACE_SEQUENCE_ITEM_MOVE;
       item->move.register_return = vm->program[vm->ip + 1];
       item->move.register_source = vm->program[vm->ip + 2];
       break;
 
     case HVM_OP_LITINTEGER:
-      item->litinteger.type = HVM_TRACE_SEQUENCE_ITEM_LITINTEGER;
+      item->litinteger.head.type = HVM_TRACE_SEQUENCE_ITEM_LITINTEGER;
       item->litinteger.register_return = vm->program[vm->ip + 1];
       item->litinteger.literal_value   = *(int64_t*)(&vm->program[vm->ip + 2]);
       break;
 
     case HVM_OP_GETLOCAL:
-      item->getlocal.type = HVM_TRACE_SEQUENCE_ITEM_GETLOCAL;
+      item->getlocal.head.type = HVM_TRACE_SEQUENCE_ITEM_GETLOCAL;
       item->getlocal.register_return = vm->program[vm->ip + 1];
       item->getlocal.register_symbol = vm->program[vm->ip + 2];
       break;
 
     case HVM_OP_SETLOCAL:
-      item->setlocal.type = HVM_TRACE_SEQUENCE_ITEM_SETLOCAL;
+      item->setlocal.head.type = HVM_TRACE_SEQUENCE_ITEM_SETLOCAL;
       item->setlocal.register_symbol = vm->program[vm->ip + 1];
       item->setlocal.register_value  = vm->program[vm->ip + 2];
       break;
 
     case HVM_OP_GETGLOBAL:
-      item->getglobal.type = HVM_TRACE_SEQUENCE_ITEM_GETGLOBAL;
+      item->getglobal.head.type = HVM_TRACE_SEQUENCE_ITEM_GETGLOBAL;
       item->getglobal.register_return = vm->program[vm->ip + 1];
       item->getglobal.register_symbol = vm->program[vm->ip + 2];
       break;
 
     case HVM_OP_SETGLOBAL:
-      item->setglobal.type = HVM_TRACE_SEQUENCE_ITEM_SETGLOBAL;
+      item->setglobal.head.type = HVM_TRACE_SEQUENCE_ITEM_SETGLOBAL;
       item->setglobal.register_symbol = vm->program[vm->ip + 1];
       item->setglobal.register_value  = vm->program[vm->ip + 2];
       break;
