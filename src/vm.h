@@ -96,9 +96,9 @@ typedef struct hvm_vm {
   /// Index of the current stack frame (total frames = stack_depth + 1)
   uint32_t stack_depth;
 
-  // Current exception (NULL for no exception)
+  /// Current exception (NULL for no exception)
   struct hvm_obj_ref* exception;
-  // Debug entries
+  /// Debug entries
   struct hvm_chunk_debug_entry* debug_entries;
   uint64_t debug_entries_capacity;
   uint64_t debug_entries_size;
@@ -118,7 +118,9 @@ typedef struct hvm_vm {
   struct hvm_obj_struct *symbol_table;
   /// General purpose registers ($r0...$rN)
   struct hvm_obj_ref* general_regs[HVM_GENERAL_REGISTERS];
+  /// Ephemeral argument registers (not preserved between subroutine calls)
   struct hvm_obj_ref* arg_regs[HVM_ARGUMENT_REGISTERS];
+  /// Ephemeral parameter registers
   struct hvm_obj_ref* param_regs[HVM_PARAMETER_REGISTERS];
 
   /// Pool for object references to be allocated and freed
@@ -153,9 +155,15 @@ hvm_vm *hvm_new_vm();
 /// @memberof hvm_vm
 void hvm_vm_run(hvm_vm*);
 
+/// Load a chunk into the VM.
+/// @memberof hvm_vm
 void hvm_vm_load_chunk(hvm_vm *vm, void *cv);
 
+/// Internal function for copying argument registers to parameter registers
+/// upon invocation of a subroutine.
+/// @memberof hvm_vm
 void hvm_vm_copy_regs(hvm_vm*);
+
 struct hvm_obj_ref *hvm_vm_register_read(hvm_vm *vm, byte reg);
 
 /// Set a constant in the VM constant table.
@@ -192,10 +200,17 @@ struct hvm_obj_ref* hvm_get_global(hvm_vm*, hvm_symbol_id);
 /// @memberof hvm_vm
 void hvm_set_global(hvm_vm*, hvm_symbol_id, struct hvm_obj_ref*);
 
+/// Call the primitive referenced by the given HVM_SYMBOL object.
+/// @memberof hvm_vm
 struct hvm_obj_ref *hvm_vm_call_primitive(hvm_vm*, struct hvm_obj_ref*);
 
+/// Construct a closure structure object from the current scope state of
+/// the VM.
+/// @memberof hvm_vm
 struct hvm_obj_ref* hvm_vm_build_closure(hvm_vm *vm);
 
+/// Utility function for cloning a NULL-terminated character string.
+/// Warning: Allocates memory!
 char *hvm_util_strclone(char *str);
 
 /// Opcodes
