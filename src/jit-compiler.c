@@ -512,7 +512,7 @@ LLVMValueRef hvm_llvm_value_for_obj_ref(LLVMBuilderRef builder, hvm_obj_ref *ref
   return LLVMBuildIntToPtr(builder, ptr, obj_ref_ptr_type, "");
 }
 
-LLVMValueRef hvm_jit_obj_int_add_direct(struct hvm_jit_compile_context *context, LLVMBuilderRef builder, hvm_compile_value *cv1, hvm_compile_value *cv2, byte reg1, byte reg2) {
+LLVMValueRef hvm_jit_obj_int_add_direct(struct hvm_jit_compile_context *context, LLVMBuilderRef builder, LLVMValueRef vm_ptr, hvm_compile_value *cv1, hvm_compile_value *cv2, byte reg1, byte reg2) {
   LLVMValueRef func, value, data_ptr, data_ptr1, data_ptr2, value1, value2;
   // Get the bundle from the context
   hvm_compile_bundle *bundle = context->bundle;
@@ -550,7 +550,8 @@ LLVMValueRef hvm_jit_obj_int_add_direct(struct hvm_jit_compile_context *context,
   LLVMValueRef value_i64 = LLVMBuildAdd(builder, operand1, operand2, "value");
   // Create the integer to return
   func = hvm_jit_new_obj_int_llvm_value(bundle);
-  value = LLVMBuildCall(builder, func, NULL, 0, "obj_ref_int");
+  LLVMValueRef new_obj_int_args[1] = {vm_ptr};
+  value = LLVMBuildCall(builder, func, new_obj_int_args, 1, "obj_ref_int");
   value = LLVMBuildPointerCast(builder, value, obj_ref_ptr_type, "value");
   // Get the pointer into its data and set the new value
   data_ptr = LLVMBuildGEP(builder, value, (LLVMValueRef[]){i32_zero, i32_one}, 2, "");
@@ -982,8 +983,8 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
           // fprintf(stderr, "value2: $%d %s\n", reg2, LLVMPrintTypeToString(LLVMTypeOf(value2)));
           // Build the `hvm_obj_int_eq` call
           func  = hvm_jit_obj_int_eq_llvm_value(bundle);
-          LLVMValueRef int_eq_args[2] = {value1, value2};
-          value = LLVMBuildCall(builder, func, int_eq_args, 2, "equal");
+          LLVMValueRef int_eq_args[3] = {value_vm_ptr, value1, value2};
+          value = LLVMBuildCall(builder, func, int_eq_args, 3, "equal");
           // TODO: Check if return is NULL and raise proper exception
           cv = hvm_compile_value_new(HVM_INTEGER, reg);
           STORE(cv, value);
@@ -1014,7 +1015,8 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
           // And build an integer with that value
           func = hvm_jit_new_obj_int_llvm_value(bundle);
           // Going to get a pointer and cast it properly
-          value_returned = LLVMBuildCall(builder, func, NULL, 0, "obj_ref_int");
+          LLVMValueRef new_obj_int_args[1] = {value_vm_ptr};
+          value_returned = LLVMBuildCall(builder, func, new_obj_int_args, 1, "obj_ref_int");
           value_returned = LLVMBuildPointerCast(builder, value_returned, obj_ref_ptr_type, "value_returned");
           // Then get the pointer to the data property and set it (first 0 index
           // is to get the first value pointed at, the second 0 index is to get
@@ -1062,9 +1064,9 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
           LLVMValueRef value_array = hvm_jit_load_general_reg_value(context, builder, reg_array);
           // Get the array-length function
           func = hvm_jit_obj_array_len_llvm_value(bundle);
-          LLVMValueRef arraylen_args[1] = {value_array};
+          LLVMValueRef arraylen_args[2] = {value_vm_ptr, value_array};
           // Then build the function call
-          value_returned = LLVMBuildCall(builder, func, arraylen_args, 1, "arraylen");
+          value_returned = LLVMBuildCall(builder, func, arraylen_args, 2, "arraylen");
           // JIT_SAVE_DATA_ITEM_AND_VALUE(reg, data_item, value_returned);
           // hvm_jit_store_reg_value(context, builder, reg, value_returned);
           cv = hvm_compile_value_new(HVM_INTEGER, reg);
@@ -1108,15 +1110,15 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
           hvm_compile_value *ov2 = hvm_jit_get_value(context, reg2);
           if(ov1->type == HVM_INTEGER && ov2->type == HVM_INTEGER) {
             // printf("using direct addition code path at 0x%08llX\n", trace_item->head.ip);
-            value_returned = hvm_jit_obj_int_add_direct(context, builder, ov1, ov2, reg1, reg2);
+            value_returned = hvm_jit_obj_int_add_direct(context, builder, value_vm_ptr, ov1, ov2, reg1, reg2);
           } else {
             // Get the source values for the operation
             value1 = hvm_jit_load_general_reg_value(context, builder, reg1);
             value2 = hvm_jit_load_general_reg_value(context, builder, reg2);
             // TODO: Currently this will fail if given non-integer values.
             func = hvm_jit_obj_int_add_llvm_value(bundle);
-            LLVMValueRef add_args[2] = {value1, value2};
-            value_returned = LLVMBuildCall(builder, func, add_args, 2, "added");
+            LLVMValueRef add_args[3] = {value_vm_ptr, value1, value2};
+            value_returned = LLVMBuildCall(builder, func, add_args, 3, "added");
           }
           cv = hvm_compile_value_new(HVM_INTEGER, reg);
           STORE(cv, value_returned);
@@ -1152,9 +1154,9 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
             assert(false);
           }
           // Call our comparator and store the result
-          LLVMValueRef comparison_args[2] = {value1, value2};
+          LLVMValueRef comparison_args[3] = {value_vm_ptr, value1, value2};
           // sprintf(scratch, "$%-3d = $%-3d > $%-3d", reg_result, reg1, reg2);
-          value_returned = LLVMBuildCall(builder, func, comparison_args, 2, "gt");
+          value_returned = LLVMBuildCall(builder, func, comparison_args, 3, "gt");
           // TODO: Check for exception set by primitive or NULL return from it
           // JIT_SAVE_DATA_ITEM_AND_VALUE(reg_result, data_item, value_returned);
           // hvm_jit_store_reg_value(context, builder, reg, value_returned);
