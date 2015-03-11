@@ -291,7 +291,7 @@ byte hvm_vm_reg_param(byte i) {
 
 
 // Reading and writing registers
-ALWAYS_INLINE void _hvm_vm_register_write(hvm_vm *vm, byte reg, hvm_obj_ref* ref) {
+void _hvm_vm_register_write(hvm_vm *vm, byte reg, hvm_obj_ref* ref) {
   assert(reg < 146 || reg > 161);// Avoid parameter registers
   if(reg <= 127) {
     vm->general_regs[reg] = ref;
@@ -301,7 +301,7 @@ ALWAYS_INLINE void _hvm_vm_register_write(hvm_vm *vm, byte reg, hvm_obj_ref* ref
   // Else noop
 }
 /// Inlined version of register read operation
-ALWAYS_INLINE hvm_obj_ref* _hvm_vm_register_read(hvm_vm *vm, byte reg) {
+hvm_obj_ref* _hvm_vm_register_read(hvm_vm *vm, byte reg) {
   assert(reg < 130 || reg > 145);// Avoid argument registers
   assert(reg <= 162);// Valid range of registers
   if(reg <= 127) {

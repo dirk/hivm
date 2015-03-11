@@ -1,11 +1,11 @@
 
 $cflags  = "-g -Wall -std=c99 -I../../include #{`pkg-config --cflags glib-2.0 lua5.1`.strip}"
-$ldflags = "../../libhivm-db.a -liconv -lz -lcurses #{`pkg-config --libs glib-2.0 lua5.1`.strip} -dead_strip"
+$ldflags = "../../libhivm.a -liconv -lz -lcurses #{`pkg-config --libs glib-2.0 lua5.1`.strip} -dead_strip"
 
 task 'default' => ['test_sorting']
 
 desc 'Build VM tester object'
-file 'test_sorting.o' => ['test_sorting.c', '../../libhivm-db.a'] do
+file 'test_sorting.o' => ['test_sorting.c', '../../libhivm.a'] do
   sh "clang #{$cflags} -c test_sorting.c"
 end
 
