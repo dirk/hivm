@@ -23,3 +23,7 @@ test/unit/*
 dummy/*
 hivm.xcodeproj
 *.sublime*
+
+# CMake
+Cmake*
+Makefile
