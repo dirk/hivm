@@ -160,7 +160,7 @@ void define_insertion_sort(hvm_gen *gen) {
 }
 
 int main(int argc, char **argv) {
-  static const unsigned int array_size = 1000;
+  static const unsigned int array_size = 250;
   static const int64_t runs = 4;
 
   hvm_gen *gen = hvm_new_gen();

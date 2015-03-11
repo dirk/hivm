@@ -162,6 +162,7 @@ LLVMValueRef hvm_jit_obj_array_set_llvm_value(hvm_compile_bundle *bundle) {
 LLVMValueRef hvm_jit_obj_array_len_llvm_value(hvm_compile_bundle *bundle) {
   STATIC_VALUE(LLVMValueRef, func);
   UNPACK_BUNDLE(bundle);
+  // (hvm_vm*, hvm_obj_ref*) -> hvm_obj_ref*
   ADD_FUNCTION(func, hvm_obj_array_len, obj_ref_ptr_type, 2, pointer_type, obj_ref_ptr_type);
   return func;
 }
@@ -177,7 +178,7 @@ LLVMValueRef hvm_jit_vm_call_primitive_llvm_value(hvm_compile_bundle *bundle) {
 LLVMValueRef hvm_jit_obj_cmp_and_llvm_value(hvm_compile_bundle *bundle) {
   STATIC_VALUE(LLVMValueRef, func);
   UNPACK_BUNDLE(bundle);
-  // (hvm_obj_ref*, hvm_obj_ref*) -> hvm_obj_ref*
+  // (hvm_vm*, hvm_obj_ref*, hvm_obj_ref*) -> hvm_obj_ref*
   ADD_FUNCTION(func, hvm_obj_cmp_and, obj_ref_ptr_type, 3, pointer_type, obj_ref_ptr_type, obj_ref_ptr_type);
   return func;
 }
@@ -238,7 +239,7 @@ LLVMValueRef hvm_jit_get_local_llvm_value(hvm_compile_bundle *bundle) {
 LLVMValueRef hvm_jit_new_obj_int_llvm_value(hvm_compile_bundle *bundle) {
   STATIC_VALUE(LLVMValueRef, func);
   UNPACK_BUNDLE(bundle);
-  // () -> hvm_obj_ref*
+  // (hvm_vm*) -> hvm_obj_ref*
   LLVMTypeRef param_types[] = {pointer_type};
   LLVMTypeRef func_type = LLVMFunctionType(pointer_type, param_types, 1, false);
   func = LLVMAddFunction(module, "hvm_new_obj_int", func_type);
