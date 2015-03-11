@@ -993,7 +993,7 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
         break;
 
       case HVM_TRACE_SEQUENCE_ITEM_AND:
-        data_item->head.type = HVM_COMPILE_DATA_AND;
+        DATA_ITEM_TYPE = HVM_COMPILE_DATA_AND;
         {
           LLVMValueRef value, value1, value2, value_returned, data_ptr;
           byte reg, reg1, reg2;
@@ -1036,7 +1036,7 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
         break;
 
       case HVM_TRACE_SEQUENCE_ITEM_ARRAYSET:
-        data_item->arrayset.type = HVM_COMPILE_DATA_ARRAYSET;
+        DATA_ITEM_TYPE = HVM_COMPILE_DATA_ARRAYSET;
         {
           // Get the values we need for the array-set operation
           byte         reg_array   = trace_item->arrayset.register_array;
@@ -1054,7 +1054,7 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
         break;
 
       case HVM_TRACE_SEQUENCE_ITEM_ARRAYLEN:
-        data_item->head.type = HVM_COMPILE_DATA_ARRAYLEN;
+        DATA_ITEM_TYPE = HVM_COMPILE_DATA_ARRAYLEN;
         {
           byte reg, reg_array;
           LLVMValueRef value_returned;
@@ -1076,7 +1076,7 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
         break;
 
       case HVM_TRACE_SEQUENCE_ITEM_INVOKEPRIMITIVE:
-        data_item->invokeprimitive.type = HVM_COMPILE_DATA_INVOKEPRIMITIVE;
+        DATA_ITEM_TYPE = HVM_COMPILE_DATA_INVOKEPRIMITIVE;
         {
           LLVMValueRef value_returned;
           byte reg = trace_item->invokeprimitive.register_return;
@@ -1098,7 +1098,7 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
         break;
 
       case HVM_TRACE_SEQUENCE_ITEM_ADD:
-        data_item->add.type = HVM_COMPILE_DATA_ADD;
+        DATA_ITEM_TYPE = HVM_COMPILE_DATA_ADD;
         {
           byte reg, reg1, reg2;
           LLVMValueRef value1, value2, value_returned;
@@ -1127,7 +1127,7 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
         break;
 
       case HVM_TRACE_SEQUENCE_ITEM_GOTO:
-        data_item->head.type = HVM_COMPILE_DATA_GOTO;
+        DATA_ITEM_TYPE = HVM_COMPILE_DATA_GOTO;
         // Look up the block we need to go to.
         jit_block = data_item->item_goto.destination_block;
         // Build the branch instruction to this block
@@ -1167,7 +1167,7 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
         break;
 
       case HVM_TRACE_SEQUENCE_ITEM_IF:
-        data_item->item_if.type = HVM_COMPILE_DATA_IF;
+        DATA_ITEM_TYPE = HVM_COMPILE_DATA_IF;
         // Log with the scratch
         // sprintf(scratch, "if %p ? ->%p : ->%p", value1, data_item->item_if.truthy_block, data_item->item_if.falsey_block);
         // hvm_jit_llvm_print_string(bundle, builder, scratch);
@@ -1218,7 +1218,7 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
         continue;// Skip continuation checks
 
       case HVM_TRACE_SEQUENCE_ITEM_RETURN:
-        data_item->head.type = HVM_COMPILE_DATA_RETURN;
+        DATA_ITEM_TYPE = HVM_COMPILE_DATA_RETURN;
         {
           byte reg;
           LLVMTypeRef  status_type, er_ptr_type;
@@ -1243,7 +1243,7 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
         continue;
 
       case HVM_TRACE_SEQUENCE_ITEM_LITINTEGER:
-        data_item->head.type = HVM_COMPILE_DATA_LITINTEGER;
+        DATA_ITEM_TYPE = HVM_COMPILE_DATA_LITINTEGER;
         {
           LLVMValueRef value;
           byte reg = trace_item->litinteger.register_return;
@@ -1269,7 +1269,7 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
         break;
 
       case HVM_TRACE_SEQUENCE_ITEM_SETLOCAL:
-        data_item->head.type = HVM_COMPILE_DATA_SETLOCAL;
+        DATA_ITEM_TYPE = HVM_COMPILE_DATA_SETLOCAL;
         {
           // Register that the symbol object is going to be in
           byte reg_value = trace_item->setlocal.register_value;
@@ -1303,7 +1303,7 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
         break;
 
       case HVM_TRACE_SEQUENCE_ITEM_GETLOCAL:
-        data_item->head.type = HVM_COMPILE_DATA_GETLOCAL;
+        DATA_ITEM_TYPE = HVM_COMPILE_DATA_GETLOCAL;
         {
           // Where the local variable is going to end up
           byte reg_result = trace_item->getlocal.register_return;
