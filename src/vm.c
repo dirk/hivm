@@ -89,7 +89,8 @@ hvm_vm *hvm_new_vm() {
   hvm_debug_setup(vm);
 #endif
 
-  vm->is_tracing = 0;
+  vm->jit_enabled   = 1;
+  vm->is_tracing    = 0;
   vm->traces_length = 0;
 
   return vm;
@@ -363,6 +364,10 @@ typedef enum {
 ALWAYS_INLINE hvm_dispatch_path hvm_dispatch_frame(hvm_vm *vm, hvm_frame *frame, hvm_subroutine_tag *tag, byte *caller_tag) {
   uint64_t dest = vm->ip;
   hvm_call_trace *trace;
+  // Return the normal path immediately if we shouldn't JIT
+  if (!vm->jit_enabled) {
+    return HVM_DISPATCH_PATH_NORMAL;
+  }
   // Check if we've reached the heat threshold
   if(tag->heat > HVM_TRACE_THRESHOLD || vm->always_trace) {
     // See if we have a completed trace available to compile and switch to

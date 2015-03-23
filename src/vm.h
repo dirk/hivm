@@ -138,6 +138,8 @@ typedef struct hvm_vm {
   /// Debugger information store
   void *debugger;
 
+  /// Whether or not JIT'ing is enabled
+  bool jit_enabled;
   /// Whether or not it's tracing
   bool is_tracing;
   /// Special flag to tell it to *always* trace
