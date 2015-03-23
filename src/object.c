@@ -424,6 +424,9 @@ hvm_obj_ref_pool *hvm_obj_ref_pool_new() {
   return pool;
 }
 hvm_obj_ref *hvm_obj_ref_new_from_pool(hvm_vm *vm) {
+  return malloc(sizeof(hvm_obj_ref));
+  // TODO: Switch to a fast pool allocator
+  /*
   hvm_obj_ref_pool *pool = vm->ref_pool;
   // Get the earliest zone with free slots
   ZONE *zone = pool->earliest_free;
@@ -440,6 +443,7 @@ hvm_obj_ref *hvm_obj_ref_new_from_pool(hvm_vm *vm) {
   ref->flags  = 0x0;
   ref->entry  = 0x0;
   return ref;
+  */
 }
 
 ZONE *pool_find_next_earliest_free(POOL *pool, ZONE *zone) {
