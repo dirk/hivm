@@ -215,7 +215,7 @@ struct hvm_jit_compile_context {
   hvm_compile_bundle *bundle;
   /// Boxes for object references (emulating the virtual registers in the VM),
   /// however LLVM will optimize our stores and loads to/from these into faster
-  /// phi nodes.
+  /// phi nodes
   LLVMValueRef *general_regs;
   /// For knowing whether a register is constant or not
   bool *constant_regs;

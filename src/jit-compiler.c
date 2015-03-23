@@ -505,6 +505,7 @@ void hvm_jit_store_arg_reg_value(struct hvm_jit_compile_context *context, LLVMBu
   // Offset into that array
   LLVMValueRef offset_value = LLVMConstInt(int32_type, offset, false);
   arg_ptr = LLVMBuildGEP(builder, args_ptr, (LLVMValueRef[]){offset_value}, 1, scratch);
+  // Write the contents of the value pointer into the VM's argument register
   LLVMBuildStore(builder, value, arg_ptr);
 }
 
@@ -580,6 +581,7 @@ void hvm_jit_build_bailout_return_to_ip(LLVMBuilderRef builder, LLVMValueRef exi
 LLVMBasicBlockRef hvm_jit_build_bailout_block(hvm_vm *vm, LLVMBuilderRef builder, LLVMValueRef parent_func, LLVMValueRef exit_value, void *void_context, uint64_t ip) {
   // Liven up the type
   struct hvm_jit_compile_context *context = void_context;
+  hvm_compile_bundle *bundle = context->bundle;
 
   // Create the basic block for our bailout code
   LLVMBasicBlockRef basic_block = LLVMAppendBasicBlockInContext(hvm_shared_llvm_context, parent_func, NULL);
@@ -590,8 +592,11 @@ LLVMBasicBlockRef hvm_jit_build_bailout_block(hvm_vm *vm, LLVMBuilderRef builder
   // Then convert that to an LLVM pointer
   LLVMValueRef general_regs_ptr = LLVMConstInt(pointer_type, (unsigned long long)general_regs, false);
 
+  // TODO: Track writers to general registers so that we know which registers
+  //       need copying (instead of wasting time copying all of them)
+
   // Loop over each computed general reg value and copy that into the VM's
-  // general regs.
+  // general regs
   for(byte i = 0; i < HVM_GENERAL_REGISTERS; i++) {
     LLVMValueRef value_ptr = context->general_regs[i];
     if(value_ptr == NULL) {
@@ -605,6 +610,28 @@ LLVMBasicBlockRef hvm_jit_build_bailout_block(hvm_vm *vm, LLVMBuilderRef builder
     // Now actually copy the value into the register
     LLVMBuildStore(builder, value, reg_ptr);
   }
+
+  // Get the function to set a local in the VM frame
+  LLVMValueRef func = hvm_jit_set_local_llvm_value(bundle);
+  // Make a pointer to the frame
+  LLVMValueRef frame_ptr = LLVMConstInt(int64_type, (unsigned long long)(bundle->frame), false);
+  frame_ptr = LLVMBuildIntToPtr(builder, frame_ptr, pointer_type, "frame");
+  hvm_obj_struct *locals = context->locals;
+  // Iterate through the slots in the locals dictionary
+  for(unsigned int i = 0; i < locals->heap_length; i++) {
+    hvm_obj_struct_heap_pair *pair = locals->heap[i];
+    hvm_symbol_id sym = pair->id;
+    void *slot        = pair->obj;
+    // Load the object ref from the value
+    char *symbol_name = hvm_desymbolicate(context->vm->symbols, sym);
+    LLVMValueRef value = hvm_jit_load_slot(builder, slot, symbol_name);
+    // Create a value for the symbol ID
+    LLVMValueRef value_symbol = LLVMConstInt(int64_type, sym, false);
+    // Create the call to set the local
+    LLVMValueRef args[] = {frame_ptr, value_symbol, value};
+    LLVMBuildCall(builder, func, args, 3, "");
+  }
+
   // TODO: Also copy argument registers!
   // TODO: Copy locals from the special JIT stack slots into a regular frame
 
