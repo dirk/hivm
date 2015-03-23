@@ -866,7 +866,7 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
 
   hvm_compile_bundle *bundle      = context->bundle;
   hvm_compile_sequence_data *data = bundle->data;
-  hvm_obj_struct *locals          = context->locals;
+  // hvm_obj_struct *locals       = context->locals;
   LLVMBuilderRef builder          = bundle->llvm_builder;
 
   hvm_jit_position_builder_at_entry(trace, context, builder);
@@ -1306,11 +1306,12 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
           // Must be constant for us to use fast stack slot storage
           assert(cv_sym->type == HVM_SYMBOL && cv_sym->constant);
           // Look up symbol ID from the trace
-          hvm_symbol_id symbol_id = trace_item->setlocal.symbol_value;
+          // hvm_symbol_id symbol_id = trace_item->setlocal.symbol_value;
           // Read the value to be written into the slot
           LLVMValueRef value = hvm_jit_load_general_reg_value(context, builder, reg_value);
           // Look up and write to the slot
-          void *slot = hvm_obj_struct_internal_get(locals, symbol_id);
+          // void *slot = hvm_obj_struct_internal_get(locals, symbol_id);
+          LLVMValueRef slot = data_item->setlocal.slot;
           assert(slot != NULL);
           hvm_jit_store_slot(builder, (LLVMValueRef)slot, value, "");
         }
@@ -1336,9 +1337,12 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
           // Where the local variable is going to end up
           byte reg_result = trace_item->getlocal.register_return;
           // Get the symbol ID for the local
-          hvm_symbol_id symbol_id = trace_item->getlocal.symbol_value;
-          void *slot = hvm_obj_struct_internal_get(locals, symbol_id);
+          // hvm_symbol_id symbol_id = trace_item->getlocal.symbol_value;
+          // Get the slot for that local from the locals slots structure
+          // void *slot = hvm_obj_struct_internal_get(locals, symbol_id);
+          LLVMValueRef slot = data_item->getlocal.slot;
           assert(slot != NULL);
+          // Load the object ref out of that slot
           value = hvm_jit_load_slot(builder, slot, "");
 
           // The below is a buggy attempt at an optimized code path:
@@ -1443,15 +1447,15 @@ void hvm_jit_compile_pass_identify_locals(hvm_call_trace *trace, struct hvm_jit_
         symbol_id = item->setlocal.symbol_value;
         // Check if the local's slot has already been allocated
         slot = hvm_obj_struct_internal_get(locals, symbol_id);
-        if(slot != NULL) {
-          break;
+        if(slot == NULL) {
+          char scratch[80];// FIXME: Possible overflow here
+          char *symbol_name = hvm_desymbolicate(context->vm->symbols, symbol_id);
+          sprintf(scratch, "local:%s", symbol_name);
+          // Allocate the slot and add it to the structure dictionary
+          slot = LLVMBuildAlloca(builder, obj_ref_ptr_type, scratch);
+          hvm_obj_struct_internal_set(locals, symbol_id, slot);
         }
-        char scratch[80];// FIXME: Possible overflow here
-        char *symbol_name = hvm_desymbolicate(context->vm->symbols, symbol_id);
-        sprintf(scratch, "local:%s", symbol_name);
-        // Allocate the slot and add it to the structure dictionary
-        void *slot = LLVMBuildAlloca(builder, obj_ref_ptr_type, scratch);
-        hvm_obj_struct_internal_set(locals, symbol_id, slot);
+        data_item->setlocal.slot = (LLVMValueRef)slot;
         break;
       default:
         continue;
