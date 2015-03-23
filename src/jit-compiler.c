@@ -1332,20 +1332,41 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
       case HVM_TRACE_SEQUENCE_ITEM_GETLOCAL:
         DATA_ITEM_TYPE = HVM_COMPILE_DATA_GETLOCAL;
         {
+          LLVMValueRef value;
           // Where the local variable is going to end up
           byte reg_result = trace_item->getlocal.register_return;
+          // Get the symbol ID for the local
+          hvm_symbol_id symbol_id = trace_item->getlocal.symbol_value;
+          void *slot = hvm_obj_struct_internal_get(locals, symbol_id);
+          assert(slot != NULL);
+          value = hvm_jit_load_slot(builder, slot, "");
+
+          // The below is a buggy attempt at an optimized code path:
+          /*
           // Get the register containing the symbol then get the compile value
           byte reg_symbol = trace_item->getlocal.register_symbol;
           hvm_compile_value *cv_sym = hvm_jit_get_value(context, reg_symbol);
-          // We need to know this symbol will be constant to be able to
-          // use the fast stack slot storage
-          assert(cv_sym->type == HVM_SYMBOL && cv_sym->constant);
-          // printf("using direct slot code path at 0x%08llX\n", trace_item->head.ip);
-          // Look up the symbol ID from the trace
-          hvm_symbol_id symbol_id = trace_item->setlocal.symbol_value;
-          void *slot = hvm_obj_struct_internal_get(locals, symbol_id);
-          assert(slot != NULL);
-          LLVMValueRef value = hvm_jit_load_slot(builder, slot, "");
+
+          if(cv_sym->type == HVM_SYMBOL && cv_sym->constant) {
+            // If we know it's constant then we can use the fast code path
+            // printf("using direct slot code path at 0x%08llX\n", trace_item->head.ip);
+            // Look up the symbol ID from the trace
+            hvm_symbol_id symbol_id = trace_item->getlocal.symbol_value;
+            void *slot = hvm_obj_struct_internal_get(locals, symbol_id);
+            assert(slot != NULL);
+            value = hvm_jit_load_slot(builder, slot, "slot_local");
+          } else {
+            // Otherwise we have to use the slow path
+            LLVMValueRef value_symbol = hvm_jit_load_general_reg_value(context, builder, reg_symbol);
+            // Get the symbol ID from the object-ref
+            LLVMValueRef value_symbol_id = hvm_jit_load_symbol_id_from_obj_ref_value(builder, value_symbol);
+            // Get the pointer to the frame
+            LLVMValueRef frame_ptr = LLVMConstInt(int64_type, (unsigned long long)(bundle->frame), false);
+            frame_ptr = LLVMBuildIntToPtr(builder, frame_ptr, pointer_type, "frame");
+            func      = hvm_jit_get_local_llvm_value(bundle);
+            value     = LLVMBuildCall(builder, func, (LLVMValueRef[]){frame_ptr, value_symbol_id}, 2, "local");
+          }
+          */
           cv = hvm_compile_value_new(HVM_UNKNOWN_TYPE, reg_result);
           STORE(cv, value);
         }
