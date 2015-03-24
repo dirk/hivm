@@ -720,6 +720,10 @@ bool hvm_jit_trace_contains_ip(hvm_call_trace *trace, uint64_t ip) {
   return false;
 }
 
+// Forward declarations of some utilities
+void hvm_jit_position_builder_at_entry(hvm_call_trace*, struct hvm_jit_compile_context*, LLVMBuilderRef);
+
+
 // Compilation passes ---------------------------------------------------------
 
 void hvm_jit_compile_pass_identify_blocks(hvm_call_trace *trace, hvm_compile_bundle *bundle) {
@@ -801,7 +805,12 @@ void hvm_jit_compile_pass_identify_blocks(hvm_call_trace *trace, hvm_compile_bun
   // }
 }
 
-void hvm_jit_compile_pass_identify_constant_registers(hvm_call_trace *trace, struct hvm_jit_compile_context *context) {
+void hvm_jit_compile_pass_identify_registers(hvm_call_trace *trace, struct hvm_jit_compile_context *context) {
+  // Get the builder out of the bundle
+  LLVMBuilderRef builder = context->bundle->llvm_builder;
+  // And position it at the start so our stack allocations come first
+  hvm_jit_position_builder_at_entry(trace, context, builder);
+
   unsigned int i;
   // Track the number of times a register is written (if it's less than
   // 2 times then we know it will be constant).
@@ -835,11 +844,20 @@ void hvm_jit_compile_pass_identify_constant_registers(hvm_call_trace *trace, str
         continue;
     }
   }
+  // Make a pointer to null
+  LLVMValueRef null_ptr = LLVMConstInt(int64_type, (unsigned long long)hvm_const_null, false);
+  null_ptr = LLVMBuildIntToPtr(builder, null_ptr, obj_ref_ptr_type, "null");
 
-  for(i = 0; i < HVM_TOTAL_REGISTERS; i++) {
+  for(byte i = 0; i < HVM_TOTAL_REGISTERS; i++) {
     // printf("writes[%d] = %u\n", i, writes[i]);
     // Mark the register as constant if we write to it 1 or less times.
     context->constant_regs[i] = (writes[i] < 2);
+    // Also pre-allocate it if it's a general register
+    // TODO: Actually track usage
+    if(hvm_is_gen_reg(i)) {
+      // Pre-allocate the slot for it if it's been used at all
+      hvm_jit_store_general_reg_value(context, builder, i, null_ptr);
+    }
   }
 }
 
@@ -1554,7 +1572,7 @@ void hvm_jit_compile_trace(hvm_vm *vm, hvm_call_trace *trace) {
   // execution.
 
   // Identify registers with constant values that we can optimize.
-  hvm_jit_compile_pass_identify_constant_registers(trace, &compile_context);
+  hvm_jit_compile_pass_identify_registers(trace, &compile_context);
 
   // Identify and extract gets/sets of globals and locals into dedicated
   // in-out pointers arguments to the block so that they can be passed
