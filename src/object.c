@@ -186,6 +186,7 @@ hvm_obj_ref *hvm_new_obj_int(hvm_vm *vm) {
   hvm_obj_ref *ref = hvm_obj_ref_new_from_pool(vm);
   ref->type = HVM_INTEGER;
   ref->data.i64 = zero;
+  ref->flags = 0x0;
   return ref;
 }
 
@@ -210,6 +211,7 @@ hvm_obj_ref *hvm_obj_int_add(hvm_vm *vm, hvm_obj_ref *a, hvm_obj_ref *b) {
   cv = av + bv;
   c->type = HVM_INTEGER;
   c->data.i64 = cv;
+  c->flags = 0x0;
   return c;
 }
 hvm_obj_ref *hvm_obj_int_sub(hvm_vm *vm, hvm_obj_ref *a, hvm_obj_ref *b) {
@@ -221,6 +223,7 @@ hvm_obj_ref *hvm_obj_int_sub(hvm_vm *vm, hvm_obj_ref *a, hvm_obj_ref *b) {
   cv = av - bv;
   c->type = HVM_INTEGER;
   c->data.i64 = cv;
+  c->flags = 0x0;
   return c;
 }
 hvm_obj_ref *hvm_obj_int_mul(hvm_vm *vm, hvm_obj_ref *a, hvm_obj_ref *b) {
@@ -232,6 +235,7 @@ hvm_obj_ref *hvm_obj_int_mul(hvm_vm *vm, hvm_obj_ref *a, hvm_obj_ref *b) {
   cv = av * bv;
   c->type = HVM_INTEGER;
   c->data.i64 = cv;
+  c->flags = 0x0;
   return c;
 }
 hvm_obj_ref *hvm_obj_int_div(hvm_vm *vm, hvm_obj_ref *a, hvm_obj_ref *b) {
@@ -243,6 +247,7 @@ hvm_obj_ref *hvm_obj_int_div(hvm_vm *vm, hvm_obj_ref *a, hvm_obj_ref *b) {
   cv = av / bv;
   c->type = HVM_INTEGER;
   c->data.i64 = cv;
+  c->flags = 0x0;
   return c;
 }
 hvm_obj_ref *hvm_obj_int_mod(hvm_vm *vm, hvm_obj_ref *a, hvm_obj_ref *b) {
@@ -254,10 +259,12 @@ hvm_obj_ref *hvm_obj_int_mod(hvm_vm *vm, hvm_obj_ref *a, hvm_obj_ref *b) {
   cv = av % bv;
   c->type = HVM_INTEGER;
   c->data.i64 = cv;
+  c->flags = 0x0;
   return c;
 }
 #define INT_COMPARISON_OP_HEAD hvm_obj_ref *c = hvm_obj_ref_new_from_pool(vm); \
-                               c->type = HVM_INTEGER; \
+                               c->type  = HVM_INTEGER; \
+                               c->flags = 0x0; \
                                int64_t av, bv, cv; \
                                av = a->data.i64; \
                                bv = b->data.i64;
@@ -424,7 +431,7 @@ hvm_obj_ref_pool *hvm_obj_ref_pool_new() {
   return pool;
 }
 hvm_obj_ref *hvm_obj_ref_new_from_pool(hvm_vm *vm) {
-  return malloc(sizeof(hvm_obj_ref));
+  return je_malloc(sizeof(hvm_obj_ref));
   // TODO: Switch to a fast pool allocator
   /*
   hvm_obj_ref_pool *pool = vm->ref_pool;
