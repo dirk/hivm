@@ -10,6 +10,8 @@
 #include <llvm-c/Target.h>
 #include <llvm-c/Transforms/Scalar.h>
 
+#include <jemalloc/jemalloc.h>
+
 #include "vm.h"
 #include "symbol.h"
 #include "object.h"
@@ -412,7 +414,7 @@ hvm_compile_value *hvm_jit_get_value(struct hvm_jit_compile_context *context, by
 }
 
 hvm_compile_value *hvm_compile_value_new(char type, byte reg) {
-  hvm_compile_value *cv = malloc(sizeof(hvm_compile_value));
+  hvm_compile_value *cv = je_malloc(sizeof(hvm_compile_value));
   cv->reg  = reg;
   cv->type = type;
   cv->constant = false;
@@ -653,7 +655,7 @@ hvm_jit_block *hvm_jit_compile_find_or_insert_block(LLVMValueRef parent_func, hv
   if(bundle->blocks_head == NULL) {
     // If there's no blocks whatsoever then create a new one and set it
     // as the head and tail
-    block = malloc(sizeof(hvm_jit_block));
+    block = je_malloc(sizeof(hvm_jit_block));
     block->next = NULL;
     bundle->blocks_head = block;
     bundle->blocks_tail = block;
@@ -671,7 +673,7 @@ hvm_jit_block *hvm_jit_compile_find_or_insert_block(LLVMValueRef parent_func, hv
 
     // If there's no more blocks then create a new one and append it
     if(next == NULL) {
-      new_block = malloc(sizeof(hvm_jit_block));
+      new_block = je_malloc(sizeof(hvm_jit_block));
       new_block->next = NULL;
       // Set the new one as the next in the list and the tail of the list
       block->next = new_block;
@@ -681,7 +683,7 @@ hvm_jit_block *hvm_jit_compile_find_or_insert_block(LLVMValueRef parent_func, hv
     }
     // Check if we need to insert between this block and the next block
     if(block->ip < ip && ip < next->ip) {
-      new_block = malloc(sizeof(hvm_jit_block));
+      new_block = je_malloc(sizeof(hvm_jit_block));
       // Set up the linkages
       block->next = new_block;
       new_block->next = next;
@@ -741,7 +743,7 @@ void hvm_jit_compile_pass_identify_blocks(hvm_call_trace *trace, hvm_compile_bun
   // Set up a block for our entry point
   uint64_t entry_ip = item->head.ip;
   sprintf(scratch, "entry_0x%08llX", entry_ip);
-  hvm_jit_block *entry  = malloc(sizeof(hvm_jit_block));
+  hvm_jit_block *entry  = je_malloc(sizeof(hvm_jit_block));
   entry->next           = NULL;
   entry->ip             = entry_ip;
   entry->basic_block    = LLVMAppendBasicBlockInContext(context, parent_func, scratch);
@@ -895,7 +897,7 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
     // Make sure our builder is in the right place
     LLVMPositionBuilderAtEnd(builder, current_basic_block);
 
-    #define NEW_COMPILE_VALUE() malloc(sizeof(hvm_compile_value))
+    #define NEW_COMPILE_VALUE() je_malloc(sizeof(hvm_compile_value))
     #define STORE(COMPILE_VALUE, LLVM_VALUE) \
       hvm_jit_store_value(context, COMPILE_VALUE); \
       hvm_jit_store_reg_value(context, builder, COMPILE_VALUE->reg, LLVM_VALUE);
@@ -1273,6 +1275,7 @@ void hvm_jit_compile_pass_emit(hvm_vm *vm, hvm_call_trace *trace, struct hvm_jit
         DATA_ITEM_TYPE = HVM_COMPILE_DATA_LITINTEGER;
         {
           LLVMValueRef value;
+          hvm_obj_ref *ref;
           byte reg = trace_item->litinteger.register_return;
           // Create a new object reference and store the literal value in it
           ref = hvm_new_obj_int(vm);
@@ -1488,7 +1491,7 @@ void hvm_jit_compile_trace(hvm_vm *vm, hvm_call_trace *trace) {
   hvm_jit_define_constants();
 
   // Build the name for our function
-  char *function_name = malloc(sizeof(char) * 64);
+  char *function_name = je_malloc(sizeof(char) * 64);
   function_name[0]    = '\0';
   sprintf(function_name, "hvm_jit_function_%p", trace);
 
@@ -1504,7 +1507,7 @@ void hvm_jit_compile_trace(hvm_vm *vm, hvm_call_trace *trace) {
   LLVMBuilderRef builder = LLVMCreateBuilderInContext(context);
 
   // Allocate an array of data items for each item in the trace
-  hvm_compile_sequence_data *data = calloc(trace->sequence_length, sizeof(hvm_compile_sequence_data));
+  hvm_compile_sequence_data *data = je_calloc(trace->sequence_length, sizeof(hvm_compile_sequence_data));
   // Establish a bundle for all of our stuff related to this compilation.
   hvm_compile_bundle bundle = {
     .frame = hvm_new_frame(),
@@ -1568,14 +1571,14 @@ void hvm_jit_compile_trace(hvm_vm *vm, hvm_call_trace *trace) {
   // Save the compiled function
   trace->compiled_function = function;
 
-  free(data);
+  je_free(data);
 }
 
 hvm_jit_exit *hvm_jit_run_compiled_trace(hvm_vm *vm, hvm_call_trace *trace) {
   LLVMExecutionEngineRef engine = hvm_shared_llvm_engine;
   LLVMValueRef function         = trace->compiled_function;
   // Set up the memory for our exit information.
-  hvm_jit_exit *result = malloc(sizeof(hvm_jit_exit));
+  hvm_jit_exit *result = je_malloc(sizeof(hvm_jit_exit));
   // Get a pointer to the JIT-compiled native code
   void *vfp = LLVMGetPointerToGlobal(engine, function);
   // Cast it to the correct function pointer type and call the code
