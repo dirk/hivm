@@ -8,6 +8,7 @@
 #include <llvm-c/Core.h>
 #include <llvm-c/ExecutionEngine.h>
 #include <llvm-c/Target.h>
+#include <llvm-c/Analysis.h>
 #include <llvm-c/Transforms/Scalar.h>
 
 #include <jemalloc/jemalloc.h>
@@ -1582,6 +1583,13 @@ void hvm_jit_compile_trace(hvm_vm *vm, hvm_call_trace *trace) {
   // Resolve register references in instructions into concrete IR value
   // references and build the instruction sequence.
   hvm_jit_compile_pass_emit(vm, trace, &compile_context);
+
+  // Now let's run the LLVM passes on the function
+  LLVMRunFunctionPassManager(hvm_shared_llvm_pass_manager, function);
+  // Verify and abort if it's invalid
+  char *err = NULL;
+  LLVMVerifyModule(module, LLVMAbortProcessAction, &err);
+  LLVMDisposeMessage(err);
 
   // LLVMDumpModule(module);
   // exit(1);
